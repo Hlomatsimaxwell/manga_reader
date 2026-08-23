@@ -1,9 +1,62 @@
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/settings/screens/settings_screen.dart';
+
+class ProgressBadge extends StatelessWidget {
+  final int progress;
+
+  const ProgressBadge({
+    super.key,
+    required this.progress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double value = (progress / 100).clamp(0.0, 1.0);
+
+    return SizedBox(
+      width: 28,
+      height: 28,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(
+            width: 26,
+            height: 26,
+            child: CircularProgressIndicator(
+              value: value,
+              strokeWidth: 2.5,
+              backgroundColor: Colors.transparent,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF8E8E93),
+              ),
+            ),
+          ),
+          Text(
+            '$progress%',
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 8.5,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -13,16 +66,13 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  int _selectedFilter =
-      -1; // -1: none, 0: On device, 1: New chapters, 2: Completed
-
+  int _selectedFilter = -1;
   bool _isIncognitoMode = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Persistent option default states
-  String _listMode = 'Grid'; // 'Compact', 'Details', 'Grid'
-  double _gridSize = 3; // Grid columns (1 to 6)
+  String _listMode = 'Grid';
+  double _gridSize = 3;
   String _sortingOrder = 'Last read';
   bool _isGrouped = true;
 
@@ -39,73 +89,107 @@ class _HistoryScreenState extends State<HistoryScreen> {
     'Updated',
   ];
 
-  final List<Map<String, dynamic>> _historyItems = [
+  // Default fallback items if local storage is completely empty
+  final List<Map<String, dynamic>> _defaultHistoryItems = [
+    {
+      'mangaId': 'manga_3',
+      'title': 'Absolute Sword Sense',
+      'lastReadChapter': 98,
+      'totalReleasedChapters': 101,
+      'lastReadAt': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+      'coverUrl': 'https://picsum.photos/seed/manga3/300/450',
+      'progress': 99,
+      'unreadCount': 0,
+      'hasDownloadedChapters': false,
+    },
+    {
+      'mangaId': 'manga_2',
+      'title': 'Chronicles Of The Demon Faction',
+      'lastReadChapter': 14,
+      'totalReleasedChapters': 35,
+      'lastReadAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+      'coverUrl': 'https://picsum.photos/seed/manga2/300/450',
+      'progress': 0,
+      'unreadCount': 21,
+      'hasDownloadedChapters': true,
+    },
     {
       'mangaId': 'manga_1',
       'title': 'Return of the Mad Demon',
       'lastReadChapter': 209,
-      'dateGroup': 'July 31',
+      'totalReleasedChapters': 210,
+      'lastReadAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
       'coverUrl': 'https://picsum.photos/seed/manga1/300/450',
       'progress': 99,
       'unreadCount': 1,
-      'isFavorite': true,
-    },
-    {
-      'mangaId': 'manga_2',
-      'title': 'THE MASTERS ARE ...',
-      'lastReadChapter': 14,
-      'dateGroup': 'July 29',
-      'coverUrl': 'https://picsum.photos/seed/manga2/300/450',
-      'progress': 17,
-      'unreadCount': 0,
-      'isFavorite': false,
-    },
-    {
-      'mangaId': 'manga_3',
-      'title': 'Solo Leveling',
-      'lastReadChapter': 1,
-      'dateGroup': 'July 29',
-      'coverUrl': 'https://picsum.photos/seed/manga3/300/450',
-      'progress': 0,
-      'unreadCount': 0,
-      'isFavorite': false,
+      'hasDownloadedChapters': false,
     },
     {
       'mangaId': 'manga_4',
       'title': 'The Masters Are Subscribing To ...',
       'lastReadChapter': 12,
-      'dateGroup': 'July 29',
+      'totalReleasedChapters': 12,
+      'lastReadAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
       'coverUrl': 'https://picsum.photos/seed/manga4/300/450',
-      'progress': 0,
+      'progress': 32,
       'unreadCount': 0,
-      'isFavorite': true,
+      'hasDownloadedChapters': false,
     },
     {
       'mangaId': 'manga_5',
-      'title': 'Absolute Sword Sense',
-      'lastReadChapter': 98,
-      'dateGroup': 'July 19',
+      'title': 'Solo Leveling',
+      'lastReadChapter': 200,
+      'totalReleasedChapters': 200,
+      'lastReadAt': DateTime(2026, 8, 17, 14, 30).toIso8601String(),
       'coverUrl': 'https://picsum.photos/seed/manga5/300/450',
-      'progress': 98,
-      'unreadCount': 2,
-      'isFavorite': true,
+      'progress': 3,
+      'unreadCount': 0,
+      'hasDownloadedChapters': true,
     },
   ];
+
+  List<Map<String, dynamic>> _historyItems = [];
 
   @override
   void initState() {
     super.initState();
-    _loadPreferences();
+    _loadAllData();
   }
 
-  Future<void> _loadPreferences() async {
+  Future<void> _loadAllData() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // 1. Load User Preferences
+    final listMode = prefs.getString('history_list_mode') ?? 'Grid';
+    final gridSize = prefs.getDouble('history_grid_size') ?? 3.0;
+    final sortingOrder = prefs.getString('history_sorting_order') ?? 'Last read';
+    final isGrouped = prefs.getBool('history_is_grouped') ?? true;
+
+    // 2. Load Persisted History
+    final String? storedHistoryJson = prefs.getString('persistent_history_data');
+    List<Map<String, dynamic>> loadedItems = [];
+
+    if (storedHistoryJson != null) {
+      final List<dynamic> decodedList = jsonDecode(storedHistoryJson);
+      loadedItems = decodedList.map((item) => Map<String, dynamic>.from(item)).toList();
+    } else {
+      loadedItems = List<Map<String, dynamic>>.from(_defaultHistoryItems);
+    }
+
     setState(() {
-      _listMode = prefs.getString('history_list_mode') ?? 'Grid';
-      _gridSize = prefs.getDouble('history_grid_size') ?? 3.0;
-      _sortingOrder = prefs.getString('history_sorting_order') ?? 'Last read';
-      _isGrouped = prefs.getBool('history_is_grouped') ?? true;
+      _listMode = listMode;
+      _gridSize = gridSize;
+      _sortingOrder = sortingOrder;
+      _isGrouped = isGrouped;
+      _historyItems = loadedItems;
     });
+  }
+
+  Future<void> _saveHistoryToDisk() async {
+    if (_isIncognitoMode) return; // Skip saving history if Incognito mode is active
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedData = jsonEncode(_historyItems);
+    await prefs.setString('persistent_history_data', encodedData);
   }
 
   Future<void> _savePreference(String key, dynamic value) async {
@@ -121,8 +205,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
     super.dispose();
   }
 
-  void _navigateToDetail(BuildContext context, Map<String, dynamic> item) {
-    Navigator.push(
+  String _getDateGroupHeader(DateTime lastReadAt) {
+    final now = DateTime.now();
+    final difference = now.difference(lastReadAt);
+
+    if (difference.inMinutes < 60 && lastReadAt.isBefore(now)) {
+      return 'Just now';
+    }
+
+    final isToday = lastReadAt.year == now.year &&
+        lastReadAt.month == now.month &&
+        lastReadAt.day == now.day;
+    if (isToday) return 'Today';
+
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterday = lastReadAt.year == yesterday.year &&
+        lastReadAt.month == yesterday.month &&
+        lastReadAt.day == yesterday.day;
+    if (isYesterday) return 'Yesterday';
+
+    if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    }
+
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${months[lastReadAt.month - 1]} ${lastReadAt.day}';
+  }
+
+  void _navigateToDetail(BuildContext context, Map<String, dynamic> item) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MangaDetailScreen(
@@ -132,6 +246,67 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ),
     );
+
+    if (result != null && result is Map<String, dynamic> && result['readChapterNumber'] != null) {
+      _onChapterRead(
+        mangaId: item['mangaId'],
+        readChapterNumber: result['readChapterNumber'] as int,
+      );
+    }
+  }
+
+  void _onChapterRead({
+    required String mangaId,
+    required int readChapterNumber,
+  }) {
+    if (_isIncognitoMode) return;
+
+    setState(() {
+      final index = _historyItems.indexWhere((item) => item['mangaId'] == mangaId);
+      if (index == -1) return;
+
+      // Extract and modify the current item
+      final item = _historyItems.removeAt(index);
+      final totalReleased = item['totalReleasedChapters'] as int;
+
+      item['lastReadAt'] = DateTime.now().toIso8601String();
+      item['lastReadChapter'] = readChapterNumber;
+      item['progress'] = ((readChapterNumber / totalReleased) * 100).round().clamp(0, 100);
+
+      int currentUnread = item['unreadCount'] as int;
+      if (currentUnread > 0) {
+        int remainingUnread = totalReleased - readChapterNumber;
+        item['unreadCount'] = remainingUnread.clamp(0, totalReleased);
+      }
+
+      // Insert at index 0 so it becomes the very first item in the list
+      _historyItems.insert(0, item);
+    });
+
+    // Write updated state to disk
+    _saveHistoryToDisk();
+  }
+
+  void _clearHistory(int option) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (option == 3) {
+        _historyItems.clear();
+      } else if (option == 1) {
+        final now = DateTime.now();
+        _historyItems.removeWhere((item) {
+          final dt = DateTime.parse(item['lastReadAt']);
+          return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+        });
+      } else if (option == 0) {
+        final cutoff = DateTime.now().subtract(const Duration(hours: 2));
+        _historyItems.removeWhere((item) {
+          final dt = DateTime.parse(item['lastReadAt']);
+          return dt.isAfter(cutoff);
+        });
+      }
+    });
+    await prefs.setString('persistent_history_data', jsonEncode(_historyItems));
   }
 
   void _showClearHistoryDialog(BuildContext context) {
@@ -170,29 +345,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     title: 'Last 2 hours',
                     value: 0,
                     groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
+                    onChanged: (val) => setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
                     title: 'Today',
                     value: 1,
                     groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
+                    onChanged: (val) => setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
                     title: 'Not in favorites',
                     value: 2,
                     groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
+                    onChanged: (val) => setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
                     title: 'Clear all history',
                     value: 3,
                     groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
+                    onChanged: (val) => setDialogState(() => selectedOption = val!),
                   ),
                 ],
               ),
@@ -213,8 +384,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
+                    _clearHistory(selectedOption);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('History cleared')),
+                      const SnackBar(content: Text('History updated')),
                     );
                   },
                   child: const Text(
@@ -652,14 +824,33 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredList = _historyItems.where((item) {
-      if (_searchQuery.isEmpty) return true;
-      return item['title'].toString().toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
+      if (_searchQuery.isNotEmpty &&
+          !item['title'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          )) {
+        return false;
+      }
+
+      if (_selectedFilter == 0) {
+        return item['hasDownloadedChapters'] == true;
+      } else if (_selectedFilter == 1) {
+        return (item['unreadCount'] as int) > 0;
+      } else if (_selectedFilter == 2) {
+        return (item['progress'] as int) >= 100;
+      }
+
+      return true;
     }).toList();
 
     filteredList.sort((a, b) {
-      if (_sortingOrder == 'Name') {
+      final aTime = DateTime.parse(a['lastReadAt']);
+      final bTime = DateTime.parse(b['lastReadAt']);
+
+      if (_sortingOrder == 'Last read') {
+        return bTime.compareTo(aTime);
+      } else if (_sortingOrder == 'Long time ago read') {
+        return aTime.compareTo(bTime);
+      } else if (_sortingOrder == 'Name') {
         return a['title'].toString().compareTo(b['title'].toString());
       } else if (_sortingOrder == 'Name reversed') {
         return b['title'].toString().compareTo(a['title'].toString());
@@ -674,8 +865,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final Map<String, List<Map<String, dynamic>>> groupedHistory = {};
     if (_isGrouped) {
       for (var item in filteredList) {
-        final date = item['dateGroup'] as String;
-        groupedHistory.putIfAbsent(date, () => []).add(item);
+        final date = DateTime.parse(item['lastReadAt']);
+        final header = _getDateGroupHeader(date);
+        groupedHistory.putIfAbsent(header, () => []).add(item);
       }
     }
 
@@ -873,39 +1065,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const Divider(color: Colors.white12, height: 1),
       itemBuilder: (context, index) {
         final item = items[index];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 4),
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: CachedNetworkImage(
-              imageUrl: item['coverUrl'],
-              width: 40,
-              height: 56,
-              fit: BoxFit.cover,
-            ),
-          ),
-          title: Text(
-            item['title'],
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          subtitle: Text(
-            'Ch. ${item['lastReadChapter']}',
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
-          ),
-          trailing: Text(
-            '${item['progress']}%',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        return CompactHistoryCard(
+          item: item,
           onTap: () => _navigateToDetail(context, item),
         );
       },
@@ -923,67 +1084,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E20),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _navigateToDetail(context, item),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: item['coverUrl'],
-                      width: 60,
-                      height: 85,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['title'],
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Last read: Chapter ${item['lastReadChapter']}',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: (item['progress'] as int) / 100,
-                          backgroundColor: Colors.white12,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                          minHeight: 3,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        return DetailedHistoryCard(
+          item: item,
+          onTap: () => _navigateToDetail(context, item),
         );
       },
     );
@@ -1011,23 +1114,68 @@ class _HistoryScreenState extends State<HistoryScreen> {
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
-          return _buildMangaPosterCard(context, item);
+          return GridHistoryCard(
+            item: item,
+            gridSize: _gridSize,
+            onTap: () => _navigateToDetail(context, item),
+          );
         },
       ),
     );
   }
+}
 
-  Widget _buildMangaPosterCard(
-    BuildContext context,
-    Map<String, dynamic> item,
-  ) {
-    final progress = item['progress'] as int;
-    final unreadCount = item['unreadCount'] as int;
-    final isFavorite = item['isFavorite'] == true;
-    final bool isCompactGrid = _gridSize >= 4;
+class GridHistoryCard extends StatefulWidget {
+  final Map<String, dynamic> item;
+  final double gridSize;
+  final VoidCallback onTap;
+
+  const GridHistoryCard({
+    super.key,
+    required this.item,
+    required this.gridSize,
+    required this.onTap,
+  });
+
+  @override
+  State<GridHistoryCard> createState() => _GridHistoryCardState();
+}
+
+class _GridHistoryCardState extends State<GridHistoryCard> {
+  bool _isReadLater = false;
+
+  String get _readLaterKey => 'read_later_${widget.item['mangaId']}';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  @override
+  void didUpdateWidget(covariant GridHistoryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _isReadLater = prefs.getBool(_readLaterKey) ?? false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = widget.item['progress'] as int;
+    final unreadCount = widget.item['unreadCount'] as int;
+    final hasDownloadedChapters = widget.item['hasDownloadedChapters'] == true;
+    final bool isCompactGrid = widget.gridSize >= 4;
 
     return GestureDetector(
-      onTap: () => _navigateToDetail(context, item),
+      onTap: widget.onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -1037,9 +1185,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Stack(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(14),
                   child: CachedNetworkImage(
-                    imageUrl: item['coverUrl'],
+                    imageUrl: widget.item['coverUrl'],
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.cover,
@@ -1054,78 +1202,85 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
                 Positioned(
-                  top: 4,
-                  left: 4,
-                  right: 4,
+                  top: 6,
+                  left: 6,
+                  right: 6,
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (unreadCount > 0)
-                        Container(
-                          padding: EdgeInsets.all(isCompactGrid ? 3 : 4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF0A8A8),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            '$unreadCount',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: isCompactGrid ? 8 : 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      if (isFavorite && !isCompactGrid) ...[
-                        const SizedBox(width: 2),
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.black45,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.favorite,
-                            color: Colors.white,
-                            size: 9,
-                          ),
-                        ),
-                      ],
-                      const Spacer(),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isCompactGrid ? 4 : 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.85),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '$progress%',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: isCompactGrid ? 8 : 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (unreadCount > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 4,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF0A8A8),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '$unreadCount',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            if (_isReadLater)
+                              Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black45,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.favorite,
+                                  color: Colors.redAccent,
+                                  size: 14,
+                                ),
+                              ),
+                            if (hasDownloadedChapters)
+                              Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.sd_card_outlined,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
+                      ProgressBadge(progress: progress),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Expanded(
             child: Text(
-              item['title'],
+              widget.item['title'],
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: isCompactGrid ? 9 : 11,
+                fontSize: isCompactGrid ? 10 : 12,
                 fontWeight: FontWeight.w600,
-                height: 1.1,
+                height: 1.2,
               ),
             ),
           ),
@@ -1135,43 +1290,211 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-class KotatsuSliderThumbShape extends SliderComponentShape {
-  final double thumbWidth;
-  final double thumbHeight;
+class DetailedHistoryCard extends StatefulWidget {
+  final Map<String, dynamic> item;
+  final VoidCallback onTap;
 
-  const KotatsuSliderThumbShape({this.thumbWidth = 4, this.thumbHeight = 28});
+  const DetailedHistoryCard({
+    super.key,
+    required this.item,
+    required this.onTap,
+  });
 
   @override
-  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
-    return Size(thumbWidth, thumbHeight);
+  State<DetailedHistoryCard> createState() => _DetailedHistoryCardState();
+}
+
+class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
+  bool _isReadLater = false;
+
+  String get _readLaterKey => 'read_later_${widget.item['mangaId']}';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
   }
 
   @override
-  void paint(
-    PaintingContext context,
-    Offset center, {
-    required Animation<double> activationAnimation,
-    required Animation<double> enableAnimation,
-    required bool isDiscrete,
-    required TextPainter labelPainter,
-    required RenderBox parentBox,
-    required SliderThemeData sliderTheme,
-    required TextDirection textDirection,
-    required double value,
-    required double textScaleFactor,
-    required Size sizeWithOverflow,
-  }) {
-    final Canvas canvas = context.canvas;
-    final rect = Rect.fromCenter(
-      center: center,
-      width: thumbWidth,
-      height: thumbHeight,
-    );
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(2));
-    final paint = Paint()
-      ..color = sliderTheme.thumbColor ?? Colors.white
-      ..style = PaintingStyle.fill;
+  void didUpdateWidget(covariant DetailedHistoryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadStatus();
+  }
 
-    canvas.drawRRect(rrect, paint);
+  Future<void> _loadStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _isReadLater = prefs.getBool(_readLaterKey) ?? false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E20),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: widget.onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  imageUrl: widget.item['coverUrl'],
+                  width: 60,
+                  height: 85,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.item['title'],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Last read: Chapter ${widget.item['lastReadChapter']}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: (widget.item['progress'] as int) / 100,
+                      backgroundColor: Colors.white12,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                      minHeight: 3,
+                    ),
+                  ],
+                ),
+              ),
+              if (_isReadLater)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(
+                    Icons.favorite,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CompactHistoryCard extends StatefulWidget {
+  final Map<String, dynamic> item;
+  final VoidCallback onTap;
+
+  const CompactHistoryCard({
+    super.key,
+    required this.item,
+    required this.onTap,
+  });
+
+  @override
+  State<CompactHistoryCard> createState() => _CompactHistoryCardState();
+}
+
+class _CompactHistoryCardState extends State<CompactHistoryCard> {
+  bool _isReadLater = false;
+
+  String get _readLaterKey => 'read_later_${widget.item['mangaId']}';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  @override
+  void didUpdateWidget(covariant CompactHistoryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _isReadLater = prefs.getBool(_readLaterKey) ?? false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: CachedNetworkImage(
+          imageUrl: widget.item['coverUrl'],
+          width: 40,
+          height: 56,
+          fit: BoxFit.cover,
+        ),
+      ),
+      title: Text(
+        widget.item['title'],
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        'Ch. ${widget.item['lastReadChapter']}',
+        style: const TextStyle(color: Colors.white54, fontSize: 12),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_isReadLater) ...[
+            const Icon(
+              Icons.favorite,
+              color: Colors.redAccent,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            '${widget.item['progress']}%',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      onTap: widget.onTap,
+    );
   }
 }
