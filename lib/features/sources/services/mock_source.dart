@@ -1,10 +1,19 @@
-import 'services/base_source.dart';
-import 'models/manga.dart';
-import 'models/chapter.dart' as app_chapter;
+import '../models/manga_source.dart';
+import '../models/manga.dart';
+import '../models/chapter.dart';
 
-class MockMangaSource implements BaseSource {
+class MockMangaSource implements MangaSource {
+  @override
+  String get id => 'mock_source';
+
   @override
   String get name => 'Demo Manga';
+
+  @override
+  String get baseUrl => '';
+
+  @override
+  Map<String, String>? get headers => null;
 
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
@@ -14,7 +23,7 @@ class MockMangaSource implements BaseSource {
       12,
       (index) => Manga(
         id: 'manga_$index',
-        sourceId: 'mock_source',
+        sourceId: id,
         title: 'Sample Manga Title #${index + 1}',
         coverUrl: 'https://picsum.photos/seed/$index/300/400',
       ),
@@ -22,12 +31,12 @@ class MockMangaSource implements BaseSource {
   }
 
   @override
-  Future<List<app_chapter.Chapter>> getChapters(String mangaId) async {
+  Future<List<Chapter>> getChapters(String mangaId) async {
     await Future.delayed(const Duration(milliseconds: 300));
 
     return List.generate(
       10,
-      (index) => app_chapter.Chapter(
+      (index) => Chapter(
         id: 'chap_$index',
         title: 'Chapter ${index + 1}',
         chapterNumber: '${index + 1}',
@@ -38,7 +47,7 @@ class MockMangaSource implements BaseSource {
   }
 
   @override
-  Future<List<String>> getPageList(app_chapter.Chapter chapter) async {
+  Future<List<String>> getPageList(Chapter chapter) async {
     return getPageUrls(chapter.id);
   }
 

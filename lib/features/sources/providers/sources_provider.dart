@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/base_source.dart';
+import '../models/manga_source.dart';
 import '../services/manganato_service.dart';
 
 // 1. Provider for Manganato
-final manganatoSourceProvider = Provider<BaseSource>((ref) {
+final manganatoSourceProvider = Provider<MangaSource>((ref) {
   return ManganatoService();
 });
 
 // 2. Active Source Switcher
-final currentSourceProvider = Provider<BaseSource>((ref) {
+final currentSourceProvider = Provider<MangaSource>((ref) {
   return ManganatoService(); // Switch default source to Manganato
 });
 

@@ -30,6 +30,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _isLoadingNextChapter = false;
   bool _hasMoreChapters = true;
   bool _showControls = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -97,9 +98,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Future<void> _saveCascadingReadProgress() async {
-    if (_loadedChapterIndices.isEmpty) return;
+    if (_loadedChapterIndices.isEmpty || _isSaving) return;
+    _isSaving = true;
 
     double maxChapterNumRead = -1.0;
+    String? targetChapterId;
 
     for (final index in _loadedChapterIndices) {
       final chapter = widget.allChapters[index];
@@ -107,28 +110,47 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       final match = regExp.firstMatch(chapter.title);
       if (match != null) {
         final num = double.tryParse(match.group(1)!) ?? -1.0;
-        if (num > maxChapterNumRead) maxChapterNumRead = num;
+        if (num > maxChapterNumRead) {
+          maxChapterNumRead = num;
+          targetChapterId = chapter.id;
+        }
       }
     }
 
-    if (maxChapterNumRead >= 0) {
-      final chapter = widget.allChapters[_loadedChapterIndices.first];
+    if (maxChapterNumRead >= 0 && targetChapterId != null) {
       await DatabaseHelper.instance.markChapterAsRead(
         widget.mangaId,
-        chapter.id,
+        targetChapterId,
         maxChapterNumRead,
       );
     }
   }
 
+  void _changeChapterExplicitly(int newIndex) {
+    setState(() {
+      _currentChapterIndex = newIndex;
+      _pages.clear();
+      _loadedChapterIndices.clear();
+      _hasMoreChapters = true;
+    });
+    _loadChapter(_currentChapterIndex);
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentChapter = widget.allChapters[_currentChapterIndex];
+    final activeSource = ref.watch(currentSourceProvider);
+
+    // Directly access headers declared on BaseSource
+    final Map<String, String>? activeHeaders = activeSource.headers;
 
     return PopScope(
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) {
-          await _saveCascadingReadProgress();
+        if (didPop) return;
+        await _saveCascadingReadProgress();
+        if (context.mounted) {
+          Navigator.of(context).pop(result);
         }
       },
       child: Scaffold(
@@ -151,46 +173,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         itemCount: _pages.length + 1,
                         itemBuilder: (context, index) {
                           if (index < _pages.length) {
-                            return InteractiveViewer(
-                              minScale: 1.0,
-                              maxScale: 3.5,
-                              child: CachedNetworkImage(
-                                imageUrl: _pages[index],
-                                fit: BoxFit.fitWidth,
-                                httpHeaders: const {
-                                  'Referer': 'https://manganato.com',
-                                  'User-Agent':
-                                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                                },
-                                placeholder: (context, url) => Container(
-                                  height: 300,
-                                  color: Colors.black,
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white24,
-                                    ),
+                            return CachedNetworkImage(
+                              imageUrl: _pages[index],
+                              fit: BoxFit.fitWidth,
+                              httpHeaders: activeHeaders,
+                              placeholder: (context, url) => Container(
+                                height: 300,
+                                color: Colors.black,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white24,
                                   ),
                                 ),
-                                errorWidget: (context, url, error) => Container(
-                                  height: 200,
-                                  color: const Color(0xFF1E1E20),
-                                  child: const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.broken_image,
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                height: 200,
+                                color: const Color(0xFF1E1E20),
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image,
+                                      color: Colors.white54,
+                                      size: 32,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Failed to load page',
+                                      style: TextStyle(
                                         color: Colors.white54,
-                                        size: 32,
+                                        fontSize: 12,
                                       ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Failed to load page',
-                                        style: TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
@@ -203,7 +218,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                 ? const Column(
                                     children: [
                                       CircularProgressIndicator(
-                                          color: Colors.white),
+                                        color: Colors.white,
+                                      ),
                                       SizedBox(height: 12),
                                       Text(
                                         'Loading next chapter...',
@@ -214,14 +230,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                 : const Text(
                                     'You have reached the latest chapter!',
                                     style: TextStyle(
-                                        color: Colors.white54, fontSize: 14),
+                                      color: Colors.white54,
+                                      fontSize: 14,
+                                    ),
                                   ),
                           );
                         },
                       ),
                     ),
 
-              // Kotatsu Top Header Bar
+              // Top Header Controls
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 top: _showControls ? 0 : -100,
@@ -245,7 +263,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () async {
+                          await _saveCascadingReadProgress();
+                          if (context.mounted) Navigator.pop(context);
+                        },
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -269,9 +290,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     ],
                   ),
                 ),
-              ),              
+              ),
 
-              // Kotatsu Bottom Navigation Overlay
+              // Bottom Navigation Bar Controls
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 bottom: _showControls ? 0 : -100,
@@ -294,7 +315,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Scrub Dots Indicator
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
@@ -311,8 +331,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-
-                      // Controls Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -323,13 +341,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             ),
                             onPressed: _currentChapterIndex <
                                     widget.allChapters.length - 1
-                                ? () {
-                                    setState(() {
-                                      _currentChapterIndex++;
-                                      _pages.clear();
-                                      _loadChapter(_currentChapterIndex);
-                                    });
-                                  }
+                                ? () => _changeChapterExplicitly(
+                                    _currentChapterIndex + 1)
                                 : null,
                           ),
                           IconButton(
@@ -345,13 +358,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               color: Colors.white,
                             ),
                             onPressed: _currentChapterIndex > 0
-                                ? () {
-                                    setState(() {
-                                      _currentChapterIndex--;
-                                      _pages.clear();
-                                      _loadChapter(_currentChapterIndex);
-                                    });
-                                  }
+                                ? () => _changeChapterExplicitly(
+                                    _currentChapterIndex - 1)
                                 : null,
                           ),
                           IconButton(

@@ -9,10 +9,7 @@ import 'package:manga_reader/features/settings/screens/settings_screen.dart';
 class ProgressBadge extends StatelessWidget {
   final int progress;
 
-  const ProgressBadge({
-    super.key,
-    required this.progress,
-  });
+  const ProgressBadge({super.key, required this.progress});
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +93,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'title': 'Absolute Sword Sense',
       'lastReadChapter': 98,
       'totalReleasedChapters': 101,
-      'lastReadAt': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+      'lastReadAt': DateTime.now()
+          .subtract(const Duration(minutes: 5))
+          .toIso8601String(),
       'coverUrl': 'https://picsum.photos/seed/manga3/300/450',
       'progress': 99,
       'unreadCount': 0,
@@ -107,7 +106,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'title': 'Chronicles Of The Demon Faction',
       'lastReadChapter': 14,
       'totalReleasedChapters': 35,
-      'lastReadAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+      'lastReadAt': DateTime.now()
+          .subtract(const Duration(days: 5))
+          .toIso8601String(),
       'coverUrl': 'https://picsum.photos/seed/manga2/300/450',
       'progress': 0,
       'unreadCount': 21,
@@ -118,7 +119,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'title': 'Return of the Mad Demon',
       'lastReadChapter': 209,
       'totalReleasedChapters': 210,
-      'lastReadAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+      'lastReadAt': DateTime.now()
+          .subtract(const Duration(days: 5))
+          .toIso8601String(),
       'coverUrl': 'https://picsum.photos/seed/manga1/300/450',
       'progress': 99,
       'unreadCount': 1,
@@ -129,7 +132,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'title': 'The Masters Are Subscribing To ...',
       'lastReadChapter': 12,
       'totalReleasedChapters': 12,
-      'lastReadAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+      'lastReadAt': DateTime.now()
+          .subtract(const Duration(days: 5))
+          .toIso8601String(),
       'coverUrl': 'https://picsum.photos/seed/manga4/300/450',
       'progress': 32,
       'unreadCount': 0,
@@ -159,19 +164,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _loadAllData() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Load User Preferences
     final listMode = prefs.getString('history_list_mode') ?? 'Grid';
     final gridSize = prefs.getDouble('history_grid_size') ?? 3.0;
-    final sortingOrder = prefs.getString('history_sorting_order') ?? 'Last read';
+    final sortingOrder =
+        prefs.getString('history_sorting_order') ?? 'Last read';
     final isGrouped = prefs.getBool('history_is_grouped') ?? true;
 
-    // 2. Load Persisted History
-    final String? storedHistoryJson = prefs.getString('persistent_history_data');
+    final String? storedHistoryJson = prefs.getString(
+      'persistent_history_data',
+    );
     List<Map<String, dynamic>> loadedItems = [];
 
     if (storedHistoryJson != null) {
       final List<dynamic> decodedList = jsonDecode(storedHistoryJson);
-      loadedItems = decodedList.map((item) => Map<String, dynamic>.from(item)).toList();
+      loadedItems = decodedList
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
     } else {
       loadedItems = List<Map<String, dynamic>>.from(_defaultHistoryItems);
     }
@@ -186,7 +194,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _saveHistoryToDisk() async {
-    if (_isIncognitoMode) return; // Skip saving history if Incognito mode is active
+    if (_isIncognitoMode) return;
     final prefs = await SharedPreferences.getInstance();
     final String encodedData = jsonEncode(_historyItems);
     await prefs.setString('persistent_history_data', encodedData);
@@ -213,13 +221,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return 'Just now';
     }
 
-    final isToday = lastReadAt.year == now.year &&
+    final isToday =
+        lastReadAt.year == now.year &&
         lastReadAt.month == now.month &&
         lastReadAt.day == now.day;
     if (isToday) return 'Today';
 
     final yesterday = now.subtract(const Duration(days: 1));
-    final isYesterday = lastReadAt.year == yesterday.year &&
+    final isYesterday =
+        lastReadAt.year == yesterday.year &&
         lastReadAt.month == yesterday.month &&
         lastReadAt.day == yesterday.day;
     if (isYesterday) return 'Yesterday';
@@ -229,13 +239,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[lastReadAt.month - 1]} ${lastReadAt.day}';
   }
 
-  void _navigateToDetail(BuildContext context, Map<String, dynamic> item) async {
+  void _navigateToDetail(
+    BuildContext context,
+    Map<String, dynamic> item,
+  ) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -247,7 +270,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
 
-    if (result != null && result is Map<String, dynamic> && result['readChapterNumber'] != null) {
+    if (result != null &&
+        result is Map<String, dynamic> &&
+        result['readChapterNumber'] != null) {
       _onChapterRead(
         mangaId: item['mangaId'],
         readChapterNumber: result['readChapterNumber'] as int,
@@ -262,28 +287,33 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_isIncognitoMode) return;
 
     setState(() {
-      final index = _historyItems.indexWhere((item) => item['mangaId'] == mangaId);
+      final index = _historyItems.indexWhere(
+        (item) => item['mangaId'] == mangaId,
+      );
       if (index == -1) return;
 
-      // Extract and modify the current item
       final item = _historyItems.removeAt(index);
       final totalReleased = item['totalReleasedChapters'] as int;
+      final previousLastRead = (item['lastReadChapter'] as int?) ?? 0;
 
+      // 1. Always update active read timestamp to bump item to top of history
       item['lastReadAt'] = DateTime.now().toIso8601String();
-      item['lastReadChapter'] = readChapterNumber;
-      item['progress'] = ((readChapterNumber / totalReleased) * 100).round().clamp(0, 100);
 
-      int currentUnread = item['unreadCount'] as int;
-      if (currentUnread > 0) {
-        int remainingUnread = totalReleased - readChapterNumber;
+      // 2. Only update highest chapter read, overall progress, and unread count if reading a HIGHER chapter
+      if (readChapterNumber > previousLastRead) {
+        item['lastReadChapter'] = readChapterNumber;
+        item['progress'] = ((readChapterNumber / totalReleased) * 100)
+            .round()
+            .clamp(0, 100);
+
+        final remainingUnread = totalReleased - readChapterNumber;
         item['unreadCount'] = remainingUnread.clamp(0, totalReleased);
       }
 
-      // Insert at index 0 so it becomes the very first item in the list
+      // 3. Move to top of history list
       _historyItems.insert(0, item);
     });
 
-    // Write updated state to disk
     _saveHistoryToDisk();
   }
 
@@ -296,7 +326,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final now = DateTime.now();
         _historyItems.removeWhere((item) {
           final dt = DateTime.parse(item['lastReadAt']);
-          return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+          return dt.year == now.year &&
+              dt.month == now.month &&
+              dt.day == now.day;
         });
       } else if (option == 0) {
         final cutoff = DateTime.now().subtract(const Duration(hours: 2));
@@ -345,25 +377,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     title: 'Last 2 hours',
                     value: 0,
                     groupValue: selectedOption,
-                    onChanged: (val) => setDialogState(() => selectedOption = val!),
+                    onChanged: (val) =>
+                        setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
                     title: 'Today',
                     value: 1,
                     groupValue: selectedOption,
-                    onChanged: (val) => setDialogState(() => selectedOption = val!),
+                    onChanged: (val) =>
+                        setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
                     title: 'Not in favorites',
                     value: 2,
                     groupValue: selectedOption,
-                    onChanged: (val) => setDialogState(() => selectedOption = val!),
+                    onChanged: (val) =>
+                        setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
                     title: 'Clear all history',
                     value: 3,
                     groupValue: selectedOption,
-                    onChanged: (val) => setDialogState(() => selectedOption = val!),
+                    onChanged: (val) =>
+                        setDialogState(() => selectedOption = val!),
                   ),
                 ],
               ),
@@ -834,7 +870,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (_selectedFilter == 0) {
         return item['hasDownloadedChapters'] == true;
       } else if (_selectedFilter == 1) {
-        return (item['unreadCount'] as int) > 0;
+        final unread = (item['unreadCount'] as int?) ?? 0;
+        return unread > 0;
       } else if (_selectedFilter == 2) {
         return (item['progress'] as int) >= 100;
       }
@@ -1106,8 +1143,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           childAspectRatio: _gridSize >= 5
               ? 0.40
               : _gridSize >= 4
-                  ? 0.45
-                  : 0.54,
+              ? 0.45
+              : 0.54,
           crossAxisSpacing: 10,
           mainAxisSpacing: 16,
         ),
@@ -1477,11 +1514,7 @@ class _CompactHistoryCardState extends State<CompactHistoryCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_isReadLater) ...[
-            const Icon(
-              Icons.favorite,
-              color: Colors.redAccent,
-              size: 18,
-            ),
+            const Icon(Icons.favorite, color: Colors.redAccent, size: 18),
             const SizedBox(width: 8),
           ],
           Text(

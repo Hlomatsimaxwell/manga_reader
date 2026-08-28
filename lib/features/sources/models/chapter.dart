@@ -2,14 +2,14 @@ class Chapter {
   final String id;
   final String title;
   final String chapterNumber;
-  final String releaseDate;
+  final String? releaseDate;
   final String url;
 
   Chapter({
     required this.id,
     required this.title,
     required this.chapterNumber,
-    required this.releaseDate,
+    this.releaseDate,
     required this.url,
   });
 
