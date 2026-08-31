@@ -5,6 +5,9 @@ import '../../../core/database/database_helper.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
 import 'package:manga_reader/data/models/chapter.dart';
 
+// 1. Define the Reading Modes
+enum ReadingMode { vertical, horizontal }
+
 class ReaderScreen extends ConsumerStatefulWidget {
   final List<Chapter> allChapters;
   final int initialChapterIndex;
@@ -23,6 +26,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final ScrollController _scrollController = ScrollController();
+  final PageController _pageController = PageController();
   final List<String> _pages = [];
   final List<int> _loadedChapterIndices = [];
 
@@ -31,6 +35,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _hasMoreChapters = true;
   bool _showControls = true;
   bool _isSaving = false;
+  
+  // The mode state
+  ReadingMode _readingMode = ReadingMode.vertical;
 
   @override
   void initState() {
@@ -51,6 +58,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -60,6 +68,54 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     });
   }
 
+  void _showReadingModeDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Reading Mode',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.unfold_more, color: Colors.white54),
+                title: const Text('Vertical (Webtoon)', style: TextStyle(color: Colors.white)),
+                trailing: _readingMode == ReadingMode.vertical 
+                    ? const Icon(Icons.check_circle, color: Colors.blue) 
+                    : null,
+                onTap: () {
+                  setState(() => _readingMode = ReadingMode.vertical);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.swap_horiz, color: Colors.white54),
+                title: const Text('Horizontal (Manga)', style: TextStyle(color: Colors.white)),
+                trailing: _readingMode == ReadingMode.horizontal 
+                    ? const Icon(Icons.check_circle, color: Colors.blue) 
+                    : null,
+                onTap: () {
+                  setState(() => _readingMode = ReadingMode.horizontal);
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _loadChapter(int chapterIndex) async {
     if (_loadedChapterIndices.contains(chapterIndex)) return;
 
@@ -67,7 +123,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final chapter = widget.allChapters[chapterIndex];
 
     try {
-      final newPages = await source.getPageList(chapter);
+      final newPages = await source.getPageUrls(chapter.id);
       if (mounted) {
         setState(() {
           _pages.addAll(newPages);
@@ -81,17 +137,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   Future<void> _loadNextChapter() async {
     final nextIndex = _currentChapterIndex - 1;
-
     if (nextIndex < 0) {
       setState(() => _hasMoreChapters = false);
       return;
     }
-
     setState(() => _isLoadingNextChapter = true);
     _currentChapterIndex = nextIndex;
-
     await _loadChapter(_currentChapterIndex);
-
     if (mounted) {
       setState(() => _isLoadingNextChapter = false);
     }
@@ -124,6 +176,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         maxChapterNumRead,
       );
     }
+    _isSaving = false;
   }
 
   void _changeChapterExplicitly(int newIndex) {
@@ -140,8 +193,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget build(BuildContext context) {
     final currentChapter = widget.allChapters[_currentChapterIndex];
     final activeSource = ref.watch(currentSourceProvider);
-
-    // Directly access headers declared on BaseSource
     final Map<String, String>? activeHeaders = activeSource.headers;
 
     return PopScope(
@@ -149,9 +200,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         await _saveCascadingReadProgress();
-        if (context.mounted) {
-          Navigator.of(context).pop(result);
-        }
+        if (context.mounted) Navigator.of(context).pop(result);
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -159,87 +208,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           onTap: _toggleControls,
           child: Stack(
             children: [
-              // Continuous Page ListView
+              // --- VIEWPORT AREA ---
               _pages.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    )
-                  : ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context)
-                          .copyWith(scrollbars: false),
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: _pages.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index < _pages.length) {
-                            return CachedNetworkImage(
-                              imageUrl: _pages[index],
-                              fit: BoxFit.fitWidth,
-                              httpHeaders: activeHeaders,
-                              placeholder: (context, url) => Container(
-                                height: 300,
-                                color: Colors.black,
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white24,
-                                  ),
-                                ),
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                height: 200,
-                                color: const Color(0xFF1E1E20),
-                                child: const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.broken_image,
-                                      color: Colors.white54,
-                                      size: 32,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Failed to load page',
-                                      style: TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
+                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                  : _readingMode == ReadingMode.vertical 
+                      ? _buildVerticalReader(activeHeaders) 
+                      : _buildHorizontalReader(activeHeaders),
 
-                          return Container(
-                            padding: const EdgeInsets.symmetric(vertical: 32),
-                            alignment: Alignment.center,
-                            child: _hasMoreChapters
-                                ? const Column(
-                                    children: [
-                                      CircularProgressIndicator(
-                                        color: Colors.white,
-                                      ),
-                                      SizedBox(height: 12),
-                                      Text(
-                                        'Loading next chapter...',
-                                        style: TextStyle(color: Colors.white70),
-                                      ),
-                                    ],
-                                  )
-                                : const Text(
-                                    'You have reached the latest chapter!',
-                                    style: TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                          );
-                        },
-                      ),
-                    ),
-
-              // Top Header Controls
+              // --- TOP HEADER ---
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 top: _showControls ? 0 : -100,
@@ -270,21 +246,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              currentChapter.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                        child: Text(
+                          currentChapter.title,
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -292,7 +258,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 ),
               ),
 
-              // Bottom Navigation Bar Controls
+              // --- BOTTOM NAVIGATION ---
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 bottom: _showControls ? 0 : -100,
@@ -318,8 +284,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
-                          8,
-                          (index) => Container(
+                          8, (index) => Container(
                             margin: const EdgeInsets.symmetric(horizontal: 2),
                             width: index == 1 ? 6 : 4,
                             height: index == 1 ? 6 : 4,
@@ -335,45 +300,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           IconButton(
-                            icon: const Icon(
-                              Icons.skip_previous_outlined,
-                              color: Colors.white,
-                            ),
-                            onPressed: _currentChapterIndex <
-                                    widget.allChapters.length - 1
-                                ? () => _changeChapterExplicitly(
-                                    _currentChapterIndex + 1)
+                            icon: const Icon(Icons.skip_previous_outlined, color: Colors.white),
+                            onPressed: _currentChapterIndex < widget.allChapters.length - 1
+                                ? () => _changeChapterExplicitly(_currentChapterIndex + 1)
                                 : null,
                           ),
                           IconButton(
-                            icon: const Icon(
-                              Icons.pause_outlined,
-                              color: Colors.white,
-                            ),
-                            onPressed: () {},
+                            icon: const Icon(Icons.swap_vert, color: Colors.white),
+                            onPressed: _showReadingModeDialog,
                           ),
                           IconButton(
-                            icon: const Icon(
-                              Icons.skip_next_outlined,
-                              color: Colors.white,
-                            ),
+                            icon: const Icon(Icons.skip_next_outlined, color: Colors.white),
                             onPressed: _currentChapterIndex > 0
-                                ? () => _changeChapterExplicitly(
-                                    _currentChapterIndex - 1)
+                                ? () => _changeChapterExplicitly(_currentChapterIndex - 1)
                                 : null,
                           ),
                           IconButton(
-                            icon: const Icon(
-                              Icons.format_list_bulleted,
-                              color: Colors.white,
-                            ),
+                            icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
                             onPressed: () {},
                           ),
                           IconButton(
-                            icon: const Icon(
-                              Icons.more_vert,
-                              color: Colors.white,
-                            ),
+                            icon: const Icon(Icons.more_vert, color: Colors.white),
                             onPressed: () {},
                           ),
                         ],
@@ -386,6 +333,79 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- VERTICAL READER BUILDER ---
+  Widget _buildVerticalReader(Map<String, String>? headers) {
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        itemCount: _pages.length + 1,
+        itemBuilder: (context, index) {
+          if (index < _pages.length) {
+            return _buildPageImage(_pages[index], headers);
+          }
+          return _buildLoadingIndicator();
+        },
+      ),
+    );
+  }
+
+  // --- HORIZONTAL READER BUILDER ---
+  Widget _buildHorizontalReader(Map<String, String>? headers) {
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: _pages.length,
+      itemBuilder: (context, index) {
+        return _buildPageImage(_pages[index], headers);
+      },
+    );
+  }
+
+  // --- REUSABLE IMAGE WIDGET ---
+  Widget _buildPageImage(String url, Map<String, String>? headers) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.fitWidth,
+      httpHeaders: headers,
+      placeholder: (context, url) => Container(
+        height: 500,
+        color: Colors.black,
+        child: const Center(child: CircularProgressIndicator(color: Colors.white24)),
+      ),
+      errorWidget: (context, url, error) => Container(
+        height: 200,
+        color: const Color(0xFF1E1E20),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image, color: Colors.white54, size: 32),
+            SizedBox(height: 8),
+            Text('Failed to load page', style: TextStyle(color: Colors.white54, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- LOADING INDICATOR WIDGET ---
+  Widget _buildLoadingIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      alignment: Alignment.center,
+      child: _hasMoreChapters
+          ? const Column(
+              children: [
+                CircularProgressIndicator(color: Colors.white),
+                SizedBox(height: 12),
+                Text('Loading next chapter...', style: TextStyle(color: Colors.white70)),
+              ],
+            )
+          : const Text('You have reached the latest chapter!',
+              style: TextStyle(color: Colors.white54, fontSize: 14)),
     );
   }
 }

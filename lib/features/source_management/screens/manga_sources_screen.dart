@@ -129,7 +129,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
+            body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: filteredSources.length,
         itemBuilder: (context, index) {
@@ -138,6 +138,24 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
           final isPinned = source['isPinned'] == true;
 
           return ListTile(
+            // --- ADDED ONTAP LOGIC HERE ---
+            onTap: () {
+              // 1. Switch the active source using our new registry
+              ref.read(currentSourceProvider.notifier).state = getSourceByName(sourceName);
+
+              // 2. Show a a nice confirmation to the user
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Switched to $sourceName'),
+                  backgroundColor: source['bgColor'] as Color,
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+
+              // 3. Go back to the home screen to see the new content
+              Navigator.pop(context);
+            },
+            // ------------------------------
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             leading: Container(
@@ -249,6 +267,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
           );
         },
       ),
+
     );
   }
 }

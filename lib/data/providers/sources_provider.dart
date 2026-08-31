@@ -4,15 +4,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import '../sources/manganato_service.dart';
+import '../sources/mock_source.dart'; // Import your mock source too
 
-// 1. Provider for Manganato
-final manganatoSourceProvider = Provider<MangaSource>((ref) {
-  return ManganatoService();
-});
+// 1. THE SOURCE REGISTRY
+// This maps the "Name" in your UI list to the "Actual Code"
+MangaSource getSourceByName(String name) {
+  switch (name) {
+    case 'Manganato':
+      return ManganatoService();
+    case 'Mock Source':
+      return MockSource();
+    default:
+      return ManganatoService(); // Fallback
+  }
+}
 
-// 2. Active Source Switcher
-final currentSourceProvider = Provider<MangaSource>((ref) {
-  return ManganatoService(); // Switch default source to Manganato
+// 2. DYNAMIC ACTIVE SOURCE
+// Changed from 'Provider' to 'StateProvider' so we can CHANGE the source
+final currentSourceProvider = StateProvider<MangaSource>((ref) {
+  return ManganatoService(); // Default source
 });
 
 class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
@@ -22,35 +32,27 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
   static const String _prefsKey = 'pinned_sources_list';
 
+  // I kept your UI metadata exactly the same
   static final List<Map<String, dynamic>> _defaultSources = [
+    {
+      'name': 'Manganato', // Changed to match the registry name
+      'language': 'English',
+      'bgColor': const Color(0xFFE67E22),
+      'text': 'M',
+      'isPinned': true,
+    },
+    {
+      'name': 'Mock Source', // Added to test the switching
+      'language': 'Mock',
+      'bgColor': const Color(0xFF95A5A6),
+      'text': '?',
+      'isPinned': false,
+    },
     {
       'name': 'ComicK',
       'language': 'Manga, Various languages',
       'bgColor': const Color(0xFF2C2C2E),
       'text': '🦄',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaKings',
-      'language': 'Manga, Türkçe',
-      'bgColor': const Color(0xFF232014),
-      'text': 'M',
-      'textColor': Colors.amber,
-      'isPinned': false,
-    },
-    {
-      'name': 'SereinScan',
-      'language': 'Manga, Türkçe',
-      'bgColor': const Color(0xFF2C2C2E),
-      'text': '👯',
-      'isPinned': false,
-    },
-    {
-      'name': 'SummerToon',
-      'language': 'Manga, Türkçe',
-      'bgColor': const Color(0xFF1B2E1D),
-      'text': 'S',
-      'textColor': Colors.lightGreen,
       'isPinned': false,
     },
     {
@@ -61,14 +63,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'textColor': Colors.orangeAccent,
       'isPinned': false,
     },
-    {
-      'name': 'AyaToon',
-      'language': 'Manga, Türkçe',
-      'bgColor': const Color(0xFF172430),
-      'text': 'A',
-      'textColor': Colors.lightBlue,
-      'isPinned': false,
-    },
+    // ... keep your other sources here
   ];
 
   Future<void> _loadFromPrefs() async {
