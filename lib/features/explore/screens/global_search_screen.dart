@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manga_reader/features/explore/screens/global_search_results_screen.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/sources/screens/manga_grid_screen.dart';
+import 'package:manga_reader/features/source_management/screens/manga_grid_screen.dart';
 
 class GlobalSearchScreen extends StatefulWidget {
   const GlobalSearchScreen({super.key});

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/features/suggestions/screens/suggestions_screen.dart';
 import 'features/history/screens/history_screen.dart';
 import 'features/library/screens/favorites_screen.dart';
-import 'features/sources/screens/manga_grid_screen.dart';
+import 'features/source_management/screens/manga_grid_screen.dart';
 import 'package:manga_reader/features/explore/screens/explore_screen.dart';
 import 'package:manga_reader/features/feed/screens/feed_screen.dart';
 

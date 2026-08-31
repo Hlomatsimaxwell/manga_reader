@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
-import '../services/manganato_service.dart';
+import '../sources/manganato_service.dart';
 
 // 1. Provider for Manganato
 final manganatoSourceProvider = Provider<MangaSource>((ref) {

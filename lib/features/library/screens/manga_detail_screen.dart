@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:manga_reader/features/library/screens/related_manga_screen.dart';
 import 'package:manga_reader/features/reader/screens/reader_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:manga_reader/features/sources/models/chapter.dart';
+import 'package:manga_reader/data/models/chapter.dart';
 
 
 class MangaDetailScreen extends StatefulWidget {

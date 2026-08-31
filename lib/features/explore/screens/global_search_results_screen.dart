@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/sources/providers/sources_provider.dart';
+import 'package:manga_reader/data/providers/sources_provider.dart';
 
 enum SortOption { simple, name, author, genre }
 

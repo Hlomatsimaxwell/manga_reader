@@ -2,8 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database_helper.dart';
-import 'package:manga_reader/features/sources/providers/sources_provider.dart';
-import 'package:manga_reader/features/sources/models/chapter.dart';
+import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:manga_reader/data/models/chapter.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final List<Chapter> allChapters;

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/sources/providers/sources_provider.dart';
-import 'package:manga_reader/features/sources/screens/manga_grid_screen.dart';
-import 'package:manga_reader/features/sources/screens/manga_sources_screen.dart';
+import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:manga_reader/features/source_management/screens/manga_grid_screen.dart';
+import 'package:manga_reader/features/source_management/screens/manga_sources_screen.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
