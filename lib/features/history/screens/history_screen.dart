@@ -66,7 +66,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedFilter = -1;
   bool _isIncognitoMode = false;
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  final String _searchQuery = '';
 
   String _listMode = 'Grid';
   double _gridSize = 3;
@@ -585,7 +585,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         enabledThumbRadius: 10,
                         elevation: 4,
                       ),
-                      overlayColor: Colors.white.withOpacity(0.12),
+                      overlayColor: Colors.white.withValues(alpha: 0.12),
                       overlayShape: const RoundSliderOverlayShape(
                         overlayRadius: 20,
                       ),
@@ -686,7 +686,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                       Switch(
                         value: _isGrouped,
-                        activeColor: Colors.black,
+                        activeThumbColor: Colors.black,
                         activeTrackColor: Colors.white,
                         inactiveThumbColor: Colors.white54,
                         inactiveTrackColor: const Color(0xFF2C2C2E),

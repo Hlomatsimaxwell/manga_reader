@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manga_reader/features/explore/screens/global_search_results_screen.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/source_management/screens/manga_grid_screen.dart';
 
 class GlobalSearchScreen extends StatefulWidget {
@@ -496,7 +495,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             ),
             trailing: Switch(
               value: source['isEnabled'] as bool,
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
               activeTrackColor: Colors.lightGreen,
               onChanged: (val) {
                 setState(() {

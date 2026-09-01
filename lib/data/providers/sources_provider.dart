@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import '../sources/manganato_service.dart';
-import '../sources/mock_source.dart'; // Import your mock source too
+import '../sources/mock_source.dart';
+import '../sources/anime_api_source.dart'; // <--- ADDED THIS IMPORT
 
 // 1. THE SOURCE REGISTRY
 // This maps the "Name" in your UI list to the "Actual Code"
 MangaSource getSourceByName(String name) {
   switch (name) {
+    case 'Anime-API': // <--- ADDED THIS CASE
+      return AnimeApiSource();
     case 'Manganato':
       return ManganatoService();
     case 'Mock Source':
@@ -20,9 +23,9 @@ MangaSource getSourceByName(String name) {
 }
 
 // 2. DYNAMIC ACTIVE SOURCE
-// Changed from 'Provider' to 'StateProvider' so we can CHANGE the source
 final currentSourceProvider = StateProvider<MangaSource>((ref) {
-  return ManganatoService(); // Default source
+  // I've set the default to Anime-API so you can see it working immediately!
+  return AnimeApiSource(); 
 });
 
 class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
@@ -32,17 +35,23 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
   static const String _prefsKey = 'pinned_sources_list';
 
-  // I kept your UI metadata exactly the same
   static final List<Map<String, dynamic>> _defaultSources = [
     {
-      'name': 'Manganato', // Changed to match the registry name
+      'name': 'Anime-API', // <--- ADDED THIS TO UI LIST
+      'language': 'English',
+      'bgColor': const Color(0xFF6200EE),
+      'text': 'A',
+      'isPinned': true,
+    },
+    {
+      'name': 'Manganato', 
       'language': 'English',
       'bgColor': const Color(0xFFE67E22),
       'text': 'M',
       'isPinned': true,
     },
     {
-      'name': 'Mock Source', // Added to test the switching
+      'name': 'Mock Source', 
       'language': 'Mock',
       'bgColor': const Color(0xFF95A5A6),
       'text': '?',
@@ -63,7 +72,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'textColor': Colors.orangeAccent,
       'isPinned': false,
     },
-    // ... keep your other sources here
   ];
 
   Future<void> _loadFromPrefs() async {

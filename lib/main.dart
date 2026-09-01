@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/features/suggestions/screens/suggestions_screen.dart';
 import 'features/history/screens/history_screen.dart';
 import 'features/library/screens/favorites_screen.dart';
-import 'features/source_management/screens/manga_grid_screen.dart';
 import 'package:manga_reader/features/explore/screens/explore_screen.dart';
 import 'package:manga_reader/features/feed/screens/feed_screen.dart';
 
@@ -66,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(36),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
