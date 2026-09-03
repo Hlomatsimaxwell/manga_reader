@@ -1,10 +1,12 @@
-import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/settings/screens/settings_screen.dart';
+import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:manga_reader/features/history/providers/history_provider.dart';
 
 class ProgressBadge extends StatelessWidget {
   final int progress;
@@ -55,14 +57,14 @@ class ProgressBadge extends StatelessWidget {
   }
 }
 
-class HistoryScreen extends StatefulWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _selectedFilter = -1;
   bool _isIncognitoMode = false;
   final TextEditingController _searchController = TextEditingController();
@@ -86,82 +88,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     'Updated',
   ];
 
-  // Default fallback items if local storage is completely empty
-  final List<Map<String, dynamic>> _defaultHistoryItems = [
-    {
-      'mangaId': 'manga_3',
-      'title': 'Absolute Sword Sense',
-      'lastReadChapter': 98,
-      'totalReleasedChapters': 101,
-      'lastReadAt': DateTime.now()
-          .subtract(const Duration(minutes: 5))
-          .toIso8601String(),
-      'coverUrl': 'https://picsum.photos/seed/manga3/300/450',
-      'progress': 99,
-      'unreadCount': 0,
-      'hasDownloadedChapters': false,
-    },
-    {
-      'mangaId': 'manga_2',
-      'title': 'Chronicles Of The Demon Faction',
-      'lastReadChapter': 14,
-      'totalReleasedChapters': 35,
-      'lastReadAt': DateTime.now()
-          .subtract(const Duration(days: 5))
-          .toIso8601String(),
-      'coverUrl': 'https://picsum.photos/seed/manga2/300/450',
-      'progress': 0,
-      'unreadCount': 21,
-      'hasDownloadedChapters': true,
-    },
-    {
-      'mangaId': 'manga_1',
-      'title': 'Return of the Mad Demon',
-      'lastReadChapter': 209,
-      'totalReleasedChapters': 210,
-      'lastReadAt': DateTime.now()
-          .subtract(const Duration(days: 5))
-          .toIso8601String(),
-      'coverUrl': 'https://picsum.photos/seed/manga1/300/450',
-      'progress': 99,
-      'unreadCount': 1,
-      'hasDownloadedChapters': false,
-    },
-    {
-      'mangaId': 'manga_4',
-      'title': 'The Masters Are Subscribing To ...',
-      'lastReadChapter': 12,
-      'totalReleasedChapters': 12,
-      'lastReadAt': DateTime.now()
-          .subtract(const Duration(days: 5))
-          .toIso8601String(),
-      'coverUrl': 'https://picsum.photos/seed/manga4/300/450',
-      'progress': 32,
-      'unreadCount': 0,
-      'hasDownloadedChapters': false,
-    },
-    {
-      'mangaId': 'manga_5',
-      'title': 'Solo Leveling',
-      'lastReadChapter': 200,
-      'totalReleasedChapters': 200,
-      'lastReadAt': DateTime(2026, 8, 17, 14, 30).toIso8601String(),
-      'coverUrl': 'https://picsum.photos/seed/manga5/300/450',
-      'progress': 3,
-      'unreadCount': 0,
-      'hasDownloadedChapters': true,
-    },
-  ];
-
   List<Map<String, dynamic>> _historyItems = [];
 
   @override
   void initState() {
     super.initState();
-    _loadAllData();
+    _loadInitialData();
   }
 
-  Future<void> _loadAllData() async {
+  Future<void> _loadInitialData() async {
     final prefs = await SharedPreferences.getInstance();
 
     final listMode = prefs.getString('history_list_mode') ?? 'Grid';
@@ -170,34 +105,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
         prefs.getString('history_sorting_order') ?? 'Last read';
     final isGrouped = prefs.getBool('history_is_grouped') ?? true;
 
-    final String? storedHistoryJson = prefs.getString(
-      'persistent_history_data',
-    );
-    List<Map<String, dynamic>> loadedItems = [];
-
-    if (storedHistoryJson != null) {
-      final List<dynamic> decodedList = jsonDecode(storedHistoryJson);
-      loadedItems = decodedList
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
-    } else {
-      loadedItems = List<Map<String, dynamic>>.from(_defaultHistoryItems);
-    }
-
     setState(() {
       _listMode = listMode;
       _gridSize = gridSize;
       _sortingOrder = sortingOrder;
       _isGrouped = isGrouped;
-      _historyItems = loadedItems;
     });
+
+    await _loadFromProvider();
   }
 
-  Future<void> _saveHistoryToDisk() async {
-    if (_isIncognitoMode) return;
-    final prefs = await SharedPreferences.getInstance();
-    final String encodedData = jsonEncode(_historyItems);
-    await prefs.setString('persistent_history_data', encodedData);
+  Future<void> _loadFromProvider() async {
+    final rows = await DatabaseHelper.instance.getHistory();
+    final items = mapHistoryRows(rows);
+    if (mounted) {
+      setState(() => _historyItems = items);
+    }
   }
 
   Future<void> _savePreference(String key, dynamic value) async {
@@ -259,86 +182,54 @@ class _HistoryScreenState extends State<HistoryScreen> {
     BuildContext context,
     Map<String, dynamic> item,
   ) async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MangaDetailScreen(
           mangaId: item['mangaId'],
           title: item['title'],
           imageUrl: item['coverUrl'],
+          sourceId: item['sourceId'],
         ),
       ),
     );
 
-    if (result != null &&
-        result is Map<String, dynamic> &&
-        result['readChapterNumber'] != null) {
-      _onChapterRead(
-        mangaId: item['mangaId'],
-        readChapterNumber: result['readChapterNumber'] as int,
-      );
+    // Refresh history from the DB (progress may have changed while reading).
+    if (mounted) await _loadFromProvider();
+    bumpHistoryRevision(ref);
+  }
+
+  Future<void> _clearHistory(int option) async {
+    if (option == 3) {
+      await DatabaseHelper.instance.clearHistory();
+      if (mounted) await _loadFromProvider();
+    bumpHistoryRevision(ref);
+      return;
     }
-  }
 
-  void _onChapterRead({
-    required String mangaId,
-    required int readChapterNumber,
-  }) {
-    if (_isIncognitoMode) return;
+    final now = DateTime.now();
+    final cutoff = option == 0
+        ? now.subtract(const Duration(hours: 2))
+        : DateTime(now.year, now.month, now.day);
+    final remaining = _historyItems.where((item) {
+      final dt = DateTime.parse(item['lastReadAt']);
+      if (option == 0) return !dt.isAfter(cutoff);
+      // option == 1: keep items read before today
+      return DateTime(dt.year, dt.month, dt.day).isBefore(cutoff);
+    }).toList();
 
-    setState(() {
-      final index = _historyItems.indexWhere(
-        (item) => item['mangaId'] == mangaId,
-      );
-      if (index == -1) return;
+    final removedIds =
+        _historyItems
+            .where((item) => !remaining.contains(item))
+            .map((item) => item['mangaId'])
+            .toSet();
 
-      final item = _historyItems.removeAt(index);
-      final totalReleased = item['totalReleasedChapters'] as int;
-      final previousLastRead = (item['lastReadChapter'] as int?) ?? 0;
-
-      // 1. Always update active read timestamp to bump item to top of history
-      item['lastReadAt'] = DateTime.now().toIso8601String();
-
-      // 2. Only update highest chapter read, overall progress, and unread count if reading a HIGHER chapter
-      if (readChapterNumber > previousLastRead) {
-        item['lastReadChapter'] = readChapterNumber;
-        item['progress'] = ((readChapterNumber / totalReleased) * 100)
-            .round()
-            .clamp(0, 100);
-
-        final remainingUnread = totalReleased - readChapterNumber;
-        item['unreadCount'] = remainingUnread.clamp(0, totalReleased);
-      }
-
-      // 3. Move to top of history list
-      _historyItems.insert(0, item);
-    });
-
-    _saveHistoryToDisk();
-  }
-
-  void _clearHistory(int option) async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      if (option == 3) {
-        _historyItems.clear();
-      } else if (option == 1) {
-        final now = DateTime.now();
-        _historyItems.removeWhere((item) {
-          final dt = DateTime.parse(item['lastReadAt']);
-          return dt.year == now.year &&
-              dt.month == now.month &&
-              dt.day == now.day;
-        });
-      } else if (option == 0) {
-        final cutoff = DateTime.now().subtract(const Duration(hours: 2));
-        _historyItems.removeWhere((item) {
-          final dt = DateTime.parse(item['lastReadAt']);
-          return dt.isAfter(cutoff);
-        });
-      }
-    });
-    await prefs.setString('persistent_history_data', jsonEncode(_historyItems));
+    final db = await DatabaseHelper.instance.database;
+    for (final id in removedIds) {
+      await db.delete('manga', where: 'mangaId = ?', whereArgs: [id]);
+    }
+    if (mounted) await _loadFromProvider();
+    bumpHistoryRevision(ref);
   }
 
   void _showClearHistoryDialog(BuildContext context) {
@@ -859,6 +750,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(historyRevisionProvider, (prev, next) {
+      if (next != prev) _loadFromProvider();
+    });
+
     final filteredList = _historyItems.where((item) {
       if (_searchQuery.isNotEmpty &&
           !item['title'].toString().toLowerCase().contains(

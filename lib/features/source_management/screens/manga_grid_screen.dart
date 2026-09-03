@@ -1,7 +1,9 @@
-import 'dart:math'; // 1. Add this import at the top of manga_grid_screen.dart
+import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/data/models/manga.dart';
+import 'package:manga_reader/data/providers/sources_provider.dart';
 
 class MangaGridScreen extends StatefulWidget {
   final String sourceName;
@@ -18,6 +20,10 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
   bool _isSearching = false;
   String _searchQuery = '';
 
+  List<Manga> _mangaList = [];
+  bool _isLoading = true;
+  String? _error;
+
   final List<String> _filters = [
     'Genres',
     'Web Comic',
@@ -27,69 +33,46 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
     'Romance',
   ];
 
-  final List<Map<String, dynamic>> _mangaList = [
-    {
-      'mangaId': 'mg_1',
-      'title': 'Worst Generation',
-      'coverUrl': 'https://picsum.photos/seed/mg1/300/450',
-    },
-    {
-      'mangaId': 'mg_2',
-      'title': 'High School Baseball Tycoon',
-      'coverUrl': 'https://picsum.photos/seed/mg2/300/450',
-    },
-    {
-      'mangaId': 'mg_3',
-      'title': 'May Sleep Befall Death',
-      'coverUrl': 'https://picsum.photos/seed/mg3/300/450',
-    },
-    {
-      'mangaId': 'mg_4',
-      'title': 'Marika-chan no Koukando wa B...',
-      'coverUrl': 'https://picsum.photos/seed/mg4/300/450',
-    },
-    {
-      'mangaId': 'mg_5',
-      'title': 'My Fiance Is a Former Assassi...',
-      'coverUrl': 'https://picsum.photos/seed/mg5/300/450',
-    },
-    {
-      'mangaId': 'mg_6',
-      'title': "There's No Way This Is Love",
-      'coverUrl': 'https://picsum.photos/seed/mg6/300/450',
-    },
-    {
-      'mangaId': 'mg_7',
-      'title': 'The Tyrant Brother is a Bon...',
-      'coverUrl': 'https://picsum.photos/seed/mg7/300/450',
-    },
-    {
-      'mangaId': 'mg_8',
-      'title': "I Said I'd Do Science Pop...",
-      'coverUrl': 'https://picsum.photos/seed/mg8/300/450',
-    },
-    {
-      'mangaId': 'mg_9',
-      'title': 'Rise Shoulder',
-      'coverUrl': 'https://picsum.photos/seed/mg9/300/450',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadManga();
+  }
 
-  // Helper method to pick and open a random manga
+  Future<void> _loadManga() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final source = getSourceByName(widget.sourceName);
+      final manga = await source.getPopularManga();
+      setState(() {
+        _mangaList = manga;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
   void _openRandomManga() {
     if (_mangaList.isEmpty) return;
 
     final random = Random();
-    final randomIndex = random.nextInt(_mangaList.length);
-    final randomManga = _mangaList[randomIndex];
+    final randomManga = _mangaList[random.nextInt(_mangaList.length)];
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MangaDetailScreen(
-          mangaId: randomManga['mangaId'],
-          title: randomManga['title'],
-          imageUrl: randomManga['coverUrl'],
+          mangaId: randomManga.id,
+          title: randomManga.title,
+          imageUrl: randomManga.coverUrl,
+          sourceId: randomManga.sourceId,
         ),
       ),
     );
@@ -105,7 +88,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
   Widget build(BuildContext context) {
     final displayedManga = _mangaList.where((item) {
       if (_searchQuery.isEmpty) return true;
-      return item['title'].toString().toLowerCase().contains(
+      return item.title.toLowerCase().contains(
         _searchQuery.toLowerCase(),
       );
     }).toList();
@@ -198,7 +181,48 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
             const SizedBox(height: 12),
             _buildFilterChips(),
             const SizedBox(height: 16),
-            _buildMangaGrid(displayedManga),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                ),
+              )
+            else if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Center(
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Failed to load manga',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _loadManga,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white38),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              _buildMangaGrid(displayedManga),
           ],
         ),
       ),
@@ -266,7 +290,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
     );
   }
 
-  Widget _buildMangaGrid(List<Map<String, dynamic>> items) {
+  Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 60),
@@ -299,16 +323,17 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
     );
   }
 
-  Widget _buildMangaCard(BuildContext context, Map<String, dynamic> item) {
+  Widget _buildMangaCard(BuildContext context, Manga item) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => MangaDetailScreen(
-              mangaId: item['mangaId'],
-              title: item['title'],
-              imageUrl: item['coverUrl'],
+              mangaId: item.id,
+              title: item.title,
+              imageUrl: item.coverUrl,
+              sourceId: item.sourceId,
             ),
           ),
         );
@@ -322,7 +347,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: CachedNetworkImage(
-                imageUrl: item['coverUrl'],
+                imageUrl: item.coverUrl,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
@@ -339,7 +364,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            item['title'],
+            item.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(

@@ -20,8 +20,9 @@ class AnimeApiSource implements MangaSource {
 
   @override
   Map<String, String>? get headers => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Referer': 'https://anime-api.vercel.app/',
       };
 
   @override
@@ -31,7 +32,7 @@ class AnimeApiSource implements MangaSource {
       final response = await http.get(
         Uri.parse('$baseUrl/manga'),
         headers: headers,
-      ).timeout(const Duration(seconds: 10)); // STOP waiting after 10 seconds
+      ).timeout(const Duration(seconds: 10));
 
       debugPrint('API: Popular manga response code: ${response.statusCode}');
 
@@ -86,14 +87,18 @@ class AnimeApiSource implements MangaSource {
     }
   }
 
-  @override
+   @override
   Future<List<String>> getPageUrls(String chapterId) async {
-    debugPrint('API: Fetching pages for $chapterId...');
+    final fullUrl = '$baseUrl/chapter/$chapterId'; // Create this variable
+    debugPrint('API: Requesting pages from: $fullUrl'); // Print it!
+    
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/chapter/$chapterId'),
+        Uri.parse(fullUrl),
         headers: headers,
       ).timeout(const Duration(seconds: 10));
+      // ... rest of your code
+
 
       debugPrint('API: Page response code: ${response.statusCode}');
 
@@ -101,7 +106,9 @@ class AnimeApiSource implements MangaSource {
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       final List<dynamic> pages = data['pages'] ?? [];
-      debugPrint('API: Found ${pages.length} pages');
+      
+      // MOVED DEBUG PRINT HERE (Now that 'pages' exists)
+      debugPrint('API: Found ${pages.length} pages. First page URL: ${pages.isNotEmpty ? pages[0] : 'None'}');
 
       return pages.map((url) => url.toString()).toList();
     } catch (e) {

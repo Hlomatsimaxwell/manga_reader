@@ -22,44 +22,37 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
   final List<Map<String, String>> _relatedItems = const [
     {
       'title': 'Record of Demon Annihilation',
-      'imageUrl':
-          'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/38f0d8bd-6750-482d-bfce-4c12bb1479fa.jpg',
+      'imageUrl': 'https://picsum.photos/seed/rel1/300/450',
       'subtitle': 'Chapter 45 • Ongoing',
     },
     {
       'title': 'A Substitute Bride to the Reaper D...',
-      'imageUrl':
-          'https://uploads.mangadex.org/covers/5a6f2382-628e-4a30-8a18-50ed27b400eb/6e8869c6-1e64-4e78-bebf-5f935f8a0711.jpg',
+      'imageUrl': 'https://picsum.photos/seed/rel2/300/450',
       'subtitle': 'Chapter 12 • Ongoing',
     },
     {
       'title': 'Reincarnation of the Fist King',
-      'imageUrl':
-          'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/38f0d8bd-6750-482d-bfce-4c12bb1479fa.jpg',
+      'imageUrl': 'https://picsum.photos/seed/rel3/300/450',
       'subtitle': 'Chapter 108 • Ongoing',
     },
     {
       'title': 'The Hounds of Sisyphus',
-      'imageUrl':
-          'https://uploads.mangadex.org/covers/5a6f2382-628e-4a30-8a18-50ed27b400eb/6e8869c6-1e64-4e78-bebf-5f935f8a0711.jpg',
+      'imageUrl': 'https://picsum.photos/seed/rel4/300/450',
       'subtitle': 'Chapter 88 • Completed',
     },
     {
       'title': 'The Divine Witch Will Find ...',
-      'imageUrl':
-          'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/38f0d8bd-6750-482d-bfce-4c12bb1479fa.jpg',
+      'imageUrl': 'https://picsum.photos/seed/rel5/300/450',
       'subtitle': 'Chapter 24 • Ongoing',
     },
     {
       'title': 'I Became the Scoundrel of the...',
-      'imageUrl':
-          'https://uploads.mangadex.org/covers/5a6f2382-628e-4a30-8a18-50ed27b400eb/6e8869c6-1e64-4e78-bebf-5f935f8a0711.jpg',
+      'imageUrl': 'https://picsum.photos/seed/rel6/300/450',
       'subtitle': 'Chapter 73 • Ongoing',
     },
     {
       'title': 'Necromancer of a Prestigious ...',
-      'imageUrl':
-          'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/38f0d8bd-6750-482d-bfce-4c12bb1479fa.jpg',
+      'imageUrl': 'https://picsum.photos/seed/rel7/300/450',
       'subtitle': 'Chapter 15 • Ongoing',
     },
   ];

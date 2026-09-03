@@ -21,8 +21,8 @@ class MockSource implements MangaSource {
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     return [
-      Manga(id: '1', sourceId: id, title: 'Mock Manga 1', coverUrl: 'https://via.placeholder.com/150'),
-      Manga(id: '2', sourceId: id, title: 'Mock Manga 2', coverUrl: 'https://via.placeholder.com/150'),
+      Manga(id: '1', sourceId: id, title: 'Mock Manga 1', coverUrl: 'https://picsum.photos/seed/mock1/300/450'),
+      Manga(id: '2', sourceId: id, title: 'Mock Manga 2', coverUrl: 'https://picsum.photos/seed/mock2/300/450'),
     ];
   }
 
@@ -36,6 +36,10 @@ class MockSource implements MangaSource {
 
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
-    return List.generate(10, (index) => 'https://via.placeholder.com/500x800?text=Page+${index + 1}');
+    return List.generate(
+      10,
+      (index) =>
+          'https://picsum.photos/seed/mock_ch_$chapterId${index + 1}/800/1200',
+    );
   }
 }

@@ -20,6 +20,7 @@ dependencies:
   cached_network_image: ^3.4.1
   path_provider: ^2.1.6
   sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0 # Moved here and indented correctly
   path: ^1.9.1
   flutter_inappwebview: ^6.0.0
   shared_preferences: ^2.2.3

@@ -5,27 +5,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
-import '../sources/anime_api_source.dart'; // <--- ADDED THIS IMPORT
+import '../sources/anime_api_source.dart'; 
+import '../sources/manga_dex_source.dart'; // <--- 1. ADD THIS IMPORT
 
 // 1. THE SOURCE REGISTRY
-// This maps the "Name" in your UI list to the "Actual Code"
 MangaSource getSourceByName(String name) {
   switch (name) {
-    case 'Anime-API': // <--- ADDED THIS CASE
+    case 'MangaDex': // <--- 2. ADD THIS CASE
+      return MangaDexSource();
+    case 'Anime-API': 
       return AnimeApiSource();
     case 'Manganato':
       return ManganatoService();
     case 'Mock Source':
       return MockSource();
     default:
-      return ManganatoService(); // Fallback
+      return MangaDexSource(); // Changed fallback to MangaDex
+  }
+}
+
+// Lookup a source by its id (used to resolve which source a manga came from)
+MangaSource? getSourceBySourceId(String sourceId) {
+  switch (sourceId) {
+    case 'mangadex':
+      return MangaDexSource();
+    case 'anime_api':
+      return AnimeApiSource();
+    case 'manganato':
+      return ManganatoService();
+    case 'mock':
+      return MockSource();
+    default:
+      return null;
   }
 }
 
 // 2. DYNAMIC ACTIVE SOURCE
 final currentSourceProvider = StateProvider<MangaSource>((ref) {
-  // I've set the default to Anime-API so you can see it working immediately!
-  return AnimeApiSource(); 
+  // 3. SET DEFAULT TO MANGADEX so you can test immediately!
+  return MangaDexSource(); 
 });
 
 class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
@@ -37,7 +55,15 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
   static final List<Map<String, dynamic>> _defaultSources = [
     {
-      'name': 'Anime-API', // <--- ADDED THIS TO UI LIST
+      'name': 'MangaDex', // Moved to top for easier testing
+      'language': 'Manga, Various languages',
+      'bgColor': const Color(0xFF381F1D),
+      'text': '🐱',
+      'textColor': Colors.orangeAccent,
+      'isPinned': true,
+    },
+    {
+      'name': 'Anime-API', 
       'language': 'English',
       'bgColor': const Color(0xFF6200EE),
       'text': 'A',
@@ -62,14 +88,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Various languages',
       'bgColor': const Color(0xFF2C2C2E),
       'text': '🦄',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaDex',
-      'language': 'Manga, Various languages',
-      'bgColor': const Color(0xFF381F1D),
-      'text': '🐱',
-      'textColor': Colors.orangeAccent,
       'isPinned': false,
     },
   ];

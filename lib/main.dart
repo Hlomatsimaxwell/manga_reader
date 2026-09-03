@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io'; // REQUIRED for Platform.isLinux
+import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // REQUIRED for Linux DB
+
 import 'package:manga_reader/features/suggestions/screens/suggestions_screen.dart';
 import 'features/history/screens/history_screen.dart';
 import 'features/library/screens/favorites_screen.dart';
@@ -7,6 +10,13 @@ import 'package:manga_reader/features/explore/screens/explore_screen.dart';
 import 'package:manga_reader/features/feed/screens/feed_screen.dart';
 
 void main() {
+  // 1. Fix the Database Crash for Linux/Windows/MacOS
+  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+  
+  // 2. Run the app with ProviderScope
   runApp(const ProviderScope(child: MangaReaderApp()));
 }
 
@@ -65,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(36),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
+                  color: Colors.black.withOpacity(0.5),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),

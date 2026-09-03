@@ -4,18 +4,22 @@ import 'package:manga_reader/features/library/screens/related_manga_screen.dart'
 import 'package:manga_reader/features/reader/screens/reader_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manga_reader/data/models/chapter.dart';
+import 'package:manga_reader/data/models/manga_source.dart';
+import 'package:manga_reader/data/providers/sources_provider.dart';
 
 
 class MangaDetailScreen extends StatefulWidget {
   final String mangaId;
   final String title;
   final String imageUrl;
+  final String? sourceId;
 
   const MangaDetailScreen({
     super.key,
     required this.mangaId,
     required this.title,
     required this.imageUrl,
+    this.sourceId,
   });
 
   @override
@@ -35,26 +39,18 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   bool _isExpanded = false;
   bool _showSheetContent = false;
 
-  final String _sourceName = 'MangaTown';
+  String? _sourceName;
 
-  late final List<Chapter> _chapters;
+  List<Chapter> _chapters = [];
+  bool _isLoadingChapters = true;
+  String? _chapterError;
+  MangaSource? _source;
 
   @override
   void initState() {
     super.initState();
     _loadReadLaterStatus();
-
-    // Generate dummy chapters using Chapter model
-    _chapters = List.generate(20, (index) {
-      final num = 120 + index;
-      return Chapter(
-        id: 'ch_$num',
-        title: 'Chapter $num',
-        chapterNumber: '$num',
-        releaseDate: 'Jul ${index + 1}, 2026',
-        url: 'https://example.com/ch_$num',
-      );
-    });
+    _loadChapters();
 
     _sheetController.addListener(() {
       final currentSize = _sheetController.size;
@@ -68,6 +64,41 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
         setState(() => _showSheetContent = shouldShowContent);
       }
     });
+  }
+
+  Future<void> _loadChapters() async {
+    setState(() {
+      _isLoadingChapters = true;
+      _chapterError = null;
+    });
+    try {
+      final source = widget.sourceId != null
+          ? getSourceBySourceId(widget.sourceId!)
+          : null;
+      if (source == null) {
+        setState(() {
+          _chapters = [];
+          _isLoadingChapters = false;
+        });
+        return;
+      }
+      final chapters = await source.getChapters(widget.mangaId);
+      if (mounted) {
+        setState(() {
+          _source = source;
+          _sourceName = source.name;
+          _chapters = chapters;
+          _isLoadingChapters = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _chapterError = e.toString();
+          _isLoadingChapters = false;
+        });
+      }
+    }
   }
 
   // Key unique to this specific manga for permanent storage
@@ -107,6 +138,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
 
   // Navigate to Reader Screen
   void _openReader({int? chapterIndex}) {
+    if (_chapters.isEmpty) return;
     final indexToOpen = chapterIndex ?? _currentReadingChapterIndex;
 
     Navigator.push(
@@ -116,6 +148,10 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           allChapters: _chapters,
           initialChapterIndex: indexToOpen,
           mangaId: widget.mangaId,
+          sourceId: _source?.id,
+          mangaTitle: widget.title,
+          mangaCoverUrl: widget.imageUrl,
+          totalChapters: _chapters.length,
         ),
       ),
     );
@@ -457,6 +493,39 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   }
 
   Widget _buildChapterListSliver() {
+    if (_isLoadingChapters) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 80),
+          child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+        ),
+      );
+    }
+
+    if (_chapterError != null || _source == null) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+          child: Column(
+            children: [
+              const Text(
+                'No chapters available',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _source == null
+                    ? 'This source is not supported from here.'
+                    : _chapterError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
@@ -693,7 +762,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
       ),
       child: Column(
         children: [
-          _buildCardRow('Source', _sourceName, icon: Icons.pets),
+          _buildCardRow('Source', _sourceName ?? 'Unknown', icon: Icons.pets),
           _buildCardRow('Author', 'Yu Jin Sung'),
           _buildCardRow('Translation', '🇬🇧 English'),
           _buildCardRow('State', 'Ongoing'),
@@ -870,11 +939,11 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
             children: [
               _buildRelatedCard(
                 'Vengeance of the Doctress',
-                'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/38f0d8bd-6750-482d-bfce-4c12bb1479fa.jpg',
+                'https://picsum.photos/seed/detail_rel1/300/450',
               ),
               _buildRelatedCard(
                 'Necromancer of a Prestigo...',
-                'https://uploads.mangadex.org/covers/5a6f2382-628e-4a30-8a18-50ed27b400eb/6e8869c6-1e64-4e78-bebf-5f935f8a0711.jpg',
+                'https://picsum.photos/seed/detail_rel2/300/450',
               ),
             ],
           ),

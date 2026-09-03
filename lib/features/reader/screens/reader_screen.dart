@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database_helper.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
 import 'package:manga_reader/data/models/chapter.dart';
+import 'package:manga_reader/data/models/manga_source.dart';
+import 'package:manga_reader/features/history/providers/history_provider.dart';
 
 // 1. Define the Reading Modes
 enum ReadingMode { vertical, horizontal }
@@ -12,12 +14,20 @@ class ReaderScreen extends ConsumerStatefulWidget {
   final List<Chapter> allChapters;
   final int initialChapterIndex;
   final String mangaId;
+  final String? sourceId;
+  final String? mangaTitle;
+  final String? mangaCoverUrl;
+  final int totalChapters;
 
   const ReaderScreen({
     super.key,
     required this.allChapters,
     required this.initialChapterIndex,
     required this.mangaId,
+    this.sourceId,
+    this.mangaTitle,
+    this.mangaCoverUrl,
+    this.totalChapters = 0,
   });
 
   @override
@@ -119,8 +129,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Future<void> _loadChapter(int chapterIndex) async {
     if (_loadedChapterIndices.contains(chapterIndex)) return;
 
-    final source = ref.read(currentSourceProvider);
     final chapter = widget.allChapters[chapterIndex];
+    MangaSource? source;
+    if (widget.sourceId != null) {
+      source = getSourceBySourceId(widget.sourceId!);
+    }
+    source ??= ref.read(currentSourceProvider);
+
+    if (source == null) return;
 
     try {
       final newPages = await source.getPageUrls(chapter.id);
@@ -175,6 +191,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         targetChapterId,
         maxChapterNumRead,
       );
+
+      await DatabaseHelper.instance.saveMangaProgress(
+        mangaId: widget.mangaId,
+        title: widget.mangaTitle ?? 'Unknown',
+        coverUrl: widget.mangaCoverUrl,
+        sourceId: widget.sourceId,
+        totalChapters: widget.totalChapters,
+        lastReadChapter: maxChapterNumRead,
+      );
+
+      bumpHistoryRevision(ref);
     }
     _isSaving = false;
   }
