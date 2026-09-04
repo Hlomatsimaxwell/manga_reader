@@ -214,4 +214,7 @@ class ManganatoService implements MangaSource {
       return null;
     }
   }
+
+  @override
+  Future<int> getTotalChapters(String mangaId) async => 0;
 }

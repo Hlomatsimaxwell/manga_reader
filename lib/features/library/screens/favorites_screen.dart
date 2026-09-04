@@ -1,77 +1,20 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/data/models/manga.dart';
+import 'package:manga_reader/features/library/providers/favorites_provider.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 
-class FavoritesScreen extends StatefulWidget {
+class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
 
   @override
-  State<FavoritesScreen> createState() => _FavoritesScreenState();
+  ConsumerState<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends State<FavoritesScreen> {
-  int _categoryTab = 0; // 0: All favorites, 1: Read later
-  int _selectedFilter = -1; // -1: none, 0: On device, 1: New chapters, 2: Completed
-
+class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
-  final List<Map<String, dynamic>> _allFavorites = [
-    {
-      'mangaId': 'manga_1',
-      'title': 'The Masters Are Subscribing To ...',
-      'coverUrl': 'https://picsum.photos/seed/fav1/300/450',
-      'progress': 0,
-      'unreadCount': 0,
-      'isCompleted': false,
-      'isReadLater': false,
-    },
-    {
-      'mangaId': 'manga_2',
-      'title': 'Slam Dunk',
-      'coverUrl': 'https://picsum.photos/seed/fav2/300/450',
-      'progress': 0,
-      'unreadCount': 0,
-      'isCompleted': false,
-      'isReadLater': false,
-    },
-    {
-      'mangaId': 'manga_3',
-      'title': 'Real',
-      'coverUrl': 'https://picsum.photos/seed/fav3/300/450',
-      'progress': 0,
-      'unreadCount': 0,
-      'isCompleted': false,
-      'isReadLater': false,
-    },
-    {
-      'mangaId': 'manga_4',
-      'title': 'Nano Machine',
-      'coverUrl': 'https://picsum.photos/seed/fav4/300/450',
-      'progress': 100,
-      'unreadCount': 0,
-      'isCompleted': true,
-      'isReadLater': true,
-    },
-    {
-      'mangaId': 'manga_5',
-      'title': 'Absolute Sword Sense',
-      'coverUrl': 'https://picsum.photos/seed/fav5/300/450',
-      'progress': 98,
-      'unreadCount': 2,
-      'isCompleted': false,
-      'isReadLater': false,
-    },
-    {
-      'mangaId': 'manga_6',
-      'title': 'Absolute Sword Sense',
-      'coverUrl': 'https://picsum.photos/seed/fav6/300/450',
-      'progress': 0,
-      'unreadCount': 0,
-      'isCompleted': false,
-      'isReadLater': true,
-    },
-  ];
 
   @override
   void dispose() {
@@ -81,15 +24,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final displayedItems = _allFavorites.where((item) {
-      final matchesTab = _categoryTab == 0 || item['isReadLater'] == true;
-      final matchesQuery = _searchQuery.isEmpty ||
-          item['title']
-              .toString()
-              .toLowerCase()
-              .contains(_searchQuery.toLowerCase());
-      return matchesTab && matchesQuery;
-    }).toList();
+    final favoritesAsync = ref.watch(favoritesProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -102,11 +37,34 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               const SizedBox(height: 8),
               _buildSearchBar(),
               const SizedBox(height: 16),
-              _buildCategoryTabs(),
-              const SizedBox(height: 16),
-              _buildFilterChips(),
-              const SizedBox(height: 16),
-              _buildMangaGrid(displayedItems),
+              favoritesAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 80),
+                  child: Center(
+                    child: CircularProgressIndicator(color: Colors.white54),
+                  ),
+                ),
+                error: (e, _) => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: Text(
+                      'Could not load favorites',
+                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                  ),
+                ),
+                data: (items) {
+                  List<Manga> displayed = items;
+                  if (_searchQuery.isNotEmpty) {
+                    displayed = items
+                        .where((m) => m.title
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase()))
+                        .toList();
+                  }
+                  return _buildMangaGrid(displayed);
+                },
+              ),
             ],
           ),
         ),
@@ -133,7 +91,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         },
         decoration: InputDecoration(
           icon: const Icon(Icons.search, color: Colors.white70, size: 22),
-          hintText: 'Search manga',
+          hintText: 'Search favorites',
           hintStyle: const TextStyle(color: Colors.white54, fontSize: 16),
           border: InputBorder.none,
           suffixIcon: _searchQuery.isNotEmpty
@@ -152,114 +110,26 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildCategoryTabs() {
-    final tabs = ['All favorites', 'Read later'];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: List.generate(tabs.length, (index) {
-          final isSelected = _categoryTab == index;
-          return GestureDetector(
-            onTap: () => setState(() => _categoryTab = index),
-            child: Container(
-              margin: const EdgeInsets.only(right: 24),
-              child: IntrinsicWidth(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      tabs[index],
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white54,
-                        fontSize: 16,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.white : Colors.transparent,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildFilterChips() {
-    final filters = [
-      {'icon': Icons.sd_card_outlined, 'label': 'On device'},
-      {'icon': Icons.history_toggle_off, 'label': 'New chapters'},
-      {'icon': Icons.done_all, 'label': 'Completed'},
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: List.generate(filters.length, (index) {
-          final filter = filters[index];
-          final isSelected = _selectedFilter == index;
-
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedFilter = isSelected ? -1 : index;
-              });
-            },
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? Colors.white : Colors.white38,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    filter['icon'] as IconData,
-                    size: 16,
-                    color: isSelected ? Colors.black : Colors.white,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    filter['label'] as String,
-                    style: TextStyle(
-                      color: isSelected ? Colors.black : Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildMangaGrid(List<Map<String, dynamic>> items) {
+  Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: Text(
-            'No manga found',
-            style: TextStyle(color: Colors.white54, fontSize: 16),
-          ),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: Column(
+          children: [
+            const Icon(Icons.favorite_border, color: Colors.white38, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              _searchQuery.isNotEmpty ? 'No favorites match your search' : 'No favorites yet',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white54, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Tap the heart on any manga to add it here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white38, fontSize: 13),
+            ),
+          ],
         ),
       );
     }
@@ -271,7 +141,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          childAspectRatio: 0.50, // Perfect headroom for 2:3 image + 2-line title
+          childAspectRatio: 0.50,
           crossAxisSpacing: 10,
           mainAxisSpacing: 12,
         ),
@@ -284,20 +154,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildMangaCard(BuildContext context, Map<String, dynamic> item) {
-    final progress = item['progress'] as int;
-    final unreadCount = item['unreadCount'] as int;
-    final isCompleted = item['isCompleted'] == true;
-
+  Widget _buildMangaCard(BuildContext context, Manga item) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => MangaDetailScreen(
-              mangaId: item['mangaId'],
-              title: item['title'],
-              imageUrl: item['coverUrl'],
+              mangaId: item.id,
+              title: item.title,
+              imageUrl: item.coverUrl,
+              sourceId: item.sourceId,
             ),
           ),
         );
@@ -314,7 +181,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: CachedNetworkImage(
-                    imageUrl: item['coverUrl'],
+                    imageUrl: item.coverUrl,
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.cover,
@@ -327,58 +194,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
                 Positioned(
                   top: 6,
-                  left: 6,
                   right: 6,
-                  child: Row(
-                    children: [
-                      if (unreadCount > 0)
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF0A8A8),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            '$unreadCount',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      const Spacer(),
-                      if (isCompleted)
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check,
-                            color: Colors.black,
-                            size: 14,
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '$progress%',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                      color: Colors.redAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Colors.white,
+                      size: 13,
+                    ),
                   ),
                 ),
               ],
@@ -386,7 +213,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            item['title'],
+            item.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(

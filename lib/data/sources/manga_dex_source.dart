@@ -168,6 +168,31 @@ class MangaDexSource implements MangaSource {
     return '';
   }
 
+  // The authoritative chapter count = the highest chapter number across all
+  // published chapters (from the aggregate endpoint). This may be larger than
+  // the number of English chapter entries actually loaded.
+  @override
+  Future<int> getTotalChapters(String mangaId) async {
+    try {
+      final response = await _dio.get('/manga/$mangaId/aggregate');
+      final volumes = response.data['volumes'] ?? {};
+      double maxChapter = 0;
+      volumes.forEach((volKey, vol) {
+        final chapters = (vol is Map) ? (vol['chapters'] ?? {}) : {};
+        if (chapters is! Map) return;
+        for (final c in chapters.values) {
+          if (c is Map && c['chapter'] is num) {
+            final n = (c['chapter'] as num).toDouble();
+            if (n > maxChapter) maxChapter = n;
+          }
+        }
+      });
+      return maxChapter.round();
+    } catch (e) {
+      return 0;
+    }
+  }
+
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     final chapters = <Chapter>[];

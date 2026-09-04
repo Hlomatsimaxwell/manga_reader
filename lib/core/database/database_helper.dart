@@ -164,9 +164,7 @@ class DatabaseHelper {
 
     if (existing.isNotEmpty) {
       final row = existing.first;
-      final prevChapter = (row['lastReadChapter'] as num? ?? -1).toDouble();
-      final newChapter =
-          lastReadChapter > prevChapter ? lastReadChapter : prevChapter;
+      final newChapter = lastReadChapter;
 
       await db.update(
         'manga',
@@ -222,6 +220,72 @@ class DatabaseHelper {
       limit: 1,
     );
     return result.isNotEmpty ? result.first : null;
+  }
+
+  // ---- Favorites ----
+
+  // Whether the given manga is currently favorited.
+  Future<bool> getIsFavorite(String mangaId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'manga',
+      where: 'mangaId = ? AND isFavorite = 1',
+      whereArgs: [mangaId],
+      limit: 1,
+    );
+    return result.isNotEmpty;
+  }
+
+  // Adds or removes a manga from favorites.
+  Future<void> setFavorite({
+    required String mangaId,
+    required String title,
+    String? coverUrl,
+    String? sourceId,
+    required bool isFavorite,
+  }) async {
+    final db = await instance.database;
+    final existing = await db.query(
+      'manga',
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+      limit: 1,
+    );
+
+    if (existing.isNotEmpty) {
+      await db.update(
+        'manga',
+        {'isFavorite': isFavorite ? 1 : 0},
+        where: 'mangaId = ?',
+        whereArgs: [mangaId],
+      );
+    } else {
+      await db.insert(
+        'manga',
+        {
+          'mangaId': mangaId,
+          'title': title,
+          'coverUrl': coverUrl,
+          'sourceId': sourceId,
+          'totalChapters': 0,
+          'lastReadChapter': -1,
+          'lastReadAt': DateTime.now().toIso8601String(),
+          'isFavorite': isFavorite ? 1 : 0,
+          'isReadLater': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  // Returns all favorited manga.
+  Future<List<Map<String, dynamic>>> getFavorites() async {
+    final db = await instance.database;
+    return db.query(
+      'manga',
+      where: 'isFavorite = 1',
+      orderBy: 'title COLLATE NOCASE ASC',
+    );
   }
 
   // Remove all reading history (leaves favorites intact).

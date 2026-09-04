@@ -34,7 +34,8 @@ void main() {
     expect(history.first['sourceId'], 'mangadex');
     expect(history.first['lastReadChapter'], 3.0);
 
-    // Reading a LOWER chapter should not reduce progress
+    // Reading a LOWER chapter resets the read position to that chapter, so
+    // every chapter above it is considered unread again.
     await db.saveMangaProgress(
       mangaId: 'abc-123',
       title: 'Solo Leveling',
@@ -42,7 +43,7 @@ void main() {
       lastReadChapter: 1,
     );
     final afterLower = await db.getHistory();
-    expect(afterLower.first['lastReadChapter'], 3.0);
+    expect(afterLower.first['lastReadChapter'], 1.0);
 
     // Clearing history empties it
     await db.clearHistory();

@@ -169,27 +169,35 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     if (_loadedChapterIndices.isEmpty || _isSaving) return;
     _isSaving = true;
 
-    double maxChapterNumRead = -1.0;
-    String? targetChapterId;
+    // The position to record is the chapter currently being read. We store
+    // its POSITION on the source's total scale (total - index), not the number
+    // written in its name, so the progress fraction stays correct even when
+    // chapter names are misleading. Every chapter ABOVE this position is then
+    // unread.
+    final currentChapter = widget.allChapters[_currentChapterIndex];
+    final currentIndex = _currentChapterIndex;
 
-    for (final index in _loadedChapterIndices) {
-      final chapter = widget.allChapters[index];
-      final regExp = RegExp(r'(\d+(\.\d+)?)');
-      final match = regExp.firstMatch(chapter.title);
-      if (match != null) {
-        final num = double.tryParse(match.group(1)!) ?? -1.0;
-        if (num > maxChapterNumRead) {
-          maxChapterNumRead = num;
-          targetChapterId = chapter.id;
-        }
-      }
-    }
+    final position = widget.totalChapters > 0
+        ? (widget.totalChapters - currentIndex).toDouble()
+        : null;
+    final readValue = position;
+    final markChapterNum = position ??
+        (() {
+          for (final s in [currentChapter.chapterNumber, currentChapter.title]) {
+            final m = RegExp(r'(\d+(\.\d+)?)').firstMatch(s);
+            if (m != null) {
+              final n = double.tryParse(m.group(1)!);
+              if (n != null) return n;
+            }
+          }
+          return null;
+        })();
 
-    if (maxChapterNumRead >= 0 && targetChapterId != null) {
+    if (readValue != null && readValue >= 0) {
       await DatabaseHelper.instance.markChapterAsRead(
         widget.mangaId,
-        targetChapterId,
-        maxChapterNumRead,
+        currentChapter.id,
+        markChapterNum!,
       );
 
       await DatabaseHelper.instance.saveMangaProgress(
@@ -198,7 +206,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         coverUrl: widget.mangaCoverUrl,
         sourceId: widget.sourceId,
         totalChapters: widget.totalChapters,
-        lastReadChapter: maxChapterNumRead,
+        lastReadChapter: readValue,
       );
 
       bumpHistoryRevision(ref);
@@ -257,6 +265,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final currentChapter = widget.allChapters[_currentChapterIndex];
+    // Position of the current chapter on the source's total scale, so the
+    // progress fraction uses the real read position, not the name's number.
+    final chapterPosition = widget.totalChapters > 0
+        ? (widget.totalChapters - _currentChapterIndex)
+        : null;
     final activeSource = ref.watch(currentSourceProvider);
     final Map<String, String>? activeHeaders = activeSource.headers;
 
@@ -311,11 +324,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          currentChapter.title,
-                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (chapterPosition != null)
+                              Text(
+                                'Ch. $chapterPosition / ${widget.totalChapters}',
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            Text(
+                              currentChapter.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                     ],

@@ -151,4 +151,7 @@ class AnimeApiSource implements MangaSource {
       return details;
     }
   }
+
+  @override
+  Future<int> getTotalChapters(String mangaId) async => 0;
 }

@@ -1,17 +1,19 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:manga_reader/features/library/providers/favorites_provider.dart';
 import 'package:manga_reader/features/library/screens/related_manga_screen.dart';
 import 'package:manga_reader/features/reader/screens/reader_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manga_reader/data/models/chapter.dart';
+import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/data/models/manga_source.dart';
 import 'package:manga_reader/data/models/manga_details.dart';
 import 'package:manga_reader/data/models/bookmark.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
 
 
-class MangaDetailScreen extends StatefulWidget {
+class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
   final String title;
   final String imageUrl;
@@ -26,15 +28,14 @@ class MangaDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<MangaDetailScreen> createState() => _MangaDetailScreenState();
+  ConsumerState<MangaDetailScreen> createState() => _MangaDetailScreenState();
 }
 
-class _MangaDetailScreenState extends State<MangaDetailScreen> {
-  int _currentReadingChapterIndex = 0;
+class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   int _activeTab = 0; // 0: Chapter List, 1: Pages Grid, 2: Bookmarks
 
-  // Read later state & persistence
-  bool _isReadLaterSelected = false;
+  // Favorite state & persistence (backed by the manga database table).
+  bool _isFavorite = false;
   bool _isLoadingPreferences = true;
 
   final DraggableScrollableController _sheetController =
@@ -51,11 +52,15 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
 
   MangaDetails? _details;
 
+  // The source's authoritative chapter count (-1 until loaded).
+  int _realTotalChapters = -1;
+
+  // Real related manga loaded from the source (excluding the current one).
+  List<Manga> _relatedManga = [];
+
   // Real reading progress from the database.
-  Map<String, dynamic>? _progressRow;
   double _progressPercent = 0;
   double _lastReadChapter = -1;
-  Set<double> _readChapters = {};
 
   // Real bookmarks for this manga.
   List<Bookmark> _bookmarks = [];
@@ -72,7 +77,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadReadLaterStatus();
+    _loadFavoriteStatus();
     _loadChapters();
     _loadProgress();
     _loadBookmarks();
@@ -125,6 +130,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
       if (chapters.isNotEmpty && mounted) {
         _loadPreviewPages();
       }
+      _loadRelatedManga(source);
+      _loadTotalChapters(source);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -135,14 +142,23 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     }
   }
 
+  // Load the source's authoritative chapter count (best-effort).
+  Future<void> _loadTotalChapters(MangaSource source) async {
+    try {
+      final total = await source.getTotalChapters(widget.mangaId);
+      if (total > 0 && mounted) {
+        setState(() => _realTotalChapters = total);
+      }
+    } catch (e) {
+      _realTotalChapters = -1;
+    }
+  }
+
   // Load the real saved reading progress for this manga from the database.
   Future<void> _loadProgress() async {
     final row = await DatabaseHelper.instance.getManga(widget.mangaId);
-    final read = await DatabaseHelper.instance.getReadChapterNumbers(widget.mangaId);
     if (!mounted) return;
     setState(() {
-      _progressRow = row;
-      _readChapters = read;
       _lastReadChapter = row?['lastReadChapter'] is num
           ? (row!['lastReadChapter'] as num).toDouble()
           : -1;
@@ -184,25 +200,78 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     }
   }
 
-  // Key unique to this specific manga for permanent storage
-  String get _readLaterKey => 'read_later_${widget.mangaId}';
+  // Load manga with similar tags from the same source (excluding current).
+  Future<void> _loadRelatedManga(MangaSource source) async {
+    try {
+      final myTags = (_details?.tags ?? const <String>[])
+          .map((t) => t.toLowerCase())
+          .toSet();
 
-  // Load saved preference from SharedPreferences
-  Future<void> _loadReadLaterStatus() async {
-    final prefs = await SharedPreferences.getInstance();
+      final popular = await source.getPopularManga(page: 1);
+      final candidates = popular
+          .where((m) => m.id != widget.mangaId)
+          .take(16)
+          .toList();
+
+      // Fetch each candidate's tags in parallel and rank by overlap.
+      final scored = <(int, Manga)>[];
+      final results = await Future.wait(
+        candidates.map((m) async {
+          try {
+            return (m, await source.getMangaDetails(m.id));
+          } catch (_) {
+            return (m, null);
+          }
+        }),
+      );
+      for (final (m, d) in results) {
+        if (d == null) continue;
+        final matches =
+            (d.tags).map((t) => t.toLowerCase()).where(myTags.contains).length;
+        if (matches > 0) scored.add((matches, m));
+      }
+
+      // Sort by tag overlap desc, then by title for stability.
+      scored.sort((a, b) {
+        final byTags = b.$1.compareTo(a.$1);
+        return byTags != 0 ? byTags : a.$2.title.compareTo(b.$2.title);
+      });
+
+      final related = scored.take(6).map((s) => s.$2).toList();
+      if (mounted) {
+        setState(() => _relatedManga = related);
+      }
+    } catch (e) {
+      // Ignore; the section simply shows nothing on failure.
+    }
+  }
+
+  // Load the saved favorite status from the database.
+  Future<void> _loadFavoriteStatus() async {
+    final isFav =
+        await DatabaseHelper.instance.getIsFavorite(widget.mangaId);
+    if (!mounted) return;
     setState(() {
-      _isReadLaterSelected = prefs.getBool(_readLaterKey) ?? false;
+      _isFavorite = isFav;
       _isLoadingPreferences = false;
     });
   }
 
-  // Toggle and save read later status permanently
-  Future<void> _toggleReadLater(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_readLaterKey, value);
+  // Toggle favorite status in the database and refresh the favorites tab.
+  Future<void> _toggleFavorite() async {
+    final newValue = !_isFavorite;
+    await DatabaseHelper.instance.setFavorite(
+      mangaId: widget.mangaId,
+      title: widget.title,
+      coverUrl: widget.imageUrl,
+      sourceId: widget.sourceId,
+      isFavorite: newValue,
+    );
+    if (!mounted) return;
     setState(() {
-      _isReadLaterSelected = value;
+      _isFavorite = newValue;
     });
+    bumpFavoritesRevision(ref);
   }
 
   @override
@@ -219,27 +288,29 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     );
   }
 
-  // Scroll the chapter list to the oldest (last) chapter.
-  void _scrollToOldestChapter() {
+  // Scroll the chapter list to the chapter you were last reading (or the
+  // first chapter for a fresh manga).
+  void _scrollToResumeChapter() {
     final sc = _sheetContentController;
     if (sc == null) return;
+    final fraction = _chapters.length <= 1
+        ? 1.0
+        : (_resumeChapterIndex / (_chapters.length - 1)).clamp(0.0, 1.0);
+    void animate() {
+      if (sc.hasClients) {
+        sc.animateTo(
+          sc.position.maxScrollExtent * fraction,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+
     if (sc.hasClients) {
-      sc.animateTo(
-        sc.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-      );
+      animate();
     } else {
       // Retry on the next frame once the list is laid out.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (sc.hasClients) {
-          sc.animateTo(
-            sc.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOutCubic,
-          );
-        }
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => animate());
     }
   }
 
@@ -263,19 +334,50 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           sourceId: _source?.id,
           mangaTitle: widget.title,
           mangaCoverUrl: widget.imageUrl,
-          totalChapters: _chapters.length,
+          totalChapters: _resolvedTotalChapters,
         ),
       ),
-    );
+    ).then((_) {
+      // Reload real progress/bookmarks after returning from the reader.
+      _loadProgress();
+      _loadBookmarks();
+    });
   }
 
-  // Index of the chapter to resume from, based on last-read progress.
+  // The source's authoritative chapter count, falling back to the detail info
+  // and finally to the loaded list length.
+  int get _resolvedTotalChapters {
+    if (_realTotalChapters > 0) return _realTotalChapters;
+    if ((_details?.totalChapters ?? 0) > 0) return _details!.totalChapters;
+    return _chapters.length;
+  }
+
+  // Number of chapters not yet read (based on last-read position).
+  int get _unreadCount {
+    if (_chapters.isEmpty) return 0;
+    if (_lastReadChapter <= 0) return _chapters.length;
+    final total = _resolvedTotalChapters;
+    if (total <= 0) return 0;
+    return (total - _lastReadChapter.round())
+        .clamp(0, _chapters.length)
+        .toInt();
+  }
+
+  // Index of the chapter to resume from, based on last-read position.
+  // Fresh manga (no progress) opens the very first (oldest) chapter.
   int get _resumeChapterIndex {
     if (_chapters.isEmpty) return 0;
-    if (_lastReadChapter <= 0) return _currentReadingChapterIndex;
+    if (_lastReadChapter <= 0) return _chapters.length - 1;
 
-    // Chapters are ordered newest-first; find the last-read chapter number.
+    // Chapters are ordered newest-first, so position = (total - index).
+    final total = _resolvedTotalChapters;
     final lastReadInt = _lastReadChapter.round();
+    final byPosition = total - lastReadInt;
+    if (byPosition >= 0 && byPosition < _chapters.length) {
+      return byPosition;
+    }
+
+    // Fallback: match by the chapter's name number.
     for (var i = 0; i < _chapters.length; i++) {
       final numParsed = double.tryParse(
         RegExp(r'(\d+(\.\d+)?)')
@@ -287,128 +389,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
         return i;
       }
     }
-    return _currentReadingChapterIndex;
-  }
-
-  // Read Later / Category Dialog
-  void _showCategoryDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor: const Color(0xFF2C2C2E),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: widget.imageUrl,
-                            width: 50,
-                            height: 70,
-                            fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.black26,
-                              child: const Icon(
-                                Icons.menu_book,
-                                color: Colors.white38,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            widget.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      activeColor: Colors.white,
-                      checkColor: Colors.black,
-                      side: const BorderSide(color: Colors.white70, width: 2),
-                      value: _isReadLaterSelected,
-                      title: const Row(
-                        children: [
-                          Text(
-                            'Read later',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Icon(
-                            Icons.notifications_none,
-                            color: Colors.white70,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                      onChanged: (bool? val) async {
-                        final newValue = val ?? false;
-                        setDialogState(() {
-                          _isReadLaterSelected = newValue;
-                        });
-                        await _toggleReadLater(newValue);
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            'Manage',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text(
-                            'Done',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+    return _chapters.length - 1;
   }
 
   // Tag Search Options Dialog
@@ -595,12 +576,14 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                             isExpanded: _isExpanded,
                             activeTab: _activeTab,
                             topPadding: MediaQuery.of(context).padding.top,
+                            hasRead: _lastReadChapter >= 0,
+                            unreadCount: _unreadCount,
                             onContinuePressed: () => _openReader(),
                             onBarTap: () {
                               final current = _sheetController.size;
                               if (current < 0.2) {
                                 _animateSheetTo(0.5);
-                                _scrollToOldestChapter();
+                                _scrollToResumeChapter();
                               } else if (current >= 0.4 && current <= 0.6) {
                                 _animateSheetTo(0.08);
                               }
@@ -673,11 +656,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final ch = _chapters[index];
-          final numParsed = double.tryParse(
-            RegExp(r'(\d+(\.\d+)?)').firstMatch(ch.chapterNumber)?.group(1) ??
-                '',
-          );
-          final isRead = numParsed != null && _readChapters.contains(numParsed);
+          final isRead = _lastReadChapter >= 0 &&
+              (_resolvedTotalChapters - index) <= _lastReadChapter;
           final isCurrent = index == _currentDisplayIndex;
 
           return ListTile(
@@ -717,7 +697,6 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                 ? const Icon(Icons.check_circle, color: Colors.greenAccent, size: 18)
                 : null,
             onTap: () {
-              setState(() => _currentReadingChapterIndex = index);
               _openReader(chapterIndex: index);
             },
           );
@@ -727,20 +706,11 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   }
 
   // The chapter index shown as "current" (green play icon). Uses the last-read
-  // chapter from the DB when available; no icon when nothing has been read.
+  // position from the DB when available; no icon when nothing has been read.
   int get _currentDisplayIndex {
     if (_lastReadChapter <= 0) return -1;
-    final lastInt = _lastReadChapter.round();
-    for (var i = 0; i < _chapters.length; i++) {
-      final n = double.tryParse(
-        RegExp(r'(\d+(\.\d+)?)')
-            .firstMatch(_chapters[i].chapterNumber)
-            ?.group(1) ??
-            '',
-      );
-      if (n != null && n.round() == lastInt) return i;
-    }
-    return -1;
+    final index = _resolvedTotalChapters - _lastReadChapter.round();
+    return (index >= 0 && index < _chapters.length) ? index : -1;
   }
 
   Widget _buildPagesGridSliver() {
@@ -952,19 +922,19 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         ),
                       )
                     : GestureDetector(
-                        onTap: _showCategoryDialog,
+                        onTap: _toggleFavorite,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: _isReadLaterSelected
+                            color: _isFavorite
                                 ? const Color(0xFF3A3A3C)
                                 : const Color(0xFF1E1E22),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isReadLaterSelected
+                              color: _isFavorite
                                   ? Colors.white70
                                   : Colors.white24,
                             ),
@@ -973,26 +943,23 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                _isReadLaterSelected
+                                _isFavorite
                                     ? Icons.favorite
                                     : Icons.favorite_border,
-                                color: Colors.white,
+                                color: _isFavorite
+                                    ? Colors.redAccent
+                                    : Colors.white,
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _isReadLaterSelected
-                                    ? 'Read later'
-                                    : 'Favorite this',
+                                _isFavorite
+                                    ? 'Favorited'
+                                    : 'Favorite',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.arrow_drop_down,
-                                color: Colors.white,
                               ),
                             ],
                           ),
@@ -1007,7 +974,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   }
 
   Widget _buildSourceCard() {
-    final totalChapters = _details?.totalChapters ?? _chapters.length;
+    // Prefer the API-declared chapter count; fall back to the fetched list.
+    final totalChapters = _resolvedTotalChapters;
     final chaptersText = _lastReadChapter >= 0
         ? 'Chapter ${_lastReadChapter.floor()} of $totalChapters'
         : '$totalChapters chapters';
@@ -1168,6 +1136,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   }
 
   Widget _buildRelatedMangaSection() {
+    if (_relatedManga.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1189,8 +1158,10 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          const RelatedMangaScreen(title: 'Related manga'),
+                      builder: (context) => RelatedMangaScreen(
+                        title: 'Related manga',
+                        relatedManga: _relatedManga,
+                      ),
                     ),
                   );
                 },
@@ -1212,46 +1183,60 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildRelatedCard(
-                'Vengeance of the Doctress',
-                'https://picsum.photos/seed/detail_rel1/300/450',
-              ),
-              _buildRelatedCard(
-                'Necromancer of a Prestigo...',
-                'https://picsum.photos/seed/detail_rel2/300/450',
-              ),
-            ],
+            children: _relatedManga.map((m) {
+              return _buildRelatedCard(m);
+            }).toList(),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRelatedCard(String title, String imageUrl) {
-    return Container(
-      width: 100,
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              height: 120,
-              width: 100,
-              fit: BoxFit.cover,
+  Widget _buildRelatedCard(Manga manga) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MangaDetailScreen(
+              mangaId: manga.id,
+              title: manga.title,
+              imageUrl: manga.coverUrl,
+              sourceId: manga.sourceId,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 11),
-          ),
-        ],
+        );
+      },
+      child: Container(
+        width: 100,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: CachedNetworkImage(
+                imageUrl: manga.coverUrl,
+                height: 120,
+                width: 100,
+                fit: BoxFit.cover,
+                errorWidget: (context, url, error) => Container(
+                  height: 120,
+                  width: 100,
+                  color: const Color(0xFF2C2C2E),
+                  child: const Icon(Icons.menu_book, color: Colors.white38),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              manga.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 11),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1261,6 +1246,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool isExpanded;
   final int activeTab;
   final double topPadding;
+  final bool hasRead;
+  final int unreadCount;
   final VoidCallback onContinuePressed;
   final VoidCallback onBarTap;
   final ValueChanged<int> onTabSelected;
@@ -1269,6 +1256,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.isExpanded,
     required this.activeTab,
     required this.topPadding,
+    required this.hasRead,
+    this.unreadCount = 0,
     required this.onContinuePressed,
     required this.onBarTap,
     required this.onTabSelected,
@@ -1286,133 +1275,135 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: Container(
         color: const Color(0xFF1E1E20),
         padding: EdgeInsets.only(
-          left: 12,
-          right: 12,
+          left: 10,
+          right: 10,
           top: isExpanded ? topPadding : 0,
         ),
         alignment: Alignment.center,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            GestureDetector(
+            // Chapter list tab (shows unread count when there are unread chapters).
+            _buildTabIcon(
+              Icons.format_list_bulleted,
+              activeTab == 0,
               onTap: () => onTabSelected(0),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: activeTab == 0
-                          ? const Color(0xFF2C2C2E)
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.format_list_bulleted,
-                      color: activeTab == 0 ? Colors.white : Colors.grey,
-                      size: 18,
-                    ),
-                  ),
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF0A8A8),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Text(
-                        '1',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              badge: unreadCount > 0 ? _badge(unreadCount) : null,
             ),
-            const SizedBox(width: 4),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(
-                Icons.grid_view_rounded,
-                color: activeTab == 1 ? Colors.white : Colors.grey,
-                size: 18,
-              ),
-              onPressed: () => onTabSelected(1),
+            const SizedBox(width: 2),
+            _buildTabIcon(
+              Icons.grid_view_rounded,
+              activeTab == 1,
+              onTap: () => onTabSelected(1),
             ),
-            const SizedBox(width: 8),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(
-                activeTab == 2
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                color: activeTab == 2 ? Colors.white : Colors.grey,
-                size: 18,
-              ),
-              onPressed: () => onTabSelected(2),
+            const SizedBox(width: 2),
+            _buildTabIcon(
+              activeTab == 2
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded,
+              activeTab == 2,
+              onTap: () => onTabSelected(2),
             ),
             const Spacer(),
             if (isExpanded) ...[
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.white, size: 20),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.more_vert,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                onPressed: () {},
-              ),
+              _buildTabIcon(Icons.search_rounded, false, onTap: () {}),
+              const SizedBox(width: 2),
+              _buildTabIcon(Icons.more_vert_rounded, false, onTap: () {}),
             ] else ...[
-              GestureDetector(
-                onTap: onContinuePressed,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
+              _buildPrimaryButton(),
               const SizedBox(width: 6),
-              GestureDetector(
-                onTap: onContinuePressed,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2C2C2E),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
+              _buildExpandButton(),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  // A single consistent, tappable tab icon with a circular active highlight.
+  Widget _buildTabIcon(
+    IconData icon,
+    bool active, {
+    VoidCallback? onTap,
+    Widget? badge,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF2C2C2E) : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon, color: active ? Colors.white : Colors.grey, size: 18),
+            if (badge != null)
+              Positioned(top: -3, right: -3, child: badge),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Compact unread-count badge in the app's red accent.
+  Widget _badge(int count) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: Colors.redAccent,
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        count > 9 ? '9+' : '$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  // Primary action pill (Continue when read, Read when fresh).
+  Widget _buildPrimaryButton() {
+    return GestureDetector(
+      onTap: onContinuePressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          hasRead ? 'Continue' : 'Read',
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Subtle chevron that expands the tray.
+  Widget _buildExpandButton() {
+    return GestureDetector(
+      onTap: onBarTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2C2C2E),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(
+          Icons.keyboard_arrow_up,
+          color: Colors.white,
+          size: 16,
         ),
       ),
     );
@@ -1428,6 +1419,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _SheetHeaderDelegate oldDelegate) {
     return oldDelegate.isExpanded != isExpanded ||
         oldDelegate.activeTab != activeTab ||
-        oldDelegate.topPadding != topPadding;
+        oldDelegate.topPadding != topPadding ||
+        oldDelegate.hasRead != hasRead ||
+        oldDelegate.unreadCount != unreadCount;
   }
 }

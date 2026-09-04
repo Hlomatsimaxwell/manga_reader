@@ -62,4 +62,7 @@ class MockSource implements MangaSource {
           'https://picsum.photos/seed/mock_ch_$chapterId${index + 1}/800/1200',
     );
   }
+
+  @override
+  Future<int> getTotalChapters(String mangaId) async => 0;
 }

@@ -14,4 +14,10 @@ abstract class MangaSource {
   Future<MangaDetails?> getMangaDetails(String mangaId);
   Future<List<Chapter>> getChapters(String mangaId);
   Future<List<String>> getPageUrls(String chapterId);
+
+  // The source's authoritative chapter count (may exceed the number of
+  // chapter *entries* currently loaded). Returns 0 when unknown.
+  Future<int> getTotalChapters(String mangaId) async {
+    return 0;
+  }
 }
