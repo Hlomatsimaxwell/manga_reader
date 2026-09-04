@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
+import '../models/manga_details.dart';
 
 class AnimeApiSource implements MangaSource {
   @override
@@ -114,6 +115,40 @@ class AnimeApiSource implements MangaSource {
     } catch (e) {
       debugPrint('API ERROR (Pages): $e');
       return [];
+    }
+  }
+
+  @override
+  Future<MangaDetails?> getMangaDetails(String mangaId) async {
+    var details = MangaDetails(
+      id: mangaId,
+      sourceId: id,
+      title: 'Unknown',
+      coverUrl: '',
+    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/manga/$mangaId'),
+        headers: headers,
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return details;
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      details = MangaDetails(
+        id: mangaId,
+        sourceId: id,
+        title: data['title']?.toString() ?? 'Unknown',
+        coverUrl: data['image']?.toString() ?? '',
+        description: data['description']?.toString() ?? '',
+        author: data['author']?.toString() ?? '',
+        status: data['status']?.toString() ?? '',
+        year: data['year']?.toString() ?? '',
+        tags: (data['genres'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      );
+      return details;
+    } catch (e) {
+      debugPrint('API ERROR (Details): $e');
+      return details;
     }
   }
 }

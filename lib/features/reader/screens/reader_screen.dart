@@ -206,6 +206,44 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _isSaving = false;
   }
 
+  Future<void> _addBookmark() async {
+    if (_pages.isEmpty || _currentChapterIndex < 0) return;
+
+    // Determine the current page index based on reading mode.
+    int pageIndex = 0;
+    if (_readingMode == ReadingMode.horizontal && _pageController.hasClients) {
+      pageIndex = _pageController.page?.round() ?? 0;
+    } else if (_readingMode == ReadingMode.vertical &&
+        _scrollController.hasClients) {
+      final perPage = 600.0;
+      pageIndex =
+          (_scrollController.offset / perPage).floor().clamp(0, _pages.length - 1);
+    }
+    pageIndex = pageIndex.clamp(0, _pages.length - 1);
+
+    final chapter = widget.allChapters[_currentChapterIndex];
+    final pageUrl = _pages[pageIndex];
+    final note = 'Saved from ${chapter.title}';
+
+    await DatabaseHelper.instance.addBookmark(
+      mangaId: widget.mangaId,
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      pageIndex: pageIndex,
+      pageUrl: pageUrl,
+      note: note,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bookmarked ${chapter.title} • Page ${pageIndex + 1}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   void _changeChapterExplicitly(int newIndex) {
     setState(() {
       _currentChapterIndex = newIndex;
@@ -343,8 +381,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                 : null,
                           ),
                           IconButton(
-                            icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
-                            onPressed: () {},
+                            icon: const Icon(Icons.bookmark_add_outlined, color: Colors.white),
+                            onPressed: _addBookmark,
                           ),
                           IconButton(
                             icon: const Icon(Icons.more_vert, color: Colors.white),

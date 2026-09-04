@@ -5,6 +5,7 @@ import 'package:html/parser.dart' as parser;
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
+import '../models/manga_details.dart';
 
 class ManganatoService implements MangaSource {
   @override
@@ -153,5 +154,64 @@ class ManganatoService implements MangaSource {
     if (url.contains('placeholder') || url.contains('loading') || url.contains('wheel')) return false;
     if (url.contains('mangadex') || url.contains('logo')) return false;
     return url.contains('.jpg') || url.contains('.png') || url.contains('.webp') || url.contains('.jpeg');
+  }
+
+  @override
+  Future<MangaDetails?> getMangaDetails(String mangaId) async {
+    try {
+      final html = await _fetchHtmlWithWebView('$baseUrl/manga-$mangaId');
+      if (html.isEmpty) return null;
+      final document = parser.parse(html);
+
+      final infoEl = document.querySelector('.story-info-right');
+      final titleEl = document.querySelector('.story-info-right h1');
+
+      var rating = '';
+      String description = '';
+      List<String> genres = [];
+      String author = '';
+      String status = '';
+
+      final allPTags = document.querySelectorAll('.story-info-right p');
+      for (final p in allPTags) {
+        final label = p.text.trim();
+        if (label.contains('Author')) {
+          author = p.querySelector('.author-content')?.text.trim() ?? '';
+        } else if (label.contains('Status')) {
+          status = p.querySelector('.status-content')?.text.trim() ?? '';
+        } else if (label.contains('Rating')) {
+          rating = p.text.replaceAll('Rating :', '').trim();
+        }
+      }
+
+      final genreAnchors = infoEl?.querySelectorAll('.genres a');
+      if (genreAnchors != null) {
+        genres = genreAnchors.map((a) => a.text.trim()).toList();
+      }
+
+      final descEl = document.querySelector('#panel-story-description');
+      if (descEl != null) {
+        description = descEl.text.trim();
+      }
+
+      final imgEl = document.querySelector('.story-info-left img');
+
+      return MangaDetails(
+        id: mangaId,
+        sourceId: id,
+        title: titleEl?.text.trim() ?? 'Unknown',
+        coverUrl: imgEl?.attributes['src'] ?? '',
+        description: description,
+        author: author,
+        status: status,
+        year: rating,
+        tags: genres,
+        followers: 0,
+        totalChapters: 0,
+      );
+    } catch (e) {
+      debugPrint('Manganato Details Error: $e');
+      return null;
+    }
   }
 }

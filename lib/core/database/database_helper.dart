@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -43,6 +43,9 @@ class DatabaseHelper {
           isReadLater INTEGER DEFAULT 0
         )
       ''');
+    }
+    if (oldVersion < 3) {
+      await _createBookmarksTable(db);
     }
   }
 
@@ -70,6 +73,23 @@ class DatabaseHelper {
         lastReadAt TEXT,
         isFavorite INTEGER DEFAULT 0,
         isReadLater INTEGER DEFAULT 0
+      )
+    ''');
+
+    await _createBookmarksTable(db);
+  }
+
+  Future _createBookmarksTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS bookmarks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mangaId TEXT NOT NULL,
+        chapterId TEXT NOT NULL,
+        chapterTitle TEXT NOT NULL,
+        pageIndex INTEGER NOT NULL,
+        pageUrl TEXT NOT NULL,
+        note TEXT,
+        createdAt TEXT NOT NULL
       )
     ''');
   }
@@ -107,6 +127,19 @@ class DatabaseHelper {
       return result.first;
     }
     return null;
+  }
+
+  // Returns the set of chapter numbers already read for a given manga.
+  Future<Set<double>> getReadChapterNumbers(String mangaId) async {
+    final db = await instance.database;
+    final rows = await db.query(
+      'reading_progress',
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+    );
+    return rows
+        .map((r) => ((r['chapterNumber'] ?? 0) as num).toDouble())
+        .toSet();
   }
 
   // Record a manga's metadata + latest read chapter (used to build History).
@@ -201,5 +234,42 @@ class DatabaseHelper {
   Future<void> close() async {
     final db = await instance.database;
     db.close();
+  }
+
+  // ---- Bookmarks ----
+
+  Future<int> addBookmark({
+    required String mangaId,
+    required String chapterId,
+    required String chapterTitle,
+    required int pageIndex,
+    required String pageUrl,
+    String? note,
+  }) async {
+    final db = await instance.database;
+    return db.insert('bookmarks', {
+      'mangaId': mangaId,
+      'chapterId': chapterId,
+      'chapterTitle': chapterTitle,
+      'pageIndex': pageIndex,
+      'pageUrl': pageUrl,
+      'note': note,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getBookmarks(String mangaId) async {
+    final db = await instance.database;
+    return db.query(
+      'bookmarks',
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+      orderBy: 'createdAt DESC',
+    );
+  }
+
+  Future<void> deleteBookmark(int id) async {
+    final db = await instance.database;
+    await db.delete('bookmarks', where: 'id = ?', whereArgs: [id]);
   }
 }

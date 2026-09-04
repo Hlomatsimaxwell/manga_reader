@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
+import '../models/manga_details.dart';
 
 class MangaDexSource implements MangaSource {
   @override
@@ -68,27 +69,131 @@ class MangaDexSource implements MangaSource {
   }
 
   @override
+  Future<MangaDetails?> getMangaDetails(String mangaId) async {
+    try {
+      final response = await _dio.get('/manga/$mangaId', queryParameters: {
+        'includes[]': ['author', 'artist', 'cover_art'],
+      });
+
+      final item = response.data['data'];
+      final attrs = item['attributes'] ?? {};
+
+      // Description (prefer English, fall back to any language).
+      String description = '';
+      final descMap = attrs['description'];
+      if (descMap is Map) {
+        description = _extractLocalized(descMap);
+      }
+
+      // Author(s)/artist(s) from relationships.
+      final authorNames = <String>[];
+      final List relationships = item['relationships'] ?? [];
+      for (final rel in relationships) {
+        final type = rel['type'];
+        if (type == 'author' || type == 'artist') {
+          final name =
+              rel['attributes']?['name']?.toString() ?? rel['attributes']?['firstName']?.toString() ?? '';
+          if (name.isNotEmpty && !authorNames.contains(name)) {
+            authorNames.add(name);
+          }
+        }
+      }
+
+      // Tags (filter comic genre vs format; prefer genre/theme).
+      final tags = <String>[];
+      final List rawTags = attrs['tags'] ?? [];
+      for (final t in rawTags) {
+        final tagName = _extractLocalized(t['attributes']?['name']);
+        if (tagName.isNotEmpty) tags.add(tagName);
+        if (tags.length >= 5) break;
+      }
+
+      String status = attrs['status']?.toString() ?? '';
+      if (status.toLowerCase() == 'ongoing') {
+        status = 'Ongoing';
+      } else if (status.toLowerCase() == 'completed') {
+        status = 'Completed';
+      } else if (status.toLowerCase() == 'hiatus') {
+        status = 'Hiatus';
+      } else if (status.toLowerCase() == 'cancelled') {
+        status = 'Cancelled';
+      }
+
+      final year = attrs['year']?.toString() ?? '';
+
+      return MangaDetails(
+        id: mangaId,
+        sourceId: this.id,
+        title: _extractTitle(attrs['title'] ?? {}),
+        coverUrl: _coverUrlFor(item),
+        description: description,
+        author: authorNames.join(', '),
+        status: status,
+        year: year,
+        tags: tags,
+        followers: attrs['followedCount'] ?? 0,
+        totalChapters: attrs['lastChapter'] is num
+            ? (attrs['lastChapter'] as num).round()
+            : 0,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String _coverUrlFor(dynamic item) {
+    final mangaId = item['id'];
+    String fileName = '';
+    final List relationships = item['relationships'] ?? [];
+    for (final rel in relationships) {
+      if (rel['type'] == 'cover_art') {
+        fileName = rel['attributes']?['fileName'] ?? '';
+        break;
+      }
+    }
+    return fileName.isNotEmpty
+        ? 'https://uploads.mangadex.org/covers/$mangaId/$fileName.256.jpg'
+        : '';
+  }
+
+  // Pick the best localized string (prefer English, fall back to any).
+  String _extractLocalized(dynamic map) {
+    if (map is! Map) return map?.toString() ?? '';
+    if (map['en'] is String && (map['en'] as String).isNotEmpty) {
+      return map['en'] as String;
+    }
+    for (final v in map.values) {
+      if (v is String && v.isNotEmpty) return v;
+    }
+    return '';
+  }
+
+  @override
   Future<List<Chapter>> getChapters(String mangaId) async {
+    final chapters = <Chapter>[];
     try {
       final response = await _dio.get('/manga/$mangaId/feed', queryParameters: {
         'order': {'chapter': 'desc'},
         'translatedLanguage[]': 'en',
-        'limit': 100,
+        'limit': 500,
+        'offset': 0,
       });
 
       final List<dynamic> data = response.data['data'];
-      return data.map((item) {
-        return Chapter(
+      for (final item in data) {
+        chapters.add(Chapter(
           id: item['id'],
           title: item['attributes']['chapter'] ?? 'Chapter',
           chapterNumber: item['attributes']['chapter'] ?? '0',
           releaseDate: '',
-          url: '', // Not used by the reader
-        );
-      }).toList();
+          url: '',
+        ));
+      }
     } catch (e) {
       return [];
     }
+
+    return chapters;
   }
 
   @override

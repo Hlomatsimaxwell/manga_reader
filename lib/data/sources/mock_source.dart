@@ -1,6 +1,7 @@
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
+import '../models/manga_details.dart';
 
 class MockSource implements MangaSource {
   @override
@@ -32,6 +33,25 @@ class MockSource implements MangaSource {
       Chapter(id: 'c1', title: 'Chapter 1', chapterNumber: '1', releaseDate: '', url: ''),
       Chapter(id: 'c2', title: 'Chapter 2', chapterNumber: '2', releaseDate: '', url: ''),
     ];
+  }
+
+  @override
+  Future<MangaDetails?> getMangaDetails(String mangaId) async {
+    return MangaDetails(
+      id: mangaId,
+      sourceId: id,
+      title: 'Mock Manga $mangaId',
+      coverUrl: 'https://picsum.photos/seed/mock$mangaId/300/450',
+      description:
+          'This is a sample description for the mock source. It is used to '
+          'demonstrate how real manga details render on the detail screen.',
+      author: 'Mock Author',
+      status: 'Ongoing',
+      year: '2024',
+      tags: const ['Action', 'Fantasy', 'Adventure'],
+      followers: 1234,
+      totalChapters: 2,
+    );
   }
 
   @override
