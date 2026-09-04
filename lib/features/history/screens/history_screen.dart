@@ -765,7 +765,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       if (_selectedFilter == 0) {
         return item['hasDownloadedChapters'] == true;
       } else if (_selectedFilter == 1) {
-        final unread = (item['unreadCount'] as int?) ?? 0;
+        final unread = (item['newChapters'] as int?) ?? 0;
         return unread > 0;
       } else if (_selectedFilter == 2) {
         return (item['progress'] as int) >= 100;
@@ -789,7 +789,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       } else if (_sortingOrder == 'Progress') {
         return (b['progress'] as int).compareTo(a['progress'] as int);
       } else if (_sortingOrder == 'Unread') {
-        return (b['unreadCount'] as int).compareTo(a['unreadCount'] as int);
+        return (b['newChapters'] as int).compareTo(a['newChapters'] as int);
       }
       return 0;
     });
@@ -1074,35 +1074,10 @@ class GridHistoryCard extends StatefulWidget {
 }
 
 class _GridHistoryCardState extends State<GridHistoryCard> {
-  bool _isReadLater = false;
-
-  String get _readLaterKey => 'read_later_${widget.item['mangaId']}';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStatus();
-  }
-
-  @override
-  void didUpdateWidget(covariant GridHistoryCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _loadStatus();
-  }
-
-  Future<void> _loadStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _isReadLater = prefs.getBool(_readLaterKey) ?? false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final progress = widget.item['progress'] as int;
-    final unreadCount = widget.item['unreadCount'] as int;
+    final newChapters = widget.item['newChapters'] as int;
     final hasDownloadedChapters = widget.item['hasDownloadedChapters'] == true;
     final bool isCompactGrid = widget.gridSize >= 4;
 
@@ -1147,36 +1122,23 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            if (unreadCount > 0)
+                            if (newChapters > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 6,
                                   vertical: 4,
                                 ),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFFF0A8A8),
+                                  color: Colors.redAccent,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Text(
-                                  '$unreadCount',
+                                  '$newChapters',
                                   style: const TextStyle(
-                                    color: Colors.black,
+                                    color: Colors.white,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
-                                ),
-                              ),
-                            if (_isReadLater)
-                              Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black45,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.redAccent,
-                                  size: 14,
                                 ),
                               ),
                             if (hasDownloadedChapters)
@@ -1237,31 +1199,6 @@ class DetailedHistoryCard extends StatefulWidget {
 }
 
 class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
-  bool _isReadLater = false;
-
-  String get _readLaterKey => 'read_later_${widget.item['mangaId']}';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStatus();
-  }
-
-  @override
-  void didUpdateWidget(covariant DetailedHistoryCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _loadStatus();
-  }
-
-  Future<void> _loadStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _isReadLater = prefs.getBool(_readLaterKey) ?? false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1321,15 +1258,6 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
                   ],
                 ),
               ),
-              if (_isReadLater)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(
-                    Icons.favorite,
-                    color: Colors.redAccent,
-                    size: 20,
-                  ),
-                ),
             ],
           ),
         ),
@@ -1353,31 +1281,6 @@ class CompactHistoryCard extends StatefulWidget {
 }
 
 class _CompactHistoryCardState extends State<CompactHistoryCard> {
-  bool _isReadLater = false;
-
-  String get _readLaterKey => 'read_later_${widget.item['mangaId']}';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStatus();
-  }
-
-  @override
-  void didUpdateWidget(covariant CompactHistoryCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _loadStatus();
-  }
-
-  Future<void> _loadStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _isReadLater = prefs.getBool(_readLaterKey) ?? false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListTile(
@@ -1408,10 +1311,6 @@ class _CompactHistoryCardState extends State<CompactHistoryCard> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (_isReadLater) ...[
-            const Icon(Icons.favorite, color: Colors.redAccent, size: 18),
-            const SizedBox(width: 8),
-          ],
           Text(
             '${widget.item['progress']}%',
             style: const TextStyle(

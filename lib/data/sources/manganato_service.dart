@@ -217,4 +217,39 @@ class ManganatoService implements MangaSource {
 
   @override
   Future<int> getTotalChapters(String mangaId) async => 0;
+
+  @override
+  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async => [];
+
+  @override
+  Future<List<String>> getAvailableTags() async => [];
+
+  @override
+  Future<(String, DateTime)?> getLatestChapter(String mangaId) async => null;
+
+  @override
+  Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
+    try {
+      final searchQuery = query.trim().replaceAll(' ', '_');
+      final html = await _fetchHtmlWithWebView('$baseUrl/search/story/$searchQuery');
+      if (html.isEmpty) return [];
+      final document = parser.parse(html);
+      final elements = document.querySelectorAll('.search-story-item');
+      return elements.map((element) {
+        final titleEl = element.querySelector('.item-title');
+        final imgEl = element.querySelector('.item-img img');
+        final url = titleEl?.attributes['href'] ?? '';
+        final id = url.split('/').last;
+        return Manga(
+          id: id,
+          sourceId: this.id,
+          title: titleEl?.text.trim() ?? '',
+          coverUrl: imgEl?.attributes['src'] ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Manganato Search Error: $e');
+      return [];
+    }
+  }
 }

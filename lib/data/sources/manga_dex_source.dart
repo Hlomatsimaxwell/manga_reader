@@ -30,6 +30,9 @@ class MangaDexSource implements MangaSource {
     },
   ));
 
+  // Cached tag name → id mapping (fetched once per session).
+  Map<String, String>? _tagNameToId;
+
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
@@ -42,27 +45,7 @@ class MangaDexSource implements MangaSource {
         'includes[]': 'cover_art',
       });
 
-      final List<dynamic> data = response.data['data'];
-      return data.map((item) {
-        final mangaId = item['id'];
-        // Extract cover filename from the cover_art relationship
-        String coverFileName = '';
-        final List relationships = item['relationships'] ?? [];
-        for (var rel in relationships) {
-          if (rel['type'] == 'cover_art') {
-            coverFileName = rel['attributes']?['fileName'] ?? '';
-            break;
-          }
-        }
-        return Manga(
-          id: mangaId,
-          sourceId: this.id,
-          title: _extractTitle(item['attributes']['title'] ?? {}),
-          coverUrl: coverFileName.isNotEmpty
-              ? 'https://uploads.mangadex.org/covers/$mangaId/$coverFileName.256.jpg'
-              : '',
-        );
-      }).toList();
+      return _parseMangaList(response.data);
     } catch (e) {
       return [];
     }
@@ -248,5 +231,140 @@ class MangaDexSource implements MangaSource {
       if (v is String && v.isNotEmpty) return v;
     }
     return 'Unknown Title';
+  }
+
+  // Fetch the full tag list from MangaDex and build a name→id map.
+  Future<Map<String, String>> _getTagNameToId() async {
+    if (_tagNameToId != null) return _tagNameToId!;
+    try {
+      final response = await _dio.get('/manga/tag');
+      final data = response.data['data'] as List? ?? [];
+      final map = <String, String>{};
+      for (final tag in data) {
+        final name = _extractLocalized(tag['attributes']?['name'] ?? {});
+        final id = tag['id'] as String? ?? '';
+        if (name.isNotEmpty && id.isNotEmpty) {
+          map[name.toLowerCase()] = id;
+        }
+      }
+      _tagNameToId = map;
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  @override
+  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async {
+    try {
+      final nameToId = await _getTagNameToId();
+      final tagIds = <String>[];
+      for (final tag in tags) {
+        final id = nameToId[tag.toLowerCase()];
+        if (id != null) tagIds.add(id);
+      }
+      if (tagIds.isEmpty) return [];
+
+      final offset = (page - 1) * 20;
+      final response = await _dio.get('/manga', queryParameters: {
+        'limit': 20,
+        'offset': offset,
+        'order': {'followedCount': 'desc'},
+        'includes[]': 'cover_art',
+        ...{for (final id in tagIds) 'includedTags[]': id},
+      });
+
+      return _parseMangaList(response.data);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
+    if (query.trim().isEmpty) return [];
+    try {
+      final offset = (page - 1) * 20;
+      final response = await _dio.get('/manga', queryParameters: {
+        'limit': 20,
+        'offset': offset,
+        'title': query.trim(),
+        'order': {'relevance': 'desc'},
+        'includes[]': 'cover_art',
+      });
+
+      return _parseMangaList(response.data);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Parse a /manga response body into a list of Manga.
+  List<Manga> _parseMangaList(dynamic responseBody) {
+    final List<dynamic> data = responseBody['data'] ?? [];
+    return data.map((item) {
+      final mangaId = item['id'];
+      String coverFileName = '';
+      final List relationships = item['relationships'] ?? [];
+      for (var rel in relationships) {
+        if (rel['type'] == 'cover_art') {
+          coverFileName = rel['attributes']?['fileName'] ?? '';
+          break;
+        }
+      }
+      return Manga(
+        id: mangaId,
+        sourceId: this.id,
+        title: _extractTitle(item['attributes']['title'] ?? {}),
+        coverUrl: coverFileName.isNotEmpty
+            ? 'https://uploads.mangadex.org/covers/$mangaId/$coverFileName.256.jpg'
+            : '',
+      );
+    }).toList();
+  }
+
+  @override
+  Future<List<String>> getAvailableTags() async {
+    try {
+      final response = await _dio.get('/manga/tag');
+      final data = response.data['data'] as List? ?? [];
+      final genres = <String>[];
+      for (final tag in data) {
+        final group = tag['attributes']?['group'] as String? ?? '';
+        if (group == 'genre' || group == 'theme') {
+          final name = _extractLocalized(tag['attributes']?['name'] ?? {});
+          if (name.isNotEmpty) genres.add(name);
+        }
+      }
+      genres.sort();
+      return genres;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<(String, DateTime)?> getLatestChapter(String mangaId) async {
+    try {
+      final response = await _dio.get('/manga/$mangaId/feed', queryParameters: {
+        'order': {'chapter': 'desc'},
+        'translatedLanguage[]': 'en',
+        'limit': 1,
+        'offset': 0,
+      });
+      final data = response.data['data'] as List? ?? [];
+      if (data.isEmpty) return null;
+      final attrs = data[0]['attributes'] ?? {};
+      final chapterNum = attrs['chapter']?.toString() ?? '';
+      final title = chapterNum.isNotEmpty ? 'Chapter $chapterNum' : 'New chapter';
+      DateTime? publishedAt;
+      final pub = attrs['publishAt'];
+      if (pub is String) {
+        publishedAt = DateTime.tryParse(pub);
+      }
+      return (title, publishedAt ?? DateTime.now());
+    } catch (_) {
+      return null;
+    }
   }
 }

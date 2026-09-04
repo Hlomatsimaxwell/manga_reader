@@ -1,101 +1,17 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
+import 'package:manga_reader/features/feed/providers/updates_provider.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 
-class FeedScreen extends StatefulWidget {
+class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
 
   @override
-  State<FeedScreen> createState() => _FeedScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final updatesAsync = ref.watch(updatesProvider);
 
-class _FeedScreenState extends State<FeedScreen> {
-  // Mock Data for Updates Carousel
-  final List<Map<String, dynamic>> _updatesList = [
-    {
-      'id': 'up_1',
-      'title': 'Initializing the Sect System',
-      'coverUrl': 'https://picsum.photos/seed/sect1/300/450',
-      'unreadBadge': 1,
-      'progressPercentage': null,
-      'isFavorite': true,
-    },
-    {
-      'id': 'up_2',
-      'title': 'Return of the Mount Hua S...',
-      'coverUrl': 'https://picsum.photos/seed/mthua/300/450',
-      'unreadBadge': 4,
-      'progressPercentage': '0%',
-      'isFavorite': true,
-    },
-    {
-      'id': 'up_3',
-      'title': 'Return Of The Flowery ...',
-      'coverUrl': 'https://picsum.photos/seed/flowery/300/450',
-      'unreadBadge': 2,
-      'progressPercentage': null,
-      'isFavorite': true,
-    },
-    {
-      'id': 'up_4',
-      'title': 'The Supreme Demon',
-      'coverUrl': 'https://picsum.photos/seed/supdemon/300/450',
-      'unreadBadge': 15,
-      'progressPercentage': null,
-      'isFavorite': true,
-    },
-  ];
-
-  // Mock Chronological Feed Data
-  final List<Map<String, dynamic>> _feedGroupedByDate = [
-    {
-      'dateGroup': 'Today',
-      'items': [
-        {
-          'id': 'up_1',
-          'title': 'Initializing the Sect System',
-          'coverUrl': 'https://picsum.photos/seed/sect1/300/450',
-          'subtitle': '1 new chapter',
-          'hasDot': true,
-        },
-      ],
-    },
-    {
-      'dateGroup': 'Yesterday',
-      'items': [
-        {
-          'id': 'up_2',
-          'title': 'Return of the Mount Hua Sect',
-          'coverUrl': 'https://picsum.photos/seed/mthua/300/450',
-          'subtitle': '1 new chapter',
-          'hasDot': false,
-        },
-        {
-          'id': 'up_3',
-          'title': 'Return Of The Flowery Mountain Sect',
-          'coverUrl': 'https://picsum.photos/seed/flowery/300/450',
-          'subtitle': '1 new chapter',
-          'hasDot': false,
-        },
-      ],
-    },
-    {
-      'dateGroup': '2 days ago',
-      'items': [
-        {
-          'id': 'up_4',
-          'title': 'The Supreme Demon',
-          'coverUrl': 'https://picsum.photos/seed/supdemon/300/450',
-          'subtitle': '3 new chapters',
-          'hasDot': false,
-        },
-      ],
-    },
-  ];
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -107,13 +23,47 @@ class _FeedScreenState extends State<FeedScreen> {
               const SizedBox(height: 8),
               _buildSearchBar(context),
               const SizedBox(height: 16),
-              _buildSectionHeader('Updates', actionLabel: 'More', onTap: () {}),
+              _buildSectionHeader(context, ref),
               const SizedBox(height: 12),
-              _buildUpdatesCarousel(),
-              const SizedBox(height: 20),
-              ..._feedGroupedByDate.map((group) {
-                return _buildDateGroupSection(group);
-              }),
+              updatesAsync.when(
+                data: (updates) {
+                  if (updates.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child: Text(
+                          'No new updates yet.\nManga you read will show here\nwhen new chapters are released.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white54, fontSize: 14),
+                        ),
+                      ),
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildUpdatesCarousel(context, updates),
+                      const SizedBox(height: 20),
+                      ..._groupByDate(context, updates),
+                    ],
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: CircularProgressIndicator(color: Colors.white54),
+                  ),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: Text(
+                      'Failed to load updates',
+                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -158,33 +108,35 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _buildSectionHeader(
-    String title, {
-    required String actionLabel,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildSectionHeader(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
+          const Text(
+            'Updates',
+            style: TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
           GestureDetector(
-            onTap: onTap,
-            child: Text(
-              actionLabel,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+            onTap: () => ref.invalidate(updatesProvider),
+            child: const Row(
+              children: [
+                Icon(Icons.refresh, color: Colors.white70, size: 15),
+                SizedBox(width: 4),
+                Text(
+                  'Refresh',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -192,18 +144,18 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _buildUpdatesCarousel() {
+  Widget _buildUpdatesCarousel(BuildContext context, List<MangaUpdate> updates) {
+    final previews = updates.take(6).toList();
+
     return SizedBox(
       height: 185,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _updatesList.length,
+        itemCount: previews.length,
         itemBuilder: (context, index) {
-          final item = _updatesList[index];
-          final unreadBadge = item['unreadBadge'] as int?;
-          final progress = item['progressPercentage'] as String?;
+          final update = previews[index];
 
           return GestureDetector(
             onTap: () {
@@ -211,9 +163,9 @@ class _FeedScreenState extends State<FeedScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => MangaDetailScreen(
-                    mangaId: item['id'],
-                    title: item['title'],
-                    imageUrl: item['coverUrl'],
+                    mangaId: update.mangaId,
+                    title: update.title,
+                    imageUrl: update.coverUrl,
                   ),
                 ),
               );
@@ -231,7 +183,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: CachedNetworkImage(
-                            imageUrl: item['coverUrl'],
+                            imageUrl: update.coverUrl,
                             width: double.infinity,
                             height: double.infinity,
                             fit: BoxFit.cover,
@@ -247,59 +199,41 @@ class _FeedScreenState extends State<FeedScreen> {
                         Positioned(
                           top: 6,
                           left: 6,
-                          right: 6,
-                          child: Row(
-                            children: [
-                              if (unreadBadge != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8B1B1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '$unreadBadge',
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black45,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.white,
-                                  size: 10,
-                                ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8B1B1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '+${update.newCount}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const Spacer(),
-                              if (progress != null)
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    progress,
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black45,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              update.isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: Colors.white,
+                              size: 10,
+                            ),
                           ),
                         ),
                       ],
@@ -307,7 +241,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    item['title'],
+                    update.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -326,10 +260,20 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _buildDateGroupSection(Map<String, dynamic> group) {
-    final String dateGroup = group['dateGroup'];
-    final List items = group['items'];
+  // Groups updates (already sorted by date desc) into date-grouped sections.
+  List<Widget> _groupByDate(BuildContext context, List<MangaUpdate> updates) {
+    final groups = <String, List<MangaUpdate>>{};
+    for (final u in updates) {
+      groups.putIfAbsent(u.dateGroup, () => []).add(u);
+    }
 
+    return [
+      for (final entry in groups.entries) _buildDateGroupSection(context, entry.key, entry.value),
+    ];
+  }
+
+  Widget _buildDateGroupSection(
+      BuildContext context, String dateGroup, List<MangaUpdate> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -344,9 +288,7 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
           ),
         ),
-        ...items.map((item) {
-          final bool hasDot = item['hasDot'] == true;
-
+        ...items.map((update) {
           return ListTile(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -355,9 +297,9 @@ class _FeedScreenState extends State<FeedScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => MangaDetailScreen(
-                    mangaId: item['id'],
-                    title: item['title'],
-                    imageUrl: item['coverUrl'],
+                    mangaId: update.mangaId,
+                    title: update.title,
+                    imageUrl: update.coverUrl,
                   ),
                 ),
               );
@@ -365,7 +307,7 @@ class _FeedScreenState extends State<FeedScreen> {
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: CachedNetworkImage(
-                imageUrl: item['coverUrl'],
+                imageUrl: update.coverUrl,
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
@@ -376,7 +318,7 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
             ),
             title: Text(
-              item['title'],
+              update.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -387,22 +329,24 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
             subtitle: Row(
               children: [
-                if (hasDot) ...[
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF8B1B1),
-                      shape: BoxShape.circle,
-                    ),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8B1B1),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(width: 6),
-                ],
-                Text(
-                  item['subtitle'],
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${update.newCount} new · ${update.latestChapterTitle}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],

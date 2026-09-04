@@ -13,6 +13,7 @@ enum ReadingMode { vertical, horizontal }
 class ReaderScreen extends ConsumerStatefulWidget {
   final List<Chapter> allChapters;
   final int initialChapterIndex;
+  final int initialPageIndex;
   final String mangaId;
   final String? sourceId;
   final String? mangaTitle;
@@ -23,6 +24,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
     super.key,
     required this.allChapters,
     required this.initialChapterIndex,
+    this.initialPageIndex = 0,
     required this.mangaId,
     this.sourceId,
     this.mangaTitle,
@@ -45,6 +47,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _hasMoreChapters = true;
   bool _showControls = true;
   bool _isSaving = false;
+  bool _needsRestore = false;
   
   // The mode state
   ReadingMode _readingMode = ReadingMode.vertical;
@@ -53,6 +56,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void initState() {
     super.initState();
     _currentChapterIndex = widget.initialChapterIndex;
+    _needsRestore = widget.initialPageIndex > 0;
     _loadChapter(_currentChapterIndex);
 
     _scrollController.addListener(() {
@@ -76,6 +80,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     setState(() {
       _showControls = !_showControls;
     });
+  }
+
+  int get _currentPageIndex {
+    if (_readingMode == ReadingMode.horizontal && _pageController.hasClients) {
+      return _pageController.page?.round() ?? 0;
+    } else if (_readingMode == ReadingMode.vertical &&
+        _scrollController.hasClients) {
+      const perPage = 600.0;
+      return (_scrollController.offset / perPage).floor().clamp(0, _pages.length - 1);
+    }
+    return 0;
+  }
+
+  void _restorePosition() {
+    if (!_needsRestore || _pages.isEmpty) return;
+    _needsRestore = false;
+    final page = widget.initialPageIndex.clamp(0, _pages.length - 1);
+    if (_readingMode == ReadingMode.horizontal) {
+      if (_pageController.hasClients) _pageController.jumpToPage(page);
+    } else {
+      if (_scrollController.hasClients) {
+        final extent = _scrollController.position.maxScrollExtent;
+        _scrollController.jumpTo((page * 600.0).clamp(0.0, extent));
+      }
+    }
   }
 
   void _showReadingModeDialog() {
@@ -145,6 +174,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           _pages.addAll(newPages);
           _loadedChapterIndices.add(chapterIndex);
         });
+        if (_needsRestore) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _restorePosition());
+        }
       }
     } catch (e) {
       debugPrint('Error loading chapter: $e');
@@ -207,6 +239,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         sourceId: widget.sourceId,
         totalChapters: widget.totalChapters,
         lastReadChapter: readValue,
+        lastReadPage: _pages.isEmpty ? 0 : _currentPageIndex,
       );
 
       bumpHistoryRevision(ref);
@@ -217,17 +250,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Future<void> _addBookmark() async {
     if (_pages.isEmpty || _currentChapterIndex < 0) return;
 
-    // Determine the current page index based on reading mode.
-    int pageIndex = 0;
-    if (_readingMode == ReadingMode.horizontal && _pageController.hasClients) {
-      pageIndex = _pageController.page?.round() ?? 0;
-    } else if (_readingMode == ReadingMode.vertical &&
-        _scrollController.hasClients) {
-      final perPage = 600.0;
-      pageIndex =
-          (_scrollController.offset / perPage).floor().clamp(0, _pages.length - 1);
-    }
-    pageIndex = pageIndex.clamp(0, _pages.length - 1);
+    final pageIndex = _currentPageIndex.clamp(0, _pages.length - 1);
 
     final chapter = widget.allChapters[_currentChapterIndex];
     final pageUrl = _pages[pageIndex];

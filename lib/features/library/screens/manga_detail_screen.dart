@@ -126,6 +126,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       final details = await source.getMangaDetails(widget.mangaId);
       if (details != null && mounted) {
         setState(() => _details = details);
+        // Cache tags in the database for the suggestions engine.
+        if (details.tags.isNotEmpty) {
+          DatabaseHelper.instance.saveMangaTags(widget.mangaId, details.tags);
+        }
       }
       if (chapters.isNotEmpty && mounted) {
         _loadPreviewPages();
@@ -229,6 +233,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         final matches =
             (d.tags).map((t) => t.toLowerCase()).where(myTags.contains).length;
         if (matches > 0) scored.add((matches, m));
+        // Cache tags for suggestions engine.
+        if (d.tags.isNotEmpty) {
+          DatabaseHelper.instance.saveMangaTags(m.id, d.tags);
+        }
       }
 
       // Sort by tag overlap desc, then by title for stability.

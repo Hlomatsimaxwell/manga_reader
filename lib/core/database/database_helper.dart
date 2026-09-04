@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -22,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -38,14 +39,26 @@ class DatabaseHelper {
           sourceId TEXT,
           totalChapters INTEGER DEFAULT 0,
           lastReadChapter REAL DEFAULT -1,
+          lastReadPage INTEGER DEFAULT 0,
+          lastTrayTotalChapters INTEGER DEFAULT 0,
           lastReadAt TEXT,
           isFavorite INTEGER DEFAULT 0,
-          isReadLater INTEGER DEFAULT 0
+          isReadLater INTEGER DEFAULT 0,
+          tags TEXT DEFAULT '[]'
         )
       ''');
     }
     if (oldVersion < 3) {
       await _createBookmarksTable(db);
+    }
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE manga ADD COLUMN lastReadPage INTEGER DEFAULT 0');
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE manga ADD COLUMN lastTrayTotalChapters INTEGER DEFAULT 0');
+    }
+    if (oldVersion < 6) {
+      await db.execute("ALTER TABLE manga ADD COLUMN tags TEXT DEFAULT '[]'");
     }
   }
 
@@ -70,9 +83,12 @@ class DatabaseHelper {
         sourceId TEXT,
         totalChapters INTEGER DEFAULT 0,
         lastReadChapter REAL DEFAULT -1,
+        lastReadPage INTEGER DEFAULT 0,
+        lastTrayTotalChapters INTEGER DEFAULT 0,
         lastReadAt TEXT,
         isFavorite INTEGER DEFAULT 0,
-        isReadLater INTEGER DEFAULT 0
+        isReadLater INTEGER DEFAULT 0,
+        tags TEXT DEFAULT '[]'
       )
     ''');
 
@@ -151,6 +167,8 @@ class DatabaseHelper {
     String? sourceId,
     int totalChapters = 0,
     required double lastReadChapter,
+    int lastReadPage = 0,
+    int lastTrayTotalChapters = 0,
   }) async {
     final db = await instance.database;
     final now = DateTime.now().toIso8601String();
@@ -176,6 +194,10 @@ class DatabaseHelper {
               ? totalChapters
               : (row['totalChapters'] as int? ?? 0),
           'lastReadChapter': newChapter,
+          'lastReadPage': lastReadPage,
+          'lastTrayTotalChapters': lastTrayTotalChapters > 0
+              ? lastTrayTotalChapters
+              : (row['lastTrayTotalChapters'] as int? ?? 0),
           'lastReadAt': now,
         },
         where: 'mangaId = ?',
@@ -191,6 +213,8 @@ class DatabaseHelper {
           'sourceId': sourceId,
           'totalChapters': totalChapters,
           'lastReadChapter': lastReadChapter,
+          'lastReadPage': lastReadPage,
+          'lastTrayTotalChapters': lastTrayTotalChapters,
           'lastReadAt': now,
           'isFavorite': 0,
           'isReadLater': 0,
@@ -298,6 +322,72 @@ class DatabaseHelper {
   Future<void> close() async {
     final db = await instance.database;
     db.close();
+  }
+
+  // Save tags for a manga (JSON array string).
+  Future<void> saveMangaTags(String mangaId, List<String> tags) async {
+    final db = await instance.database;
+    final existing = await db.query(
+      'manga',
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+      limit: 1,
+    );
+    final tagsJson = jsonEncode(tags);
+    if (existing.isNotEmpty) {
+      await db.update(
+        'manga',
+        {'tags': tagsJson},
+        where: 'mangaId = ?',
+        whereArgs: [mangaId],
+      );
+    } else {
+      await db.insert(
+        'manga',
+        {
+          'mangaId': mangaId,
+          'title': '',
+          'tags': tagsJson,
+          'lastReadAt': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  // Get the top N most frequent tags across all history + favorites manga.
+  Future<List<String>> getUserTopTags({int limit = 5}) async {
+    final db = await instance.database;
+    final rows = await db.query(
+      'manga',
+      columns: ['tags'],
+      where: "tags IS NOT NULL AND tags != '[]'",
+    );
+
+    final freq = <String, int>{};
+    for (final row in rows) {
+      final raw = row['tags'] as String? ?? '[]';
+      try {
+        final List<dynamic> list = jsonDecode(raw);
+        for (final tag in list) {
+          final t = tag.toString();
+          freq[t] = (freq[t] ?? 0) + 1;
+        }
+      } catch (_) {}
+    }
+
+    final sorted = freq.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return sorted.take(limit).map((e) => e.key).toList();
+  }
+
+  // Get all manga rows with non-empty tags (for suggestions).
+  Future<List<Map<String, dynamic>>> getMangaWithTags() async {
+    final db = await instance.database;
+    return db.query(
+      'manga',
+      where: "tags IS NOT NULL AND tags != '[]'",
+    );
   }
 
   // ---- Bookmarks ----

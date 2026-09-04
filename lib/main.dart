@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io'; // REQUIRED for Platform.isLinux
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // REQUIRED for Linux DB
+import 'dart:io';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:manga_reader/features/suggestions/screens/suggestions_screen.dart';
 import 'features/history/screens/history_screen.dart';
 import 'features/library/screens/favorites_screen.dart';
 import 'package:manga_reader/features/explore/screens/explore_screen.dart';
 import 'package:manga_reader/features/feed/screens/feed_screen.dart';
+import 'package:manga_reader/features/feed/providers/updates_provider.dart';
+import 'package:manga_reader/features/reader/screens/reader_screen.dart';
+import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:manga_reader/data/providers/sources_provider.dart';
 
 void main() {
   // 1. Fix the Database Crash for Linux/Windows/MacOS
@@ -36,15 +40,16 @@ class MangaReaderApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0; // Default to History tab
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  int _currentIndex = 0;
+  bool _isContinuing = false;
 
   final List<Widget> _screens = [
     const HistoryScreen(),
@@ -58,6 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final updatesCount = ref.watch(updatesCountProvider);
+
     return Scaffold(
       backgroundColor: Colors.black,
       extendBody: true,
@@ -100,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       index: 4,
                       icon: Icons.rss_feed_rounded,
                       label: 'Updates',
-                      badgeCount: 25,
+                      badgeCount: updatesCount,
                     ),
                     ],
                   ),
@@ -200,18 +207,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Continue Reading circular FAB, to the right of the pill bar.
   Widget _buildContinueFab() {
     return GestureDetector(
-      onTap: () {
-        // Continue-reading: resume the most recently read manga.
-        // TODO: load last-read manga and open its reader.
-      },
+      onTap: _isContinuing ? null : _continueReading,
       child: Container(
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          color: _activeColor,
+          color: _isContinuing ? _activeColor.withOpacity(0.5) : _activeColor,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -221,14 +224,117 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: const Center(
-          child: Icon(
-            Icons.auto_stories_rounded,
-            color: Colors.black,
-            size: 30,
-          ),
+        child: Center(
+          child: _isContinuing
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : const Icon(
+                  Icons.auto_stories_rounded,
+                  color: Colors.black,
+                  size: 30,
+                ),
         ),
       ),
     );
+  }
+
+  Future<void> _continueReading() async {
+    if (_isContinuing) return;
+    setState(() => _isContinuing = true);
+
+    try {
+      final rows = await DatabaseHelper.instance.getHistory();
+      if (rows.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No reading history yet'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      final last = rows.first;
+      final mangaId = last['mangaId'] as String;
+      final sourceId = last['sourceId'] as String?;
+      final title = last['title'] as String;
+      final coverUrl = last['coverUrl'] as String?;
+      final lastReadChapter = (last['lastReadChapter'] as num?)?.toDouble() ?? 0;
+      final lastReadPage = (last['lastReadPage'] as int?) ?? 0;
+      final totalChaptersDb = (last['totalChapters'] as int?) ?? 0;
+
+      final source = sourceId != null
+          ? getSourceBySourceId(sourceId) ?? ref.read(currentSourceProvider)
+          : ref.read(currentSourceProvider);
+      if (source == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No source available'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      final chapters = await source.getChapters(mangaId);
+      if (chapters.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No chapters available'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Compute chapter index from position (total - position).
+      final total = totalChaptersDb > 0 ? totalChaptersDb : chapters.length;
+      final lastReadInt = lastReadChapter.round();
+      int chapterIndex = (total - lastReadInt).clamp(0, chapters.length - 1);
+
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReaderScreen(
+            allChapters: chapters,
+            initialChapterIndex: chapterIndex,
+            initialPageIndex: lastReadPage,
+            mangaId: mangaId,
+            sourceId: sourceId,
+            mangaTitle: title,
+            mangaCoverUrl: coverUrl,
+            totalChapters: total,
+          ),
+        ),
+      );
+
+      // After closing the reader, return to the History tab.
+      if (mounted) setState(() => _currentIndex = 0);
+    } catch (e) {
+      debugPrint('Continue reading error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to continue reading: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isContinuing = false);
+    }
   }
 }

@@ -11,10 +11,10 @@ List<Map<String, dynamic>> mapHistoryRows(List<Map<String, dynamic>> rows) {
             .clamp(0, 100)
             .toInt()
         : 0;
-    final maxChapter = total > 0 ? total : 0;
-    final unread = (maxChapter - lastReadChapter)
-        .clamp(0.0, maxChapter.toDouble())
-        .toInt();
+    final lastTrayTotal = (row['lastTrayTotalChapters'] as int?) ?? 0;
+    final newChapters = (lastTrayTotal > 0 && total > lastTrayTotal)
+        ? total - lastTrayTotal
+        : 0;
 
     return <String, dynamic>{
       'mangaId': row['mangaId'],
@@ -22,10 +22,11 @@ List<Map<String, dynamic>> mapHistoryRows(List<Map<String, dynamic>> rows) {
       'coverUrl': row['coverUrl'] ?? '',
       'sourceId': row['sourceId'],
       'lastReadChapter': lastReadChapter.floor(),
+      'lastReadPage': (row['lastReadPage'] as int?) ?? 0,
       'totalReleasedChapters': total,
       'lastReadAt': row['lastReadAt'] ?? DateTime.now().toIso8601String(),
       'progress': progress,
-      'unreadCount': unread,
+      'newChapters': newChapters,
       'hasDownloadedChapters': false,
     };
   }).toList();

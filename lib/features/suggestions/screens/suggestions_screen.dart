@@ -1,85 +1,21 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/features/suggestions/providers/suggestions_provider.dart';
 
-class SuggestionsScreen extends StatefulWidget {
+class SuggestionsScreen extends ConsumerStatefulWidget {
   const SuggestionsScreen({super.key});
 
   @override
-  State<SuggestionsScreen> createState() => _SuggestionsScreenState();
+  ConsumerState<SuggestionsScreen> createState() => _SuggestionsScreenState();
 }
 
-class _SuggestionsScreenState extends State<SuggestionsScreen> {
-  int _selectedGenreIndex = -1; // -1: none selected
+class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
+  String? _selectedGenre; // null: personalised, non-null: filter by genre
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
-  final List<String> _genres = [
-    'Comedy',
-    'Fantasy',
-    'Reincarnation',
-    'Action',
-    'Romance',
-    'Drama',
-    'Isekai',
-  ];
-
-  final List<Map<String, dynamic>> _suggestions = [
-    {
-      'mangaId': 'sugg_1',
-      'title': 'The Ultimate of All Ages',
-      'coverUrl': 'https://picsum.photos/seed/sugg1/300/450',
-      'genre': 'Action',
-    },
-    {
-      'mangaId': 'sugg_2',
-      'title': 'Why She Lives as a Villainess',
-      'coverUrl': 'https://picsum.photos/seed/sugg2/300/450',
-      'genre': 'Reincarnation',
-    },
-    {
-      'mangaId': 'sugg_3',
-      'title': 'Marquis of Marron',
-      'coverUrl': 'https://picsum.photos/seed/sugg3/300/450',
-      'genre': 'Fantasy',
-    },
-    {
-      'mangaId': 'sugg_4',
-      'title': 'The Reason Why That Villainess ...',
-      'coverUrl': 'https://picsum.photos/seed/sugg4/300/450',
-      'genre': 'Reincarnation',
-    },
-    {
-      'mangaId': 'sugg_5',
-      'title': 'The Villainess Refuses to Flirt ...',
-      'coverUrl': 'https://picsum.photos/seed/sugg5/300/450',
-      'genre': 'Comedy',
-    },
-    {
-      'mangaId': 'sugg_6',
-      'title': 'The Strongest Level 0 Absolut...',
-      'coverUrl': 'https://picsum.photos/seed/sugg6/300/450',
-      'genre': 'Action',
-    },
-    {
-      'mangaId': 'sugg_7',
-      'title': 'Path of the Shaman',
-      'coverUrl': 'https://picsum.photos/seed/sugg7/300/450',
-      'genre': 'Fantasy',
-    },
-    {
-      'mangaId': 'sugg_8',
-      'title': 'The Dark Magician Trans...',
-      'coverUrl': 'https://picsum.photos/seed/sugg8/300/450',
-      'genre': 'Fantasy',
-    },
-    {
-      'mangaId': 'sugg_9',
-      'title': 'Black Killer Whale Baby',
-      'coverUrl': 'https://picsum.photos/seed/sugg9/300/450',
-      'genre': 'Comedy',
-    },
-  ];
 
   @override
   void dispose() {
@@ -89,20 +25,9 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Filter items by search query and active genre tag
-    final displayedItems = _suggestions.where((item) {
-      final matchesSearch =
-          _searchQuery.isEmpty ||
-          item['title'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-
-      final matchesGenre =
-          _selectedGenreIndex == -1 ||
-          item['genre'] == _genres[_selectedGenreIndex];
-
-      return matchesSearch && matchesGenre;
-    }).toList();
+    // Passing _selectedGenre as the family key; provider re-fetches when it changes.
+    final suggestionsAsync = ref.watch(suggestionsProvider(_selectedGenre));
+    final genreTagsAsync = ref.watch(genreTagsProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -115,9 +40,32 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               const SizedBox(height: 8),
               _buildSearchBar(),
               const SizedBox(height: 12),
-              _buildGenreChips(),
+              genreTagsAsync.when(
+                data: (tags) => tags.isNotEmpty
+                    ? _buildGenreChips(tags)
+                    : const SizedBox.shrink(),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
               const SizedBox(height: 16),
-              _buildMangaGrid(displayedItems),
+              suggestionsAsync.when(
+                data: (mangaList) => _buildMangaGrid(mangaList),
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: CircularProgressIndicator(color: Colors.white54),
+                  ),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: Text(
+                      'Failed to load suggestions',
+                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -167,37 +115,24 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     );
   }
 
-  Widget _buildGenreChips() {
-    final filters = [
-      'Comedy',
-      'Fantasy',
-      'Reincarnation',
-      'Action',
-      'Romance',
-      'Drama',
-      'Isekai',
-      'Slice of Life',
-      'Sci-Fi',
-      'Supernatural',
-    ];
-
+  Widget _buildGenreChips(List<String> tags) {
     return SizedBox(
       height: 38,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        physics:
-            const BouncingScrollPhysics(), // Enables smooth horizontal flicking
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: filters.length,
+        itemCount: tags.length,
         itemBuilder: (context, index) {
-          final isSelected = _selectedGenreIndex == index;
+          final tag = tags[index];
+          final isSelected = _selectedGenre == tag;
 
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  _selectedGenreIndex = isSelected ? -1 : index;
+                  _selectedGenre = isSelected ? null : tag;
                 });
               },
               child: Container(
@@ -222,7 +157,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      filters[index],
+                      tag,
                       style: TextStyle(
                         color: isSelected ? Colors.black : Colors.white,
                         fontSize: 13,
@@ -239,7 +174,12 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     );
   }
 
-  Widget _buildMangaGrid(List<Map<String, dynamic>> items) {
+  Widget _buildMangaGrid(List<Manga> allManga) {
+    final items = allManga.where((m) {
+      return _searchQuery.isEmpty ||
+          m.title.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
     if (items.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 60),
@@ -259,29 +199,29 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          childAspectRatio: 0.50, // Headroom for 2:3 cover + 2-line title
+          childAspectRatio: 0.50,
           crossAxisSpacing: 10,
           mainAxisSpacing: 12,
         ),
         itemCount: items.length,
         itemBuilder: (context, index) {
-          final item = items[index];
-          return _buildMangaCard(context, item);
+          final manga = items[index];
+          return _buildMangaCard(context, manga);
         },
       ),
     );
   }
 
-  Widget _buildMangaCard(BuildContext context, Map<String, dynamic> item) {
+  Widget _buildMangaCard(BuildContext context, Manga manga) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => MangaDetailScreen(
-              mangaId: item['mangaId'],
-              title: item['title'],
-              imageUrl: item['coverUrl'],
+              mangaId: manga.id,
+              title: manga.title,
+              imageUrl: manga.coverUrl,
             ),
           ),
         );
@@ -290,13 +230,12 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Strict 2:3 Aspect Ratio Cover Container
           AspectRatio(
             aspectRatio: 2 / 3,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: CachedNetworkImage(
-                imageUrl: item['coverUrl'],
+                imageUrl: manga.coverUrl,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
@@ -313,7 +252,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            item['title'],
+            manga.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(

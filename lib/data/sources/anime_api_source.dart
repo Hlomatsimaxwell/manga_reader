@@ -154,4 +154,16 @@ class AnimeApiSource implements MangaSource {
 
   @override
   Future<int> getTotalChapters(String mangaId) async => 0;
+
+  @override
+  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async => [];
+
+  @override
+  Future<List<String>> getAvailableTags() async => [];
+
+  @override
+  Future<(String, DateTime)?> getLatestChapter(String mangaId) async => null;
+
+  @override
+  Future<List<Manga>> searchByTitle(String query, {int page = 1}) async => [];
 }
