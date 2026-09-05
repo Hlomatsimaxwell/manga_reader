@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:manga_reader/core/database/source_cache.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
 
@@ -39,14 +41,20 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
     _loadManga();
   }
 
-  Future<void> _loadManga() async {
+  Future<void> _loadManga({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       final source = getSourceByName(widget.sourceName);
-      final manga = await source.getPopularManga();
+      final manga = await SourceCache.mangaList(
+        sourceId: source.id,
+        kind: 'popular',
+        page: 1,
+        forceRefresh: forceRefresh,
+        fetch: source.getPopularManga,
+      );
       setState(() {
         _mangaList = manga;
         _isLoading = false;
@@ -57,6 +65,12 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _refresh() async {
+    final source = getSourceByName(widget.sourceName);
+    SourceCache.invalidatePrefix('${source.id}/list/popular/');
+    await _loadManga(forceRefresh: true);
   }
 
   void _openRandomManga() {
@@ -88,9 +102,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
   Widget build(BuildContext context) {
     final displayedManga = _mangaList.where((item) {
       if (_searchQuery.isEmpty) return true;
-      return item.title.toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
+      return item.title.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
@@ -143,87 +155,100 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.sourceName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+      body: RefreshIndicator(
+        color: Colors.white,
+        backgroundColor: const Color(0xFF2C2C2E),
+        onRefresh: _refresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.sourceName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Row(
+                      children: const [
+                        Icon(
+                          Icons.filter_list,
+                          color: Colors.white70,
+                          size: 18,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Updated',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildFilterChips(),
+              const SizedBox(height: 16),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: CircularProgressIndicator(color: Colors.white70),
+                  ),
+                )
+              else if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Failed to load manga',
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: _loadManga,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white38),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Row(
-                    children: const [
-                      Icon(Icons.filter_list, color: Colors.white70, size: 18),
-                      SizedBox(width: 4),
-                      Text(
-                        'Updated',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildFilterChips(),
-            const SizedBox(height: 16),
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 60),
-                child: Center(
-                  child: CircularProgressIndicator(color: Colors.white70),
-                ),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 60),
-                child: Center(
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Failed to load manga',
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: _loadManga,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white38),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              _buildMangaGrid(displayedManga),
-          ],
+                )
+              else
+                _buildMangaGrid(displayedManga),
+            ],
+          ),
         ),
       ),
     );
@@ -344,22 +369,26 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
         children: [
           AspectRatio(
             aspectRatio: 2 / 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: CachedNetworkImage(
-                imageUrl: item.coverUrl,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF2C2C2E),
-                  child: const Icon(
-                    Icons.menu_book,
-                    color: Colors.white38,
-                    size: 28,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedNetworkImage(
+                    imageUrl: item.coverUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFF2C2C2E),
+                      child: const Icon(
+                        Icons.menu_book,
+                        color: Colors.white38,
+                        size: 28,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                DownloadedMangaBadge(mangaId: item.id),
+              ],
             ),
           ),
           const SizedBox(height: 6),

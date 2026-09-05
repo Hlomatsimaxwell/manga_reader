@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/features/library/providers/favorites_provider.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
@@ -57,9 +58,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   List<Manga> displayed = items;
                   if (_searchQuery.isNotEmpty) {
                     displayed = items
-                        .where((m) => m.title
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase()))
+                        .where(
+                          (m) => m.title.toLowerCase().contains(
+                            _searchQuery.toLowerCase(),
+                          ),
+                        )
                         .toList();
                   }
                   return _buildMangaGrid(displayed);
@@ -96,7 +99,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           border: InputBorder.none,
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.white70, size: 20),
+                  icon: const Icon(
+                    Icons.clear,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {
@@ -119,7 +126,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             const Icon(Icons.favorite_border, color: Colors.white38, size: 48),
             const SizedBox(height: 12),
             Text(
-              _searchQuery.isNotEmpty ? 'No favorites match your search' : 'No favorites yet',
+              _searchQuery.isNotEmpty
+                  ? 'No favorites match your search'
+                  : 'No favorites yet',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white54, fontSize: 16),
             ),
@@ -187,8 +196,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     fit: BoxFit.cover,
                     errorWidget: (context, url, error) => Container(
                       color: const Color(0xFF2C2C2E),
-                      child: const Icon(Icons.menu_book,
-                          color: Colors.white38, size: 28),
+                      child: const Icon(
+                        Icons.menu_book,
+                        color: Colors.white38,
+                        size: 28,
+                      ),
                     ),
                   ),
                 ),
@@ -207,6 +219,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       size: 13,
                     ),
                   ),
+                ),
+                DownloadedMangaBadge(
+                  mangaId: item.id,
+                  position: const EdgeInsets.only(top: 6, left: 6),
                 ),
               ],
             ),

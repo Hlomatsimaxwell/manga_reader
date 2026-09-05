@@ -2,7 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:manga_reader/core/database/source_cache.dart';
 import 'package:manga_reader/features/library/providers/favorites_provider.dart';
+import 'package:manga_reader/features/library/providers/downloads_provider.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 import 'package:manga_reader/features/library/screens/related_manga_screen.dart';
 import 'package:manga_reader/features/reader/screens/reader_screen.dart';
 import 'package:manga_reader/data/models/chapter.dart';
@@ -11,7 +14,6 @@ import 'package:manga_reader/data/models/manga_source.dart';
 import 'package:manga_reader/data/models/manga_details.dart';
 import 'package:manga_reader/data/models/bookmark.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
-
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -96,7 +98,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
   }
 
-  Future<void> _loadChapters() async {
+  Future<void> _loadChapters({bool forceRefresh = false}) async {
     setState(() {
       _isLoadingChapters = true;
       _chapterError = null;
@@ -112,7 +114,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         });
         return;
       }
-      final chapters = await source.getChapters(widget.mangaId);
+      final chapters = await SourceCache.chapters(
+        sourceId: source.id,
+        mangaId: widget.mangaId,
+        forceRefresh: forceRefresh,
+        fetch: () => source.getChapters(widget.mangaId),
+      );
       if (mounted) {
         setState(() {
           _source = source;
@@ -123,7 +130,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       }
 
       // Fetch real manga details + preview pages (best-effort, don't block UI).
-      final details = await source.getMangaDetails(widget.mangaId);
+      final details = await SourceCache.mangaDetails(
+        sourceId: source.id,
+        mangaId: widget.mangaId,
+        forceRefresh: forceRefresh,
+        fetch: () => source.getMangaDetails(widget.mangaId),
+      );
       if (details != null && mounted) {
         setState(() => _details = details);
         // Cache tags in the database for the suggestions engine.
@@ -192,7 +204,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       final source = getSourceBySourceId(widget.sourceId ?? '');
       final pages = source == null
           ? <String>[]
-          : await source.getPageUrls(_chapters.first.id);
+          : await SourceCache.pageUrls(
+              sourceId: source.id,
+              chapterId: _chapters.first.id,
+              fetch: () => source.getPageUrls(_chapters.first.id),
+            );
       if (mounted) {
         setState(() {
           _previewPages = pages;
@@ -211,7 +227,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           .map((t) => t.toLowerCase())
           .toSet();
 
-      final popular = await source.getPopularManga(page: 1);
+      final popular = await SourceCache.mangaList(
+        sourceId: source.id,
+        kind: 'popular',
+        page: 1,
+        fetch: () => source.getPopularManga(page: 1),
+      );
       final candidates = popular
           .where((m) => m.id != widget.mangaId)
           .take(16)
@@ -222,7 +243,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       final results = await Future.wait(
         candidates.map((m) async {
           try {
-            return (m, await source.getMangaDetails(m.id));
+            final details = await SourceCache.mangaDetails(
+              sourceId: source.id,
+              mangaId: m.id,
+              fetch: () => source.getMangaDetails(m.id),
+            );
+            return (m, details);
           } catch (_) {
             return (m, null);
           }
@@ -230,8 +256,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       );
       for (final (m, d) in results) {
         if (d == null) continue;
-        final matches =
-            (d.tags).map((t) => t.toLowerCase()).where(myTags.contains).length;
+        final matches = (d.tags)
+            .map((t) => t.toLowerCase())
+            .where(myTags.contains)
+            .length;
         if (matches > 0) scored.add((matches, m));
         // Cache tags for suggestions engine.
         if (d.tags.isNotEmpty) {
@@ -256,8 +284,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   // Load the saved favorite status from the database.
   Future<void> _loadFavoriteStatus() async {
-    final isFav =
-        await DatabaseHelper.instance.getIsFavorite(widget.mangaId);
+    final isFav = await DatabaseHelper.instance.getIsFavorite(widget.mangaId);
     if (!mounted) return;
     setState(() {
       _isFavorite = isFav;
@@ -388,9 +415,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     // Fallback: match by the chapter's name number.
     for (var i = 0; i < _chapters.length; i++) {
       final numParsed = double.tryParse(
-        RegExp(r'(\d+(\.\d+)?)')
-            .firstMatch(_chapters[i].chapterNumber)
-            ?.group(1) ??
+        RegExp(
+              r'(\d+(\.\d+)?)',
+            ).firstMatch(_chapters[i].chapterNumber)?.group(1) ??
             '',
       );
       if (numParsed != null && numParsed.round() == lastReadInt) {
@@ -626,11 +653,19 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildChapterListSliver() {
+    final downloadedChapterIds =
+        ref
+            .watch(downloadedChaptersForMangaProvider(widget.mangaId))
+            .valueOrNull ??
+        const <String>{};
+
     if (_isLoadingChapters) {
       return const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 80),
-          child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+          child: Center(
+            child: CircularProgressIndicator(color: Colors.white54),
+          ),
         ),
       );
     }
@@ -664,9 +699,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final ch = _chapters[index];
-          final isRead = _lastReadChapter >= 0 &&
+          final isRead =
+              _lastReadChapter >= 0 &&
               (_resolvedTotalChapters - index) <= _lastReadChapter;
           final isCurrent = index == _currentDisplayIndex;
+          final downloaded = downloadedChapterIds.contains(ch.id);
 
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(vertical: 2),
@@ -683,14 +720,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   ),
                 Expanded(
                   child: Text(
-                    ch.chapterNumber == 'Chapter'
-                        ? ch.title
-                        : ch.chapterNumber,
+                    ch.chapterNumber == 'Chapter' ? ch.title : ch.chapterNumber,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isRead ? Colors.grey : Colors.white,
-                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isCurrent
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       fontSize: 16,
                     ),
                   ),
@@ -698,12 +735,37 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ],
             ),
             subtitle: Text(
-              isRead ? 'Read' : (ch.releaseDate?.isNotEmpty ?? false ? ch.releaseDate! : ''),
+              isRead && downloaded
+                  ? 'Read • Downloaded'
+                  : isRead
+                  ? 'Read'
+                  : downloaded
+                  ? 'Downloaded'
+                  : (ch.releaseDate?.isNotEmpty ?? false
+                        ? ch.releaseDate!
+                        : ''),
               style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
-            trailing: isRead
-                ? const Icon(Icons.check_circle, color: Colors.greenAccent, size: 18)
-                : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (downloaded)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 10),
+                    child: Icon(
+                      Icons.sd_card_outlined,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
+                  ),
+                if (isRead)
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.greenAccent,
+                    size: 18,
+                  ),
+              ],
+            ),
             onTap: () {
               _openReader(chapterIndex: index);
             },
@@ -726,7 +788,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       return const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 80),
-          child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+          child: Center(
+            child: CircularProgressIndicator(color: Colors.white54),
+          ),
         ),
       );
     }
@@ -737,7 +801,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
           child: Center(
             child: Text(
-              _chapters.isEmpty ? 'Start reading to see pages' : 'No pages available',
+              _chapters.isEmpty
+                  ? 'Start reading to see pages'
+                  : 'No pages available',
               style: const TextStyle(color: Colors.white54, fontSize: 14),
             ),
           ),
@@ -772,7 +838,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               errorWidget: (context, url, error) => Container(
                 color: const Color(0xFF2C2C2E),
                 child: const Center(
-                  child: Icon(Icons.broken_image, color: Colors.white38, size: 24),
+                  child: Icon(
+                    Icons.broken_image,
+                    color: Colors.white38,
+                    size: 24,
+                  ),
                 ),
               ),
             ),
@@ -787,7 +857,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       return const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 80),
-          child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+          child: Center(
+            child: CircularProgressIndicator(color: Colors.white54),
+          ),
         ),
       );
     }
@@ -848,8 +920,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
             ),
             subtitle: bm.note != null && bm.note!.isNotEmpty
-                ? Text(bm.note!, style: const TextStyle(color: Colors.grey, fontSize: 13))
-                : const Text('No note', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                ? Text(
+                    bm.note!,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  )
+                : const Text(
+                    'No note',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.white54),
               onPressed: () async {
@@ -874,6 +952,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           ),
           const Spacer(),
           IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => _loadChapters(forceRefresh: true),
+          ),
+          IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.white),
             onPressed: () {},
           ),
@@ -896,14 +978,19 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: CachedNetworkImage(
-              imageUrl: widget.imageUrl,
-              width: 125,
-              height: 175,
-              fit: BoxFit.cover,
-            ),
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CachedNetworkImage(
+                  imageUrl: widget.imageUrl,
+                  width: 125,
+                  height: 175,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              DownloadedMangaBadge(mangaId: widget.mangaId),
+            ],
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -961,9 +1048,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _isFavorite
-                                    ? 'Favorited'
-                                    : 'Favorite',
+                                _isFavorite ? 'Favorited' : 'Favorite',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -999,11 +1084,19 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         children: [
           _buildCardRow(
             'Source',
-            _details?.sourceId == 'mock' ? 'Mock Source' : (_sourceName ?? 'Unknown'),
+            _details?.sourceId == 'mock'
+                ? 'Mock Source'
+                : (_sourceName ?? 'Unknown'),
             icon: Icons.pets,
           ),
-          _buildCardRow('Author', _details?.author.isEmpty ?? true ? 'Unknown' : _details!.author),
-          _buildCardRow('Year', _details?.year.isEmpty ?? true ? '—' : _details!.year),
+          _buildCardRow(
+            'Author',
+            _details?.author.isEmpty ?? true ? 'Unknown' : _details!.author,
+          ),
+          _buildCardRow(
+            'Year',
+            _details?.year.isEmpty ?? true ? '—' : _details!.year,
+          ),
           if ((_details?.status.isEmpty ?? true) == false)
             _buildCardRow('State', _details!.status),
           _buildCardRow('Chapters', chaptersText),
@@ -1023,7 +1116,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         ? (_progressPercent / 100).clamp(0.0, 1.0)
                         : 0,
                     backgroundColor: Colors.white12,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
                     minHeight: 6,
                   ),
                 ),
@@ -1106,7 +1201,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           const SizedBox(height: 8),
           Text(
             canExpand ? '${description.substring(0, 280)}…' : description,
-            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -1221,20 +1320,25 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: manga.coverUrl,
-                height: 120,
-                width: 100,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  height: 120,
-                  width: 100,
-                  color: const Color(0xFF2C2C2E),
-                  child: const Icon(Icons.menu_book, color: Colors.white38),
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: manga.coverUrl,
+                    height: 120,
+                    width: 100,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      height: 120,
+                      width: 100,
+                      color: const Color(0xFF2C2C2E),
+                      child: const Icon(Icons.menu_book, color: Colors.white38),
+                    ),
+                  ),
                 ),
-              ),
+                DownloadedMangaBadge(mangaId: manga.id, size: 20, iconSize: 12),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
@@ -1347,8 +1451,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           clipBehavior: Clip.none,
           children: [
             Icon(icon, color: active ? Colors.white : Colors.grey, size: 18),
-            if (badge != null)
-              Positioned(top: -3, right: -3, child: badge),
+            if (badge != null) Positioned(top: -3, right: -3, child: badge),
           ],
         ),
       ),

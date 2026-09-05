@@ -7,12 +7,18 @@ import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
 import '../sources/anime_api_source.dart'; 
 import '../sources/manga_dex_source.dart'; // <--- 1. ADD THIS IMPORT
+import '../sources/weebcentral_source.dart';
+import '../sources/mangakatana_source.dart';
 
 // 1. THE SOURCE REGISTRY
 MangaSource getSourceByName(String name) {
   switch (name) {
     case 'MangaDex': // <--- 2. ADD THIS CASE
       return MangaDexSource();
+    case 'WeebCentral':
+      return WeebCentralSource();
+    case 'MangaKatana':
+      return MangakatanaSource();
     case 'Anime-API': 
       return AnimeApiSource();
     case 'Manganato':
@@ -31,6 +37,10 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return MangaDexSource();
     case 'anime_api':
       return AnimeApiSource();
+    case 'weebcentral':
+      return WeebCentralSource();
+    case 'mangakatana':
+      return MangakatanaSource();
     case 'manganato':
       return ManganatoService();
     case 'mock':
@@ -60,6 +70,20 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFF381F1D),
       'text': '🐱',
       'textColor': Colors.orangeAccent,
+      'isPinned': true,
+    },
+    {
+      'name': 'WeebCentral',
+      'language': 'Manga, Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF334155),
+      'text': 'W',
+      'isPinned': true,
+    },
+    {
+      'name': 'MangaKatana',
+      'language': 'Manga, Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF003C8F),
+      'text': 'K',
       'isPinned': true,
     },
     {

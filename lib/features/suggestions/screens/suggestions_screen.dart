@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 import 'package:manga_reader/features/suggestions/providers/suggestions_provider.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
@@ -232,22 +233,26 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         children: [
           AspectRatio(
             aspectRatio: 2 / 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: CachedNetworkImage(
-                imageUrl: manga.coverUrl,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF2C2C2E),
-                  child: const Icon(
-                    Icons.menu_book,
-                    color: Colors.white38,
-                    size: 28,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedNetworkImage(
+                    imageUrl: manga.coverUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFF2C2C2E),
+                      child: const Icon(
+                        Icons.menu_book,
+                        color: Colors.white38,
+                        size: 28,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                DownloadedMangaBadge(mangaId: manga.id),
+              ],
             ),
           ),
           const SizedBox(height: 6),

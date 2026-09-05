@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/core/database/database_helper.dart';
+import '../../library/providers/downloads_provider.dart';
 
-List<Map<String, dynamic>> mapHistoryRows(List<Map<String, dynamic>> rows) {
+List<Map<String, dynamic>> mapHistoryRows(
+  List<Map<String, dynamic>> rows, {
+  Set<String> downloadedMangaIds = const {},
+}) {
   return rows.map((row) {
     final lastReadChapter = (row['lastReadChapter'] as num? ?? -1).toDouble();
     final total = (row['totalChapters'] as int? ?? 0);
@@ -27,7 +31,8 @@ List<Map<String, dynamic>> mapHistoryRows(List<Map<String, dynamic>> rows) {
       'lastReadAt': row['lastReadAt'] ?? DateTime.now().toIso8601String(),
       'progress': progress,
       'newChapters': newChapters,
-      'hasDownloadedChapters': false,
+      'hasDownloadedChapters':
+          downloadedMangaIds.contains(row['mangaId']),
     };
   }).toList();
 }
@@ -41,8 +46,10 @@ final historyRevisionProvider = StateProvider<int>((ref) => 0);
 final historyProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   ref.watch(historyRevisionProvider);
+  ref.watch(downloadsRevisionProvider);
   final rows = await DatabaseHelper.instance.getHistory();
-  return mapHistoryRows(rows);
+  final downloaded = await DatabaseHelper.instance.getMangaIdsWithDownloads();
+  return mapHistoryRows(rows, downloadedMangaIds: downloaded);
 });
 
 // Call this after the reader saves progress to make history refresh.

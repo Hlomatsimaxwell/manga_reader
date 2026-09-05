@@ -4,6 +4,7 @@ class Chapter {
   final String chapterNumber;
   final String? releaseDate;
   final String url;
+  final String scanlator;
 
   Chapter({
     required this.id,
@@ -11,6 +12,7 @@ class Chapter {
     required this.chapterNumber,
     this.releaseDate,
     required this.url,
+    this.scanlator = '',
   });
 
   factory Chapter.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class Chapter {
       chapterNumber: json['chapterNumber'] ?? '',
       releaseDate: json['releaseDate'] ?? '',
       url: json['url'] ?? '',
+      scanlator: json['scanlator'] ?? '',
     );
   }
 
@@ -30,6 +33,7 @@ class Chapter {
       'chapterNumber': chapterNumber,
       'releaseDate': releaseDate,
       'url': url,
+      'scanlator': scanlator,
     };
   }
 }

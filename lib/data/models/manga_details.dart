@@ -24,4 +24,36 @@ class MangaDetails {
     this.followers = 0,
     this.totalChapters = 0,
   });
+
+  factory MangaDetails.fromJson(Map<String, dynamic> json) {
+    return MangaDetails(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      coverUrl: json['coverUrl'] ?? '',
+      sourceId: json['sourceId'] ?? '',
+      description: json['description'] ?? '',
+      author: json['author'] ?? '',
+      status: json['status'] ?? '',
+      year: json['year'] ?? '',
+      tags: (json['tags'] as List?)?.cast<String>() ?? const [],
+      followers: (json['followers'] as num?)?.toInt() ?? 0,
+      totalChapters: (json['totalChapters'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'coverUrl': coverUrl,
+      'sourceId': sourceId,
+      'description': description,
+      'author': author,
+      'status': status,
+      'year': year,
+      'tags': tags,
+      'followers': followers,
+      'totalChapters': totalChapters,
+    };
+  }
 }

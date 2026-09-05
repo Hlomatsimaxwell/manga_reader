@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/core/database/source_cache.dart';
 import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/data/models/manga_source.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
@@ -8,31 +9,53 @@ import 'package:manga_reader/data/providers/sources_provider.dart';
 /// If the query exactly matches a known genre/theme tag, it searches by tag
 /// (genre chips on the search screen rely on this). Otherwise it does a
 /// free-text title search.
-final searchResultsProvider =
-    FutureProvider.family<List<Manga>, String>((ref, query) async {
+final searchResultsProvider = FutureProvider.family<List<Manga>, String>((
+  ref,
+  query,
+) async {
   final source = ref.watch(currentSourceProvider);
   final trimmed = query.trim();
   if (trimmed.isEmpty) return [];
 
   // Genre/theme match -> tag search.
-  final tags = await source.getAvailableTags();
+  final tags = await SourceCache.tags(
+    sourceId: source.id,
+    fetch: source.getAvailableTags,
+  );
   final exactTag = tags
       .where((t) => t.toLowerCase() == trimmed.toLowerCase())
       .toList();
   if (exactTag.isNotEmpty) {
-    final results = await source.searchMangaByTags(exactTag);
+    final results = await SourceCache.mangaList(
+      sourceId: source.id,
+      kind: 'tags',
+      arg: exactTag.join(',').toLowerCase(),
+      page: 1,
+      fetch: () => source.searchMangaByTags(exactTag),
+    );
     if (results.isNotEmpty) return results;
   }
 
   // Otherwise -> free-text title search.
-  return source.searchByTitle(trimmed);
+  return SourceCache.mangaList(
+    sourceId: source.id,
+    kind: 'title',
+    arg: trimmed.toLowerCase(),
+    page: 1,
+    fetch: () => source.searchByTitle(trimmed),
+  );
 });
 
 /// Popular manga from the active source (used for "Trending" on the search
 /// screen).
 final trendingMangaProvider = FutureProvider<List<Manga>>((ref) async {
   final source = ref.watch(currentSourceProvider);
-  return source.getPopularManga();
+  return SourceCache.mangaList(
+    sourceId: source.id,
+    kind: 'popular',
+    page: 1,
+    fetch: source.getPopularManga,
+  );
 });
 
 /// A single source's contribution to a global multi-source search.
@@ -62,54 +85,68 @@ class SourceSearchResult {
 /// so callers can hide them by default and optionally reveal them.
 final globalSearchProvider =
     FutureProvider.family<List<SourceSearchResult>, String>((ref, query) async {
-  final trimmed = query.trim();
-  if (trimmed.isEmpty) return [];
+      final trimmed = query.trim();
+      if (trimmed.isEmpty) return [];
 
-  // Resolve implemented sources (dedupe by id; ComicK falls back to MangaDex).
-  final sourceList = ref.watch(sourcesProvider);
-  final seenIds = <String>{};
-  final sources = <MangaSource>[];
-  for (final entry in sourceList) {
-    final name = entry['name'] as String;
-    final source = getSourceByName(name);
-    if (seenIds.add(source.id)) sources.add(source);
-  }
-  // Always include MangaDex even if it got unpinned.
-  if (!seenIds.add('mangadex')) {
-    sources.add(getSourceByName('MangaDex'));
-  }
+      // Resolve implemented sources (dedupe by id; ComicK falls back to MangaDex).
+      final sourceList = ref.watch(sourcesProvider);
+      final seenIds = <String>{};
+      final sources = <MangaSource>[];
+      for (final entry in sourceList) {
+        final name = entry['name'] as String;
+        final source = getSourceByName(name);
+        if (seenIds.add(source.id)) sources.add(source);
+      }
+      // Always include MangaDex even if it got unpinned.
+      if (!seenIds.add('mangadex')) {
+        sources.add(getSourceByName('MangaDex'));
+      }
 
-  // Tag detection: if the query exactly matches a genre/theme tag, search by
-  // tag on every source; otherwise fall back to free-text title search.
-  List<String>? exactTag;
-  try {
-    final tags = await getSourceByName('MangaDex').getAvailableTags();
-    final match =
-        tags.where((t) => t.toLowerCase() == trimmed.toLowerCase()).toList();
-    if (match.isNotEmpty) exactTag = match;
-  } catch (_) {
-    // Ignore tag detection failures; fall through to title search.
-  }
+      // Tag detection: if the query exactly matches a genre/theme tag, search by
+      // tag on every source; otherwise fall back to free-text title search.
+      List<String>? exactTag;
+      try {
+        final tags = await SourceCache.tags(
+          sourceId: 'mangadex',
+          fetch: () => getSourceByName('MangaDex').getAvailableTags(),
+        );
+        final match = tags
+            .where((t) => t.toLowerCase() == trimmed.toLowerCase())
+            .toList();
+        if (match.isNotEmpty) exactTag = match;
+      } catch (_) {
+        // Ignore tag detection failures; fall through to title search.
+      }
 
-  final results = await Future.wait(sources.map((source) async {
-    try {
-      final manga = exactTag != null
-          ? await source.searchMangaByTags(exactTag)
-          : await source.searchByTitle(trimmed);
-      return SourceSearchResult(
-        sourceId: source.id,
-        sourceName: source.name,
-        manga: manga,
+      final results = await Future.wait(
+        sources.map((source) async {
+          try {
+            final manga = await SourceCache.mangaList(
+              sourceId: source.id,
+              kind: exactTag != null ? 'tags' : 'title',
+              arg: exactTag != null
+                  ? exactTag.join(',').toLowerCase()
+                  : trimmed.toLowerCase(),
+              page: 1,
+              fetch: () => exactTag != null
+                  ? source.searchMangaByTags(exactTag)
+                  : source.searchByTitle(trimmed),
+            );
+            return SourceSearchResult(
+              sourceId: source.id,
+              sourceName: source.name,
+              manga: manga,
+            );
+          } catch (e) {
+            return SourceSearchResult(
+              sourceId: source.id,
+              sourceName: source.name,
+              hasError: true,
+              errorMessage: e.toString(),
+            );
+          }
+        }),
       );
-    } catch (e) {
-      return SourceSearchResult(
-        sourceId: source.id,
-        sourceName: source.name,
-        hasError: true,
-        errorMessage: e.toString(),
-      );
-    }
-  }));
 
-  return results;
-});
+      return results;
+    });

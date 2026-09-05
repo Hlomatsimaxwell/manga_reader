@@ -1,18 +1,18 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/core/database/source_cache.dart';
 import 'package:manga_reader/data/models/manga.dart';
+import 'package:manga_reader/data/providers/sources_provider.dart';
 import 'package:manga_reader/features/explore/providers/search_provider.dart';
 import 'package:manga_reader/features/explore/screens/source_search_results_screen.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 
 class GlobalSearchResultsScreen extends ConsumerStatefulWidget {
   final String searchQuery;
 
-  const GlobalSearchResultsScreen({
-    super.key,
-    required this.searchQuery,
-  });
+  const GlobalSearchResultsScreen({super.key, required this.searchQuery});
 
   @override
   ConsumerState<GlobalSearchResultsScreen> createState() =>
@@ -59,16 +59,28 @@ class _GlobalSearchResultsScreenState
   }
 
   void _openShowAll(SourceSearchResult result) {
+    final source =
+        getSourceBySourceId(result.sourceId) ??
+        getSourceByName(result.sourceName);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SourceSearchResultsScreen(
-          sourceName: result.sourceName,
-          query: _activeQuery,
-          manga: result.manga,
-        ),
+        builder: (context) =>
+            SourceSearchResultsScreen(source: source, query: _activeQuery),
       ),
     );
+  }
+
+  Future<void> _refresh() async {
+    final sourceList = ref.read(sourcesProvider);
+    for (final entry in sourceList) {
+      final name = entry['name'] as String;
+      SourceCache.invalidatePrefix('${getSourceByName(name).id}/list/');
+    }
+    SourceCache.invalidatePrefix('mangadex/list/');
+    ref.invalidate(globalSearchProvider(_activeQuery));
+    await ref.read(globalSearchProvider(_activeQuery).future);
+    if (mounted) setState(() {});
   }
 
   @override
@@ -170,11 +182,16 @@ class _GlobalSearchResultsScreenState
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 16, bottom: 40),
-      itemCount: visible.length,
-      itemBuilder: (context, index) =>
-          _buildSourceSection(visible[index]),
+    return RefreshIndicator(
+      color: Colors.white,
+      backgroundColor: const Color(0xFF2C2C2E),
+      onRefresh: _refresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(top: 16, bottom: 40),
+        itemCount: visible.length,
+        itemBuilder: (context, index) => _buildSourceSection(visible[index]),
+      ),
     );
   }
 
@@ -198,9 +215,7 @@ class _GlobalSearchResultsScreenState
               if (result.hasResults)
                 TextButton(
                   onPressed: () => _openShowAll(result),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -213,8 +228,11 @@ class _GlobalSearchResultsScreenState
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.chevron_right,
-                          color: Colors.white70, size: 18),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white70,
+                        size: 18,
+                      ),
                     ],
                   ),
                 ),
@@ -249,23 +267,32 @@ class _GlobalSearchResultsScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: item.coverUrl,
-                      height: 140,
-                      width: 100,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFF2C2C2E),
-                        height: 140,
-                        width: 100,
-                        child: const Icon(
-                          Icons.menu_book,
-                          color: Colors.white38,
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(
+                          imageUrl: item.coverUrl,
+                          height: 140,
+                          width: 100,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: const Color(0xFF2C2C2E),
+                            height: 140,
+                            width: 100,
+                            child: const Icon(
+                              Icons.menu_book,
+                              color: Colors.white38,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      DownloadedMangaBadge(
+                        mangaId: item.id,
+                        size: 20,
+                        iconSize: 12,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(

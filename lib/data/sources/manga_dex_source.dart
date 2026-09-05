@@ -189,12 +189,24 @@ class MangaDexSource implements MangaSource {
 
       final List<dynamic> data = response.data['data'];
       for (final item in data) {
+        String groupName = '';
+        final List relationships = item['relationships'] ?? [];
+        for (final rel in relationships) {
+          if (rel['type'] == 'scanlation_group') {
+            final name = rel['attributes']?['name'];
+            if (name is String && name.isNotEmpty) {
+              groupName = name;
+              break;
+            }
+          }
+        }
         chapters.add(Chapter(
           id: item['id'],
           title: item['attributes']['chapter'] ?? 'Chapter',
           chapterNumber: item['attributes']['chapter'] ?? '0',
-          releaseDate: '',
+          releaseDate: item['attributes']['publishAt'],
           url: '',
+          scanlator: groupName,
         ));
       }
     } catch (e) {

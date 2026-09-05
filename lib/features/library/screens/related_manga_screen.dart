@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 
 enum ListMode { compact, details, grid }
 
@@ -24,19 +25,54 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
   double _gridSize = 3.0; // 2, 3, or 4 columns
 
   final List<Manga> _fallbackItems = [
-    Manga(id: '1', sourceId: 'mock', title: 'Record of Demon Annihilation', coverUrl: 'https://picsum.photos/seed/rel1/300/450'),
-    Manga(id: '2', sourceId: 'mock', title: 'A Substitute Bride to the Reaper D...', coverUrl: 'https://picsum.photos/seed/rel2/300/450'),
-    Manga(id: '3', sourceId: 'mock', title: 'Reincarnation of the Fist King', coverUrl: 'https://picsum.photos/seed/rel3/300/450'),
-    Manga(id: '4', sourceId: 'mock', title: 'The Hounds of Sisyphus', coverUrl: 'https://picsum.photos/seed/rel4/300/450'),
-    Manga(id: '5', sourceId: 'mock', title: 'The Divine Witch Will Find ...', coverUrl: 'https://picsum.photos/seed/rel5/300/450'),
-    Manga(id: '6', sourceId: 'mock', title: 'I Became the Scoundrel of the...', coverUrl: 'https://picsum.photos/seed/rel6/300/450'),
-    Manga(id: '7', sourceId: 'mock', title: 'Necromancer of a Prestigious ...', coverUrl: 'https://picsum.photos/seed/rel7/300/450'),
+    Manga(
+      id: '1',
+      sourceId: 'mock',
+      title: 'Record of Demon Annihilation',
+      coverUrl: 'https://picsum.photos/seed/rel1/300/450',
+    ),
+    Manga(
+      id: '2',
+      sourceId: 'mock',
+      title: 'A Substitute Bride to the Reaper D...',
+      coverUrl: 'https://picsum.photos/seed/rel2/300/450',
+    ),
+    Manga(
+      id: '3',
+      sourceId: 'mock',
+      title: 'Reincarnation of the Fist King',
+      coverUrl: 'https://picsum.photos/seed/rel3/300/450',
+    ),
+    Manga(
+      id: '4',
+      sourceId: 'mock',
+      title: 'The Hounds of Sisyphus',
+      coverUrl: 'https://picsum.photos/seed/rel4/300/450',
+    ),
+    Manga(
+      id: '5',
+      sourceId: 'mock',
+      title: 'The Divine Witch Will Find ...',
+      coverUrl: 'https://picsum.photos/seed/rel5/300/450',
+    ),
+    Manga(
+      id: '6',
+      sourceId: 'mock',
+      title: 'I Became the Scoundrel of the...',
+      coverUrl: 'https://picsum.photos/seed/rel6/300/450',
+    ),
+    Manga(
+      id: '7',
+      sourceId: 'mock',
+      title: 'Necromancer of a Prestigious ...',
+      coverUrl: 'https://picsum.photos/seed/rel7/300/450',
+    ),
   ];
 
   List<Manga> get _items =>
       (widget.relatedManga != null && widget.relatedManga!.isNotEmpty)
-          ? widget.relatedManga!
-          : _fallbackItems;
+      ? widget.relatedManga!
+      : _fallbackItems;
 
   void _showListOptionsBottomSheet() {
     showModalBottomSheet(
@@ -182,8 +218,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                 style: TextStyle(
                   color: isSelected ? Colors.white : Colors.white54,
                   fontSize: 12,
-                  fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ],
@@ -270,17 +305,26 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: CachedNetworkImage(
-                        imageUrl: item.coverUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorWidget: (context, url, error) => Container(
-                          color: const Color(0xFF2C2C2E),
-                          child: const Icon(Icons.menu_book, color: Colors.white38),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: CachedNetworkImage(
+                            imageUrl: item.coverUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorWidget: (context, url, error) => Container(
+                              color: const Color(0xFF2C2C2E),
+                              child: const Icon(
+                                Icons.menu_book,
+                                color: Colors.white38,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        DownloadedMangaBadge(mangaId: item.id),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -314,20 +358,32 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
               onTap: () => _openManga(item),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: CachedNetworkImage(
-                      imageUrl: item.coverUrl,
-                      width: isDetails ? 60 : 45,
-                      height: isDetails ? 80 : 60,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        width: isDetails ? 60 : 45,
-                        height: isDetails ? 80 : 60,
-                        color: const Color(0xFF2C2C2E),
-                        child: const Icon(Icons.menu_book, color: Colors.white38),
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: CachedNetworkImage(
+                          imageUrl: item.coverUrl,
+                          width: isDetails ? 60 : 45,
+                          height: isDetails ? 80 : 60,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            width: isDetails ? 60 : 45,
+                            height: isDetails ? 80 : 60,
+                            color: const Color(0xFF2C2C2E),
+                            child: const Icon(
+                              Icons.menu_book,
+                              color: Colors.white38,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      DownloadedMangaBadge(
+                        mangaId: item.id,
+                        size: 16,
+                        iconSize: 10,
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 14),
                   Expanded(

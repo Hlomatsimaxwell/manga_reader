@@ -8,6 +8,7 @@ import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/features/explore/providers/search_provider.dart';
 import 'package:manga_reader/features/explore/screens/global_search_results_screen.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 import 'package:manga_reader/features/suggestions/providers/suggestions_provider.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
@@ -145,7 +146,8 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () => _addQueryToHistoryAndSearch(_searchController.text),
+            onPressed: () =>
+                _addQueryToHistoryAndSearch(_searchController.text),
           ),
           PopupMenuButton<String>(
             color: const Color(0xFF2C2C2E),
@@ -312,20 +314,25 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: manga.coverUrl,
-                height: 140,
-                width: 100,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF2C2C2E),
-                  height: 140,
-                  width: 100,
-                  child: const Icon(Icons.menu_book, color: Colors.white38),
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: manga.coverUrl,
+                    height: 140,
+                    width: 100,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFF2C2C2E),
+                      height: 140,
+                      width: 100,
+                      child: const Icon(Icons.menu_book, color: Colors.white38),
+                    ),
+                  ),
                 ),
-              ),
+                DownloadedMangaBadge(mangaId: manga.id, size: 20, iconSize: 12),
+              ],
             ),
             const SizedBox(height: 6),
             Text(
@@ -439,22 +446,26 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                 children: [
                   AspectRatio(
                     aspectRatio: 2 / 3,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: CachedNetworkImage(
-                        imageUrl: manga.coverUrl,
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(
-                          color: const Color(0xFF2C2C2E),
-                          child: const Icon(
-                            Icons.menu_book,
-                            color: Colors.white38,
-                            size: 28,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: CachedNetworkImage(
+                            imageUrl: manga.coverUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => Container(
+                              color: const Color(0xFF2C2C2E),
+                              child: const Icon(
+                                Icons.menu_book,
+                                color: Colors.white38,
+                                size: 28,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        DownloadedMangaBadge(mangaId: manga.id),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -477,9 +488,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
       },
       loading: () => const Padding(
         padding: EdgeInsets.all(16),
-        child: Center(
-          child: CircularProgressIndicator(color: Colors.white54),
-        ),
+        child: Center(child: CircularProgressIndicator(color: Colors.white54)),
       ),
       error: (e, _) => const Padding(
         padding: EdgeInsets.all(16),

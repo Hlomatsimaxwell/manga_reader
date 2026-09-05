@@ -7,6 +7,7 @@ import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/settings/screens/settings_screen.dart';
 import 'package:manga_reader/core/database/database_helper.dart';
 import 'package:manga_reader/features/history/providers/history_provider.dart';
+import 'package:manga_reader/features/library/providers/downloads_provider.dart';
 
 class ProgressBadge extends StatelessWidget {
   final int progress;
@@ -117,7 +118,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Future<void> _loadFromProvider() async {
     final rows = await DatabaseHelper.instance.getHistory();
-    final items = mapHistoryRows(rows);
+    final downloaded = await DatabaseHelper.instance.getMangaIdsWithDownloads();
+    final items = mapHistoryRows(rows, downloadedMangaIds: downloaded);
     if (mounted) {
       setState(() => _historyItems = items);
     }
@@ -138,44 +140,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   String _getDateGroupHeader(DateTime lastReadAt) {
     final now = DateTime.now();
-    final difference = now.difference(lastReadAt);
-
-    if (difference.inMinutes < 60 && lastReadAt.isBefore(now)) {
-      return 'Just now';
-    }
-
     final isToday =
         lastReadAt.year == now.year &&
         lastReadAt.month == now.month &&
         lastReadAt.day == now.day;
-    if (isToday) return 'Today';
-
-    final yesterday = now.subtract(const Duration(days: 1));
-    final isYesterday =
-        lastReadAt.year == yesterday.year &&
-        lastReadAt.month == yesterday.month &&
-        lastReadAt.day == yesterday.day;
-    if (isYesterday) return 'Yesterday';
-
-    if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    }
-
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${months[lastReadAt.month - 1]} ${lastReadAt.day}';
+    return isToday ? 'Today' : 'Rest';
   }
 
   void _navigateToDetail(
@@ -203,7 +172,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     if (option == 3) {
       await DatabaseHelper.instance.clearHistory();
       if (mounted) await _loadFromProvider();
-    bumpHistoryRevision(ref);
+      bumpHistoryRevision(ref);
       return;
     }
 
@@ -218,11 +187,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       return DateTime(dt.year, dt.month, dt.day).isBefore(cutoff);
     }).toList();
 
-    final removedIds =
-        _historyItems
-            .where((item) => !remaining.contains(item))
-            .map((item) => item['mangaId'])
-            .toSet();
+    final removedIds = _historyItems
+        .where((item) => !remaining.contains(item))
+        .map((item) => item['mangaId'])
+        .toSet();
 
     final db = await DatabaseHelper.instance.database;
     for (final id in removedIds) {
@@ -753,6 +721,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     ref.listen<int>(historyRevisionProvider, (prev, next) {
       if (next != prev) _loadFromProvider();
     });
+    ref.listen<int>(downloadsRevisionProvider, (prev, next) {
+      if (next != prev) _loadFromProvider();
+    });
 
     final filteredList = _historyItems.where((item) {
       if (_searchQuery.isNotEmpty &&
@@ -800,6 +771,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         final date = DateTime.parse(item['lastReadAt']);
         final header = _getDateGroupHeader(date);
         groupedHistory.putIfAbsent(header, () => []).add(item);
+      }
+      // Within each group, most recently read first. A manga re-read should
+      // jump to the front of its group (e.g. the grid) immediately.
+      for (final entry in groupedHistory.entries) {
+        entry.value.sort(
+          (a, b) => DateTime.parse(
+            b['lastReadAt'],
+          ).compareTo(DateTime.parse(a['lastReadAt'])),
+        );
       }
     }
 

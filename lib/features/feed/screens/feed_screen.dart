@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
 import 'package:manga_reader/features/feed/providers/updates_provider.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -22,7 +23,7 @@ class FeedScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: 8),
               _buildSearchBar(context),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildSectionHeader(context, ref),
               const SizedBox(height: 12),
               updatesAsync.when(
@@ -82,14 +83,11 @@ class FeedScreen extends ConsumerWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const GlobalSearchScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const GlobalSearchScreen()),
           );
         },
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          color: Colors.transparent,
           child: const Row(
             children: [
               Icon(Icons.search, color: Colors.white70, size: 22),
@@ -144,7 +142,10 @@ class FeedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildUpdatesCarousel(BuildContext context, List<MangaUpdate> updates) {
+  Widget _buildUpdatesCarousel(
+    BuildContext context,
+    List<MangaUpdate> updates,
+  ) {
     final previews = updates.take(6).toList();
 
     return SizedBox(
@@ -236,6 +237,12 @@ class FeedScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
+                        DownloadedMangaBadge(
+                          mangaId: update.mangaId,
+                          position: const EdgeInsets.only(bottom: 6, right: 6),
+                          size: 20,
+                          iconSize: 12,
+                        ),
                       ],
                     ),
                   ),
@@ -268,12 +275,16 @@ class FeedScreen extends ConsumerWidget {
     }
 
     return [
-      for (final entry in groups.entries) _buildDateGroupSection(context, entry.key, entry.value),
+      for (final entry in groups.entries)
+        _buildDateGroupSection(context, entry.key, entry.value),
     ];
   }
 
   Widget _buildDateGroupSection(
-      BuildContext context, String dateGroup, List<MangaUpdate> items) {
+    BuildContext context,
+    String dateGroup,
+    List<MangaUpdate> items,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -290,8 +301,10 @@ class FeedScreen extends ConsumerWidget {
         ),
         ...items.map((update) {
           return ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
             onTap: () {
               Navigator.push(
                 context,
@@ -304,18 +317,27 @@ class FeedScreen extends ConsumerWidget {
                 ),
               );
             },
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: update.coverUrl,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF2C2C2E),
-                  child: const Icon(Icons.menu_book, color: Colors.white38),
+            leading: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: update.coverUrl,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFF2C2C2E),
+                      child: const Icon(Icons.menu_book, color: Colors.white38),
+                    ),
+                  ),
                 ),
-              ),
+                DownloadedMangaBadge(
+                  mangaId: update.mangaId,
+                  size: 16,
+                  iconSize: 10,
+                ),
+              ],
             ),
             title: Text(
               update.title,
@@ -343,10 +365,7 @@ class FeedScreen extends ConsumerWidget {
                     '${update.newCount} new · ${update.latestChapterTitle}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                 ),
               ],

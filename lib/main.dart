@@ -11,6 +11,7 @@ import 'package:manga_reader/features/feed/screens/feed_screen.dart';
 import 'package:manga_reader/features/feed/providers/updates_provider.dart';
 import 'package:manga_reader/features/reader/screens/reader_screen.dart';
 import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:manga_reader/core/database/source_cache.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
 
 void main() {
@@ -19,7 +20,7 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
-  
+
   // 2. Run the app with ProviderScope
   runApp(const ProviderScope(child: MangaReaderApp()));
 }
@@ -32,9 +33,7 @@ class MangaReaderApp extends StatelessWidget {
     return MaterialApp(
       title: 'Manga Reader',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
-      ),
+      theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: Colors.black),
       home: const HomeScreen(),
     );
   }
@@ -59,7 +58,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     const FeedScreen(),
   ];
 
-  static const Color _activeColor = Color(0xFF9AA0A6); // Light gray active highlight
+  static const Color _activeColor = Color(
+    0xFF9AA0A6,
+  ); // Light gray active highlight
 
   @override
   Widget build(BuildContext context) {
@@ -68,10 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.only(bottom: 12),
         child: Padding(
@@ -99,16 +97,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                    _buildNavItem(index: 0, icon: Icons.history_rounded, label: 'History'),
-                    _buildNavItem(index: 1, icon: Icons.favorite_border_rounded, label: 'Favorites'),
-                    _buildNavItem(index: 2, icon: Icons.lightbulb_outline_rounded, label: 'Suggestions'),
-                    _buildNavItem(index: 3, icon: Icons.explore_outlined, label: 'Explore'),
-                    _buildNavItem(
-                      index: 4,
-                      icon: Icons.rss_feed_rounded,
-                      label: 'Updates',
-                      badgeCount: updatesCount,
-                    ),
+                      _buildNavItem(
+                        index: 0,
+                        icon: Icons.history_rounded,
+                        label: 'History',
+                      ),
+                      _buildNavItem(
+                        index: 1,
+                        icon: Icons.favorite_border_rounded,
+                        label: 'Favorites',
+                      ),
+                      _buildNavItem(
+                        index: 2,
+                        icon: Icons.lightbulb_outline_rounded,
+                        label: 'Suggestions',
+                      ),
+                      _buildNavItem(
+                        index: 3,
+                        icon: Icons.explore_outlined,
+                        label: 'Explore',
+                      ),
+                      _buildNavItem(
+                        index: 4,
+                        icon: Icons.rss_feed_rounded,
+                        label: 'Updates',
+                        badgeCount: updatesCount,
+                      ),
                     ],
                   ),
                 ),
@@ -134,8 +148,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     int? badgeCount,
   }) {
     final isSelected = _currentIndex == index;
-    final _showLabel =
-        isSelected && _currentIndex != 0;
+    final _showLabel = isSelected && _currentIndex != 0;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -267,7 +280,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final sourceId = last['sourceId'] as String?;
       final title = last['title'] as String;
       final coverUrl = last['coverUrl'] as String?;
-      final lastReadChapter = (last['lastReadChapter'] as num?)?.toDouble() ?? 0;
+      final lastReadChapter =
+          (last['lastReadChapter'] as num?)?.toDouble() ?? 0;
       final lastReadPage = (last['lastReadPage'] as int?) ?? 0;
       final totalChaptersDb = (last['totalChapters'] as int?) ?? 0;
 
@@ -286,7 +300,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      final chapters = await source.getChapters(mangaId);
+      final chapters = await SourceCache.chapters(
+        sourceId: source.id,
+        mangaId: mangaId,
+        fetch: () => source.getChapters(mangaId),
+      );
       if (chapters.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
