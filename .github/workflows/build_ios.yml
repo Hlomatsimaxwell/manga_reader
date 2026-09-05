@@ -29,11 +29,17 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build IPA
-        run: flutter build ipa --no-codesign
+      - name: Build iOS App
+        run: flutter build ios --no-codesign --release
+
+      - name: Package Unsigned IPA
+        run: |
+          mkdir -p Payload
+          mv build/ios/iphoneos/Runner.app Payload/
+          zip -r manga_reader_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: manga-reader-ios-ipa
-          path: build/ios/ipa/*.ipa
+          path: manga_reader_unsigned.ipa
