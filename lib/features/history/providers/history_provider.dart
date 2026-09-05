@@ -11,9 +11,9 @@ List<Map<String, dynamic>> mapHistoryRows(
     final total = (row['totalChapters'] as int? ?? 0);
     final progress = total > 0
         ? ((lastReadChapter.clamp(0, total.toDouble()) / total) * 100)
-            .round()
-            .clamp(0, 100)
-            .toInt()
+              .round()
+              .clamp(0, 100)
+              .toInt()
         : 0;
     final lastTrayTotal = (row['lastTrayTotalChapters'] as int?) ?? 0;
     final newChapters = (lastTrayTotal > 0 && total > lastTrayTotal)
@@ -31,8 +31,7 @@ List<Map<String, dynamic>> mapHistoryRows(
       'lastReadAt': row['lastReadAt'] ?? DateTime.now().toIso8601String(),
       'progress': progress,
       'newChapters': newChapters,
-      'hasDownloadedChapters':
-          downloadedMangaIds.contains(row['mangaId']),
+      'hasDownloadedChapters': downloadedMangaIds.contains(row['mangaId']),
     };
   }).toList();
 }
@@ -43,8 +42,7 @@ final historyRevisionProvider = StateProvider<int>((ref) => 0);
 
 // Fetches + maps history from the database. Depends on the revision so it
 // automatically refreshes whenever progress is saved.
-final historyProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final historyProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   ref.watch(historyRevisionProvider);
   ref.watch(downloadsRevisionProvider);
   final rows = await DatabaseHelper.instance.getHistory();

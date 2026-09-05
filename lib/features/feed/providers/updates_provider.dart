@@ -60,32 +60,34 @@ final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
   final library = await _getLibraryManga();
 
   final entries = library.entries.toList();
-  final results = await Future.wait(entries.map((e) async {
-    try {
-      final row = e.value;
-      final storedTotal = (row['totalChapters'] as int?) ?? 0;
-      if (storedTotal <= 0) return null;
+  final results = await Future.wait(
+    entries.map((e) async {
+      try {
+        final row = e.value;
+        final storedTotal = (row['totalChapters'] as int?) ?? 0;
+        if (storedTotal <= 0) return null;
 
-      final liveTotal = await source.getTotalChapters(e.key);
-      final newCount = liveTotal - storedTotal;
-      if (newCount <= 0) return null;
+        final liveTotal = await source.getTotalChapters(e.key);
+        final newCount = liveTotal - storedTotal;
+        if (newCount <= 0) return null;
 
-      final latest = await source.getLatestChapter(e.key);
+        final latest = await source.getLatestChapter(e.key);
 
-      return MangaUpdate(
-        mangaId: e.key,
-        title: row['title']?.toString() ?? 'Unknown',
-        coverUrl: row['coverUrl']?.toString() ?? '',
-        sourceId: row['sourceId']?.toString() ?? '',
-        newCount: newCount,
-        latestChapterTitle: latest?.$1 ?? 'New chapter',
-        latestChapterDate: latest?.$2,
-        isFavorite: (row['isFavorite'] as int? ?? 0) == 1,
-      );
-    } catch (_) {
-      return null;
-    }
-  }));
+        return MangaUpdate(
+          mangaId: e.key,
+          title: row['title']?.toString() ?? 'Unknown',
+          coverUrl: row['coverUrl']?.toString() ?? '',
+          sourceId: row['sourceId']?.toString() ?? '',
+          newCount: newCount,
+          latestChapterTitle: latest?.$1 ?? 'New chapter',
+          latestChapterDate: latest?.$2,
+          isFavorite: (row['isFavorite'] as int? ?? 0) == 1,
+        );
+      } catch (_) {
+        return null;
+      }
+    }),
+  );
 
   final updates = results.whereType<MangaUpdate>().toList()
     ..sort((a, b) => b.sortKey.compareTo(a.sortKey));

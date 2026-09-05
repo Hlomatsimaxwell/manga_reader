@@ -9,6 +9,7 @@ import 'package:manga_reader/features/explore/providers/search_provider.dart';
 import 'package:manga_reader/features/explore/screens/global_search_results_screen.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
+import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
 import 'package:manga_reader/features/suggestions/providers/suggestions_provider.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
@@ -149,26 +150,19 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
             onPressed: () =>
                 _addQueryToHistoryAndSearch(_searchController.text),
           ),
-          PopupMenuButton<String>(
-            color: const Color(0xFF2C2C2E),
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+          IosMenuButton<String>(
+            items: const [
+              IosMenuItem(
+                value: 'clear_history',
+                label: 'Clear search history',
+                icon: Icons.delete_outline_rounded,
+              ),
+            ],
             onSelected: (value) {
               if (value == 'clear_history') {
                 _clearSearchHistory();
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem<String>(
-                value: 'clear_history',
-                child: Text(
-                  'Clear search history',
-                  style: TextStyle(color: Colors.white, fontSize: 15),
-                ),
-              ),
-            ],
           ),
         ],
       ),

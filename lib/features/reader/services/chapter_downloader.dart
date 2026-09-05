@@ -36,8 +36,7 @@ class ChapterDownloader {
   }) async {
     final dir = await chapterDir(mangaId, chapterId);
     if (!await dir.exists()) return null;
-    final file =
-        File(p.join(dir.path, _pageFileName(pageIndex, url)));
+    final file = File(p.join(dir.path, _pageFileName(pageIndex, url)));
     return await file.exists() ? file.path : null;
   }
 
@@ -124,11 +123,7 @@ class ChapterDownloader {
   static String _imageExtension(String url) {
     final dotIndex = url.lastIndexOf('.');
     if (dotIndex != -1) {
-      final ext = url
-          .substring(dotIndex + 1)
-          .split('?')
-          .first
-          .toLowerCase();
+      final ext = url.substring(dotIndex + 1).split('?').first.toLowerCase();
       if (RegExp(r'^[a-z0-9]{1,5}$').hasMatch(ext) &&
           ['png', 'jpg', 'jpeg', 'webp', 'gif'].contains(ext)) {
         return ext;

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
 
 class ManageSourcesScreen extends ConsumerStatefulWidget {
   const ManageSourcesScreen({super.key});
 
   @override
-  ConsumerState<ManageSourcesScreen> createState() => _ManageSourcesScreenState();
+  ConsumerState<ManageSourcesScreen> createState() =>
+      _ManageSourcesScreenState();
 }
 
 class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
@@ -27,10 +29,9 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
 
     final filteredSources = sources.where((source) {
       if (_searchQuery.isEmpty) return true;
-      return source['name']
-          .toString()
-          .toLowerCase()
-          .contains(_searchQuery.toLowerCase());
+      return source['name'].toString().toLowerCase().contains(
+        _searchQuery.toLowerCase(),
+      );
     }).toList();
 
     return Scaffold(
@@ -65,8 +66,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               ),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search,
-                color: Colors.white),
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
             onPressed: () {
               setState(() {
                 if (_isSearching) {
@@ -77,59 +80,30 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               });
             },
           ),
-          PopupMenuButton<String>(
-            color: const Color(0xFF2C2C2E),
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            itemBuilder: (BuildContext context) {
-              return [
-                PopupMenuItem<String>(
-                  enabled: false,
-                  child: StatefulBuilder(
-                    builder: (context, setPopupState) {
-                      return InkWell(
-                        onTap: () {
-                          setState(() {
-                            _disableNSFW = !_disableNSFW;
-                          });
-                          setPopupState(() {});
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Disable NSFW',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                              ),
-                            ),
-                            Checkbox(
-                              value: _disableNSFW,
-                              activeColor: Colors.white,
-                              checkColor: Colors.black,
-                              side: const BorderSide(color: Colors.white70),
-                              onChanged: (bool? val) {
-                                setState(() {
-                                  _disableNSFW = val ?? false;
-                                });
-                                setPopupState(() {});
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+          AppSheetPress(
+            onTap: () {
+              showIosMenuPanel(
+                context,
+                children: [
+                  MenuToggleRow(
+                    label: 'Disable NSFW',
+                    value: _disableNSFW,
+                    onChanged: (v) => setState(() => _disableNSFW = v),
                   ),
-                ),
-              ];
+                ],
+              );
             },
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                Icons.more_horiz_rounded,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
           ),
         ],
       ),
-            body: ListView.builder(
+      body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: filteredSources.length,
         itemBuilder: (context, index) {
@@ -141,7 +115,9 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             // --- ADDED ONTAP LOGIC HERE ---
             onTap: () {
               // 1. Switch the active source using our new registry
-              ref.read(currentSourceProvider.notifier).state = getSourceByName(sourceName);
+              ref.read(currentSourceProvider.notifier).state = getSourceByName(
+                sourceName,
+              );
 
               // 2. Show a a nice confirmation to the user
               ScaffoldMessenger.of(context).showSnackBar(
@@ -156,8 +132,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               Navigator.pop(context);
             },
             // ------------------------------
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
             leading: Container(
               width: 48,
               height: 48,
@@ -179,11 +157,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             title: Row(
               children: [
                 if (isPinned) ...[
-                  const Icon(
-                    Icons.push_pin,
-                    color: Colors.white,
-                    size: 14,
-                  ),
+                  const Icon(Icons.push_pin, color: Colors.white, size: 14),
                   const SizedBox(width: 6),
                 ],
                 Expanded(
@@ -201,17 +175,33 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             ),
             subtitle: Text(
               source['language'] as String,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
             ),
-            trailing: PopupMenuButton<String>(
-              color: const Color(0xFF2C2C2E),
-              icon: const Icon(Icons.more_vert, color: Colors.white70),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            trailing: IosMenuButton<String>(
+              items: [
+                const IosMenuItem(
+                  value: 'top',
+                  label: 'To top',
+                  icon: Icons.vertical_align_top_rounded,
+                ),
+                IosMenuItem(
+                  value: 'pin',
+                  label: 'Pin',
+                  icon: isPinned
+                      ? Icons.check_box
+                      : Icons.check_box_outline_blank,
+                ),
+                const IosMenuItem(
+                  value: 'shortcut',
+                  label: 'Create shortcut',
+                  icon: Icons.launch_rounded,
+                ),
+                const IosMenuItem(
+                  value: 'settings',
+                  label: 'Settings',
+                  icon: Icons.settings_rounded,
+                ),
+              ],
               onSelected: (value) {
                 if (value == 'top') {
                   ref.read(sourcesProvider.notifier).moveToTop(sourceName);
@@ -219,55 +209,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                   ref.read(sourcesProvider.notifier).togglePin(sourceName);
                 }
               },
-              itemBuilder: (BuildContext context) {
-                return [
-                  const PopupMenuItem<String>(
-                    value: 'top',
-                    child: Text(
-                      'To top',
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'pin',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Pin',
-                          style: TextStyle(color: Colors.white, fontSize: 15),
-                        ),
-                        Icon(
-                          isPinned
-                              ? Icons.check_box
-                              : Icons.check_box_outline_blank,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'shortcut',
-                    child: Text(
-                      'Create shortcut',
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'settings',
-                    child: Text(
-                      'Settings',
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                  ),
-                ];
-              },
             ),
           );
         },
       ),
-
     );
   }
 }

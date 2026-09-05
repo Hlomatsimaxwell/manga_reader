@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
+import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
+import 'package:manga_reader/core/widgets/ios/ios_sheet.dart';
 
 enum ListMode { compact, details, grid }
 
@@ -75,12 +77,8 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
       : _fallbackItems;
 
   void _showListOptionsBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF2C2C2E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    showIosSheet(
+      context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -90,19 +88,6 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Handle
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white38,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
                   const Text(
                     'List mode',
                     style: TextStyle(
@@ -240,26 +225,19 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            color: const Color(0xFF2C2C2E),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+          IosMenuButton<String>(
+            items: const [
+              IosMenuItem(
+                value: 'options',
+                label: 'List options',
+                icon: Icons.tune_rounded,
+              ),
+            ],
             onSelected: (value) {
               if (value == 'options') {
                 _showListOptionsBottomSheet();
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'options',
-                child: Text(
-                  'List options',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              ),
-            ],
           ),
         ],
       ),

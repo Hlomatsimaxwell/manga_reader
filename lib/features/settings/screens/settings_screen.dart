@@ -125,10 +125,7 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.only(top: 4),
         child: Text(
           subtitle,
-          style: const TextStyle(
-            color: Colors.white54,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.white54, fontSize: 14),
         ),
       ),
       onTap: onTap,

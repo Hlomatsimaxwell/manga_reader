@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:manga_reader/core/widgets/ios/ios_press.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 
 /// Every bookmarked page across all manga, most recent first.
@@ -115,7 +116,7 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
               ),
             )
           : ListView.separated(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               itemCount: _rows.length,
               separatorBuilder: (context, index) => const SizedBox(height: 6),
               itemBuilder: (context, index) {
@@ -143,7 +144,7 @@ class _BookmarkTile extends StatelessWidget {
     final pageIndex = (row['pageIndex'] as int?) ?? 0;
     final createdAt = row['createdAt'] as String? ?? '';
 
-    return InkWell(
+    return AppPress(
       onTap: () {
         Navigator.push(
           context,
@@ -157,8 +158,12 @@ class _BookmarkTile extends StatelessWidget {
           ),
         );
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
             ClipRRect(

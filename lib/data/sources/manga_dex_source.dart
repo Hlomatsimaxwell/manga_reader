@@ -13,22 +13,23 @@ class MangaDexSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://api.mangadex.org';
+  String get iconUrl => 'https://mangadex.org/favicon.ico';
 
   @override
   String get readerBaseUrl => 'https://cdn.mangadex.org';
 
   @override
   Map<String, String>? get headers => {
-        'User-Agent': 'MangaReader/1.0',
-        'Accept': 'application/json',
-      };
+    'User-Agent': 'MangaReader/1.0',
+    'Accept': 'application/json',
+  };
 
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://api.mangadex.org',
-    headers: {
-      'User-Agent': 'MangaReader/1.0',
-    },
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: 'https://api.mangadex.org',
+      headers: {'User-Agent': 'MangaReader/1.0'},
+    ),
+  );
 
   // Cached tag name → id mapping (fetched once per session).
   Map<String, String>? _tagNameToId;
@@ -38,12 +39,15 @@ class MangaDexSource implements MangaSource {
     try {
       // MangaDex uses 'offset' instead of 'page'
       int offset = (page - 1) * 20;
-      final response = await _dio.get('/manga', queryParameters: {
-        'limit': 20,
-        'offset': offset,
-        'order': {'followedCount': 'desc'},
-        'includes[]': 'cover_art',
-      });
+      final response = await _dio.get(
+        '/manga',
+        queryParameters: {
+          'limit': 20,
+          'offset': offset,
+          'order': {'followedCount': 'desc'},
+          'includes[]': 'cover_art',
+        },
+      );
 
       return _parseMangaList(response.data);
     } catch (e) {
@@ -54,9 +58,12 @@ class MangaDexSource implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
-      final response = await _dio.get('/manga/$mangaId', queryParameters: {
-        'includes[]': ['author', 'artist', 'cover_art'],
-      });
+      final response = await _dio.get(
+        '/manga/$mangaId',
+        queryParameters: {
+          'includes[]': ['author', 'artist', 'cover_art'],
+        },
+      );
 
       final item = response.data['data'];
       final attrs = item['attributes'] ?? {};
@@ -75,7 +82,9 @@ class MangaDexSource implements MangaSource {
         final type = rel['type'];
         if (type == 'author' || type == 'artist') {
           final name =
-              rel['attributes']?['name']?.toString() ?? rel['attributes']?['firstName']?.toString() ?? '';
+              rel['attributes']?['name']?.toString() ??
+              rel['attributes']?['firstName']?.toString() ??
+              '';
           if (name.isNotEmpty && !authorNames.contains(name)) {
             authorNames.add(name);
           }
@@ -180,12 +189,15 @@ class MangaDexSource implements MangaSource {
   Future<List<Chapter>> getChapters(String mangaId) async {
     final chapters = <Chapter>[];
     try {
-      final response = await _dio.get('/manga/$mangaId/feed', queryParameters: {
-        'order': {'chapter': 'desc'},
-        'translatedLanguage[]': 'en',
-        'limit': 500,
-        'offset': 0,
-      });
+      final response = await _dio.get(
+        '/manga/$mangaId/feed',
+        queryParameters: {
+          'order': {'chapter': 'desc'},
+          'translatedLanguage[]': 'en',
+          'limit': 500,
+          'offset': 0,
+        },
+      );
 
       final List<dynamic> data = response.data['data'];
       for (final item in data) {
@@ -200,14 +212,16 @@ class MangaDexSource implements MangaSource {
             }
           }
         }
-        chapters.add(Chapter(
-          id: item['id'],
-          title: item['attributes']['chapter'] ?? 'Chapter',
-          chapterNumber: item['attributes']['chapter'] ?? '0',
-          releaseDate: item['attributes']['publishAt'],
-          url: '',
-          scanlator: groupName,
-        ));
+        chapters.add(
+          Chapter(
+            id: item['id'],
+            title: item['attributes']['chapter'] ?? 'Chapter',
+            chapterNumber: item['attributes']['chapter'] ?? '0',
+            releaseDate: item['attributes']['publishAt'],
+            url: '',
+            scanlator: groupName,
+          ),
+        );
       }
     } catch (e) {
       return [];
@@ -217,7 +231,8 @@ class MangaDexSource implements MangaSource {
   }
 
   @override
-  Future<List<String>> getPageUrls(String chapterId) async {    try {
+  Future<List<String>> getPageUrls(String chapterId) async {
+    try {
       // 1. Get the "at-home" server URL for the chapter
       final response = await _dio.get('/at-home/server/$chapterId');
       final String baseUrl = response.data['baseUrl'];
@@ -267,7 +282,10 @@ class MangaDexSource implements MangaSource {
   }
 
   @override
-  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async {
+  Future<List<Manga>> searchMangaByTags(
+    List<String> tags, {
+    int page = 1,
+  }) async {
     try {
       final nameToId = await _getTagNameToId();
       final tagIds = <String>[];
@@ -278,13 +296,16 @@ class MangaDexSource implements MangaSource {
       if (tagIds.isEmpty) return [];
 
       final offset = (page - 1) * 20;
-      final response = await _dio.get('/manga', queryParameters: {
-        'limit': 20,
-        'offset': offset,
-        'order': {'followedCount': 'desc'},
-        'includes[]': 'cover_art',
-        ...{for (final id in tagIds) 'includedTags[]': id},
-      });
+      final response = await _dio.get(
+        '/manga',
+        queryParameters: {
+          'limit': 20,
+          'offset': offset,
+          'order': {'followedCount': 'desc'},
+          'includes[]': 'cover_art',
+          ...{for (final id in tagIds) 'includedTags[]': id},
+        },
+      );
 
       return _parseMangaList(response.data);
     } catch (e) {
@@ -297,13 +318,16 @@ class MangaDexSource implements MangaSource {
     if (query.trim().isEmpty) return [];
     try {
       final offset = (page - 1) * 20;
-      final response = await _dio.get('/manga', queryParameters: {
-        'limit': 20,
-        'offset': offset,
-        'title': query.trim(),
-        'order': {'relevance': 'desc'},
-        'includes[]': 'cover_art',
-      });
+      final response = await _dio.get(
+        '/manga',
+        queryParameters: {
+          'limit': 20,
+          'offset': offset,
+          'title': query.trim(),
+          'order': {'relevance': 'desc'},
+          'includes[]': 'cover_art',
+        },
+      );
 
       return _parseMangaList(response.data);
     } catch (e) {
@@ -358,17 +382,22 @@ class MangaDexSource implements MangaSource {
   @override
   Future<(String, DateTime)?> getLatestChapter(String mangaId) async {
     try {
-      final response = await _dio.get('/manga/$mangaId/feed', queryParameters: {
-        'order': {'chapter': 'desc'},
-        'translatedLanguage[]': 'en',
-        'limit': 1,
-        'offset': 0,
-      });
+      final response = await _dio.get(
+        '/manga/$mangaId/feed',
+        queryParameters: {
+          'order': {'chapter': 'desc'},
+          'translatedLanguage[]': 'en',
+          'limit': 1,
+          'offset': 0,
+        },
+      );
       final data = response.data['data'] as List? ?? [];
       if (data.isEmpty) return null;
       final attrs = data[0]['attributes'] ?? {};
       final chapterNum = attrs['chapter']?.toString() ?? '';
-      final title = chapterNum.isNotEmpty ? 'Chapter $chapterNum' : 'New chapter';
+      final title = chapterNum.isNotEmpty
+          ? 'Chapter $chapterNum'
+          : 'New chapter';
       DateTime? publishedAt;
       final pub = attrs['publishAt'];
       if (pub is String) {

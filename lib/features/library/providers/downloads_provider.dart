@@ -15,9 +15,9 @@ final downloadedMangasProvider = FutureProvider<Set<String>>((ref) async {
 // Chapter ids downloaded within a specific manga (used by the detail tray).
 final downloadedChaptersForMangaProvider =
     FutureProvider.family<Set<String>, String>((ref, mangaId) async {
-  ref.watch(downloadsRevisionProvider);
-  return DatabaseHelper.instance.getDownloadedChapterIds(mangaId);
-});
+      ref.watch(downloadsRevisionProvider);
+      return DatabaseHelper.instance.getDownloadedChapterIds(mangaId);
+    });
 
 // Call this after a download finishes or is removed to refresh badges
 // everywhere.

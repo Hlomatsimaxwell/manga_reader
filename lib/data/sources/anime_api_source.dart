@@ -15,25 +15,27 @@ class AnimeApiSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://anime-api.vercel.app/api';
+  String get iconUrl => 'https://anime-api.vercel.app/favicon.ico';
 
   @override
   String get readerBaseUrl => 'https://anime-api.vercel.app/api';
 
   @override
   Map<String, String>? get headers => {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Referer': 'https://anime-api.vercel.app/',
-      };
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept':
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Referer': 'https://anime-api.vercel.app/',
+  };
 
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     debugPrint('API: Fetching popular manga...');
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/manga'),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse('$baseUrl/manga'), headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       debugPrint('API: Popular manga response code: ${response.statusCode}');
 
@@ -60,10 +62,9 @@ class AnimeApiSource implements MangaSource {
   Future<List<Chapter>> getChapters(String mangaId) async {
     debugPrint('API: Fetching chapters for $mangaId...');
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/manga/$mangaId'),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse('$baseUrl/manga/$mangaId'), headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       debugPrint('API: Chapter response code: ${response.statusCode}');
 
@@ -88,18 +89,16 @@ class AnimeApiSource implements MangaSource {
     }
   }
 
-   @override
+  @override
   Future<List<String>> getPageUrls(String chapterId) async {
     final fullUrl = '$baseUrl/chapter/$chapterId'; // Create this variable
     debugPrint('API: Requesting pages from: $fullUrl'); // Print it!
-    
-    try {
-      final response = await http.get(
-        Uri.parse(fullUrl),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
-      // ... rest of your code
 
+    try {
+      final response = await http
+          .get(Uri.parse(fullUrl), headers: headers)
+          .timeout(const Duration(seconds: 10));
+      // ... rest of your code
 
       debugPrint('API: Page response code: ${response.statusCode}');
 
@@ -107,9 +106,11 @@ class AnimeApiSource implements MangaSource {
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       final List<dynamic> pages = data['pages'] ?? [];
-      
+
       // MOVED DEBUG PRINT HERE (Now that 'pages' exists)
-      debugPrint('API: Found ${pages.length} pages. First page URL: ${pages.isNotEmpty ? pages[0] : 'None'}');
+      debugPrint(
+        'API: Found ${pages.length} pages. First page URL: ${pages.isNotEmpty ? pages[0] : 'None'}',
+      );
 
       return pages.map((url) => url.toString()).toList();
     } catch (e) {
@@ -127,10 +128,9 @@ class AnimeApiSource implements MangaSource {
       coverUrl: '',
     );
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/manga/$mangaId'),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse('$baseUrl/manga/$mangaId'), headers: headers)
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return details;
 
       final Map<String, dynamic> data = jsonDecode(response.body);
@@ -143,7 +143,9 @@ class AnimeApiSource implements MangaSource {
         author: data['author']?.toString() ?? '',
         status: data['status']?.toString() ?? '',
         year: data['year']?.toString() ?? '',
-        tags: (data['genres'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+        tags:
+            (data['genres'] as List?)?.map((e) => e.toString()).toList() ??
+            const [],
       );
       return details;
     } catch (e) {
@@ -156,7 +158,10 @@ class AnimeApiSource implements MangaSource {
   Future<int> getTotalChapters(String mangaId) async => 0;
 
   @override
-  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async => [];
+  Future<List<Manga>> searchMangaByTags(
+    List<String> tags, {
+    int page = 1,
+  }) async => [];
 
   @override
   Future<List<String>> getAvailableTags() async => [];

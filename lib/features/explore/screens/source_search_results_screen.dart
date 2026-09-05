@@ -6,6 +6,7 @@ import 'package:manga_reader/data/models/manga.dart';
 import 'package:manga_reader/data/models/manga_source.dart';
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
+import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
 
 class SourceSearchResultsScreen extends StatefulWidget {
   final MangaSource source;
@@ -280,12 +281,19 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               icon: const Icon(Icons.casino_outlined, color: Colors.white),
               onPressed: _openRandomManga,
             ),
-            PopupMenuButton<String>(
-              color: const Color(0xFF2C2C2E),
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            IosMenuButton<String>(
+              items: const [
+                IosMenuItem(
+                  value: 'refresh',
+                  label: 'Refresh results',
+                  icon: Icons.refresh_rounded,
+                ),
+                IosMenuItem(
+                  value: 'clear_query',
+                  label: 'Clear search query',
+                  icon: Icons.close_rounded,
+                ),
+              ],
               onSelected: (value) {
                 switch (value) {
                   case 'refresh':
@@ -294,22 +302,6 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                     _clearSearchQuery();
                 }
               },
-              itemBuilder: (context) => const [
-                PopupMenuItem<String>(
-                  value: 'refresh',
-                  child: Text(
-                    'Refresh results',
-                    style: TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'clear_query',
-                  child: Text(
-                    'Clear search query',
-                    style: TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-                ),
-              ],
             ),
           ],
         ],

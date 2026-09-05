@@ -10,6 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
+import '../../../core/widgets/ios/ios_press.dart';
+import '../../../core/widgets/ios/ios_sheet.dart';
 import 'package:manga_reader/data/providers/sources_provider.dart';
 import 'package:manga_reader/data/models/chapter.dart';
 import 'package:manga_reader/data/models/manga_source.dart';
@@ -531,8 +533,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1C1C1E),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
         return DraggableScrollableSheet(
@@ -554,12 +557,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   children: [
                     Center(
                       child: Container(
-                        width: 32,
-                        height: 4,
+                        width: 36,
+                        height: 5,
                         margin: const EdgeInsets.only(top: 12, bottom: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white38,
-                          borderRadius: BorderRadius.circular(2),
+                          color: const Color(0xFF6E6E73),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                       ),
                     ),
@@ -1184,14 +1187,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   // --- SETTINGS SHEET ---
 
   void _showSettingsSheet() {
-    showModalBottomSheet<void>(
-      context: context,
+    showIosSheet<void>(
+      context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF17171A),
-      barrierColor: Colors.black54,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -1206,17 +1204,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
                       Row(
                         children: [
                           const Expanded(
@@ -1389,8 +1376,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }) {
     final bgColor = accent ? const Color(0xFF2E4A2B) : const Color(0xFF232328);
     final fgColor = accent ? const Color(0xFF7CE38B) : Colors.white;
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
+    return AppPress(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),

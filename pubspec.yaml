@@ -24,6 +24,9 @@ dependencies:
   path: ^1.9.1
   flutter_inappwebview: ^6.0.0
   shared_preferences: ^2.2.3
+  intl: ^0.20.3
+  liquid_glass_bar: ^0.1.1
+  liquid_glass_renderer: ^0.2.0-dev.4
 
 dev_dependencies:
   flutter_test:

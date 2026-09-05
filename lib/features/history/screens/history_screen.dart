@@ -6,6 +6,8 @@ import 'package:manga_reader/features/explore/screens/global_search_screen.dart'
 import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
 import 'package:manga_reader/features/settings/screens/settings_screen.dart';
 import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:manga_reader/core/widgets/ios/ios_press.dart';
+import 'package:manga_reader/core/widgets/ios/ios_sheet.dart';
 import 'package:manga_reader/features/history/providers/history_provider.dart';
 import 'package:manga_reader/features/library/providers/downloads_provider.dart';
 
@@ -307,7 +309,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     required int groupValue,
     required ValueChanged<int?> onChanged,
   }) {
-    return InkWell(
+    return AppPress(
       onTap: () => onChanged(value),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -339,12 +341,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   void _showListOptionsSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E1E20),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    showIosSheet(
+      context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -354,17 +352,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 32,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white38,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
                   const Text(
                     'List mode',
                     style: TextStyle(
@@ -787,7 +774,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
+          padding: const EdgeInsets.only(bottom: 120),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1187,8 +1174,7 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
         color: const Color(0xFF1E1E20),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+      child: AppPress(
         onTap: widget.onTap,
         child: Padding(
           padding: const EdgeInsets.all(10),

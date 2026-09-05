@@ -8,6 +8,10 @@ abstract class MangaSource {
   String get baseUrl;
   String get readerBaseUrl;
 
+  /// URL of the source's favicon/logo, used as the tile icon in UIs.
+  /// Empty when the source has no usable icon (callers fall back to a letter).
+  String get iconUrl => '';
+
   Map<String, String>? get headers => null;
 
   Future<List<Manga>> getPopularManga({int page = 1});
@@ -23,7 +27,10 @@ abstract class MangaSource {
 
   // Search for manga matching the given tag names. Returns an empty list
   // when the source does not support tag-based search.
-  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async {
+  Future<List<Manga>> searchMangaByTags(
+    List<String> tags, {
+    int page = 1,
+  }) async {
     return [];
   }
 

@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
-import '../sources/anime_api_source.dart'; 
+import '../sources/anime_api_source.dart';
 import '../sources/manga_dex_source.dart'; // <--- 1. ADD THIS IMPORT
 import '../sources/weebcentral_source.dart';
 import '../sources/mangakatana_source.dart';
@@ -19,7 +19,7 @@ MangaSource getSourceByName(String name) {
       return WeebCentralSource();
     case 'MangaKatana':
       return MangakatanaSource();
-    case 'Anime-API': 
+    case 'Anime-API':
       return AnimeApiSource();
     case 'Manganato':
       return ManganatoService();
@@ -53,7 +53,7 @@ MangaSource? getSourceBySourceId(String sourceId) {
 // 2. DYNAMIC ACTIVE SOURCE
 final currentSourceProvider = StateProvider<MangaSource>((ref) {
   // 3. SET DEFAULT TO MANGADEX so you can test immediately!
-  return MangaDexSource(); 
+  return MangaDexSource();
 });
 
 class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
@@ -70,6 +70,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFF381F1D),
       'text': '🐱',
       'textColor': Colors.orangeAccent,
+      'iconUrl': 'https://mangadex.org/favicon.ico',
       'isPinned': true,
     },
     {
@@ -77,6 +78,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Manhwa, Manhua, English',
       'bgColor': const Color(0xFF334155),
       'text': 'W',
+      'iconUrl': 'https://weebcentral.com/favicon.ico',
       'isPinned': true,
     },
     {
@@ -84,27 +86,31 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Manhwa, Manhua, English',
       'bgColor': const Color(0xFF003C8F),
       'text': 'K',
+      'iconUrl': 'https://mangakatana.com/favicon.ico',
       'isPinned': true,
     },
     {
-      'name': 'Anime-API', 
+      'name': 'Anime-API',
       'language': 'English',
       'bgColor': const Color(0xFF6200EE),
       'text': 'A',
+      'iconUrl': 'https://anime-api.vercel.app/favicon.ico',
       'isPinned': true,
     },
     {
-      'name': 'Manganato', 
+      'name': 'Manganato',
       'language': 'English',
       'bgColor': const Color(0xFFE67E22),
       'text': 'M',
+      'iconUrl': 'https://manganato.com/favicon.ico',
       'isPinned': true,
     },
     {
-      'name': 'Mock Source', 
+      'name': 'Mock Source',
       'language': 'Mock',
       'bgColor': const Color(0xFF95A5A6),
       'text': '?',
+      'iconUrl': '',
       'isPinned': false,
     },
     {
@@ -112,6 +118,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Various languages',
       'bgColor': const Color(0xFF2C2C2E),
       'text': '🦄',
+      'iconUrl': 'https://comick.io/favicon.ico',
       'isPinned': false,
     },
   ];
@@ -130,10 +137,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
       final updatedList = state.map((source) {
         final name = source['name'] as String;
-        return {
-          ...source,
-          'isPinned': pinnedMap[name] ?? false,
-        };
+        return {...source, 'isPinned': pinnedMap[name] ?? false};
       }).toList();
 
       state = _sortSources(updatedList);
@@ -143,10 +147,9 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   Future<void> _saveToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final dataToSave = state
-        .map((source) => {
-              'name': source['name'],
-              'isPinned': source['isPinned'],
-            })
+        .map(
+          (source) => {'name': source['name'], 'isPinned': source['isPinned']},
+        )
         .toList();
 
     await prefs.setString(_prefsKey, jsonEncode(dataToSave));
@@ -185,5 +188,5 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
 final sourcesProvider =
     StateNotifierProvider<SourcesNotifier, List<Map<String, dynamic>>>((ref) {
-  return SourcesNotifier();
-});
+      return SourcesNotifier();
+    });

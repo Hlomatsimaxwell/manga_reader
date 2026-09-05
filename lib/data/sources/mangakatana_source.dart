@@ -22,18 +22,19 @@ class MangakatanaSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://mangakatana.com';
+  String get iconUrl => 'https://mangakatana.com/favicon.ico';
 
   @override
   String get readerBaseUrl => 'https://mangakatana.com';
 
   @override
   Map<String, String>? get headers => {
-        'User-Agent':
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Referer': 'https://mangakatana.com/',
-      };
+    'User-Agent':
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept': 'text/html,application/xhtml+xml',
+    'Referer': 'https://mangakatana.com/',
+  };
 
   final http.Client _client = http.Client();
 
@@ -51,19 +52,23 @@ class MangakatanaSource implements MangaSource {
     final items = document.querySelectorAll('#book_list .item');
     final mangas = <Manga>[];
     for (final item in items) {
-      final link = item.querySelector('.title a') ?? item.querySelector('a[href*="/manga/"]');
+      final link =
+          item.querySelector('.title a') ??
+          item.querySelector('a[href*="/manga/"]');
       final href = link?.attributes['href'] ?? '';
       final path = href.replaceFirst(baseUrl, '');
       if (!path.startsWith('/manga/')) continue;
       final id = path.replaceFirst(RegExp(r'^/'), '');
       final img = item.querySelector('.media img[src]');
       final title = link?.text.trim() ?? '';
-      mangas.add(Manga(
-        id: id,
-        title: title.isEmpty ? 'No name' : title,
-        coverUrl: img?.attributes['src'] ?? '',
-        sourceId: this.id,
-      ));
+      mangas.add(
+        Manga(
+          id: id,
+          title: title.isEmpty ? 'No name' : title,
+          coverUrl: img?.attributes['src'] ?? '',
+          sourceId: this.id,
+        ),
+      );
     }
     return mangas;
   }
@@ -74,7 +79,8 @@ class MangakatanaSource implements MangaSource {
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
       final html = await _get(
-          '$baseUrl/?search=${Uri.encodeQueryComponent(query)}');
+        '$baseUrl/?search=${Uri.encodeQueryComponent(query)}',
+      );
       return _parseMangaGrid(html);
     } catch (_) {
       return [];
@@ -82,8 +88,10 @@ class MangakatanaSource implements MangaSource {
   }
 
   @override
-  Future<List<Manga>> searchMangaByTags(List<String> tags,
-      {int page = 1}) async {
+  Future<List<Manga>> searchMangaByTags(
+    List<String> tags, {
+    int page = 1,
+  }) async {
     try {
       if (tags.isEmpty) return [];
       final slug = _genreSlug(tags.first);
@@ -216,7 +224,8 @@ class MangakatanaSource implements MangaSource {
       final numberRe = RegExp(r'(?:v\d+c|c)(\d+(?:\.\d+)?)$');
 
       for (final row in rows) {
-        final link = row.querySelector('div.chapter a[href*="/c"]') ??
+        final link =
+            row.querySelector('div.chapter a[href*="/c"]') ??
             row.querySelector('div.chapter a[href*="/v"]');
         if (link == null) continue;
         final href = link.attributes['href'] ?? '';
@@ -233,13 +242,15 @@ class MangakatanaSource implements MangaSource {
         final timeEl = row.querySelector('.update_time');
         final releaseDate = timeEl?.text.trim() ?? '';
 
-        chapters.add(Chapter(
-          id: id,
-          title: title,
-          chapterNumber: chapterNumber,
-          releaseDate: releaseDate,
-          url: '$baseUrl/$id',
-        ));
+        chapters.add(
+          Chapter(
+            id: id,
+            title: title,
+            chapterNumber: chapterNumber,
+            releaseDate: releaseDate,
+            url: '$baseUrl/$id',
+          ),
+        );
       }
       return chapters;
     } catch (_) {
@@ -274,8 +285,9 @@ class MangakatanaSource implements MangaSource {
 
   List<String> _extractTokenUrls(String body) {
     final urls = <String>[];
-    for (final m in RegExp(r"'https://i1\.mangakatana\.com/token/[^']*'")
-        .allMatches(body)) {
+    for (final m in RegExp(
+      r"'https://i1\.mangakatana\.com/token/[^']*'",
+    ).allMatches(body)) {
       final url = m.group(0)!.substring(1, m.group(0)!.length - 1);
       if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
     }
@@ -316,8 +328,18 @@ DateTime? parseMangakatanaDate(String raw) {
   final m = RegExp(r'^([A-Za-z]{3})-(\d{1,2})-(\d{4})$').firstMatch(raw.trim());
   if (m == null) return null;
   const months = {
-    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+    'jan': 1,
+    'feb': 2,
+    'mar': 3,
+    'apr': 4,
+    'may': 5,
+    'jun': 6,
+    'jul': 7,
+    'aug': 8,
+    'sep': 9,
+    'oct': 10,
+    'nov': 11,
+    'dec': 12,
   };
   final month = months[m.group(1)!.toLowerCase()];
   if (month == null) return null;

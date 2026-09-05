@@ -14,14 +14,16 @@ class ManganatoService implements MangaSource {
   String get name => 'Manganato';
   @override
   String get baseUrl => 'https://manganato.com';
+  String get iconUrl => 'https://manganato.com/favicon.ico';
   @override
   String get readerBaseUrl => 'https://chapmanganato.to';
 
   @override
   Map<String, String> get headers => {
-        'Referer': 'https://manganato.com/',
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-      };
+    'Referer': 'https://manganato.com/',
+    'User-Agent':
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  };
 
   // We return 'dynamic' so the IDE stops trying to verify the type
   dynamic _getRegex(String pattern) {
@@ -64,7 +66,12 @@ class ManganatoService implements MangaSource {
       final imgEl = element.querySelector('img');
       final url = titleEl?.attributes['href'] ?? '';
       final id = url.split('/').last;
-      return Manga(id: id, sourceId: this.id, title: titleEl?.text.trim() ?? '', coverUrl: imgEl?.attributes['src'] ?? '');
+      return Manga(
+        id: id,
+        sourceId: this.id,
+        title: titleEl?.text.trim() ?? '',
+        coverUrl: imgEl?.attributes['src'] ?? '',
+      );
     }).toList();
   }
 
@@ -79,15 +86,21 @@ class ManganatoService implements MangaSource {
       final id = url.split('/').last;
       var numRegex = _getRegex(r'[^0-9.]');
       var cleanNum = element.text.replaceAll(numRegex, '');
-      return Chapter(id: id, title: element.text.trim(), chapterNumber: cleanNum, releaseDate: '', url: url);
+      return Chapter(
+        id: id,
+        title: element.text.trim(),
+        chapterNumber: cleanNum,
+        releaseDate: '',
+        url: url,
+      );
     }).toList();
   }
 
-   @override
+  @override
   Future<List<String>> getPageUrls(String chapterId) async {
     try {
-      final String targetUrl = chapterId.startsWith('http') 
-          ? chapterId 
+      final String targetUrl = chapterId.startsWith('http')
+          ? chapterId
           : '$readerBaseUrl/$chapterId';
 
       Completer<List<String>> completer = Completer<List<String>>();
@@ -103,7 +116,8 @@ class ManganatoService implements MangaSource {
           // --- THE JS SNIPER ---
           // We run this script inside the browser. It finds all images,
           // checks their data-src/src, and joins them into one long string.
-          final result = await controller.evaluateJavascript(source: """
+          final result = await controller.evaluateJavascript(
+            source: """
             (function() {
               var images = document.querySelectorAll('img');
               var urls = [];
@@ -118,7 +132,8 @@ class ManganatoService implements MangaSource {
               }
               return urls.join(',');
             })();
-          """);
+          """,
+          );
 
           if (result != null && result is String && result.isNotEmpty) {
             List<String> pages = result.split(',');
@@ -134,12 +149,14 @@ class ManganatoService implements MangaSource {
       );
 
       await webView!.run();
-      
+
       final List<String> finalPages = await completer.future;
-      
+
       // Filter out any junk that JS might have picked up
-      final cleanedPages = finalPages.where((url) => _isValidMangaUrl(url)).toList();
-      
+      final cleanedPages = finalPages
+          .where((url) => _isValidMangaUrl(url))
+          .toList();
+
       debugPrint('JS Sniper found ${cleanedPages.length} real pages.');
       return cleanedPages;
     } catch (e) {
@@ -148,12 +165,17 @@ class ManganatoService implements MangaSource {
     }
   }
 
-
   bool _isValidMangaUrl(String url) {
     if (url.isEmpty) return false;
-    if (url.contains('placeholder') || url.contains('loading') || url.contains('wheel')) return false;
+    if (url.contains('placeholder') ||
+        url.contains('loading') ||
+        url.contains('wheel'))
+      return false;
     if (url.contains('mangadex') || url.contains('logo')) return false;
-    return url.contains('.jpg') || url.contains('.png') || url.contains('.webp') || url.contains('.jpeg');
+    return url.contains('.jpg') ||
+        url.contains('.png') ||
+        url.contains('.webp') ||
+        url.contains('.jpeg');
   }
 
   @override
@@ -219,7 +241,10 @@ class ManganatoService implements MangaSource {
   Future<int> getTotalChapters(String mangaId) async => 0;
 
   @override
-  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async => [];
+  Future<List<Manga>> searchMangaByTags(
+    List<String> tags, {
+    int page = 1,
+  }) async => [];
 
   @override
   Future<List<String>> getAvailableTags() async => [];
@@ -231,7 +256,9 @@ class ManganatoService implements MangaSource {
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
       final searchQuery = query.trim().replaceAll(' ', '_');
-      final html = await _fetchHtmlWithWebView('$baseUrl/search/story/$searchQuery');
+      final html = await _fetchHtmlWithWebView(
+        '$baseUrl/search/story/$searchQuery',
+      );
       if (html.isEmpty) return [];
       final document = parser.parse(html);
       final elements = document.querySelectorAll('.search-story-item');

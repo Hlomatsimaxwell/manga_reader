@@ -20,18 +20,19 @@ class WeebCentralSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://weebcentral.com';
+  String get iconUrl => 'https://weebcentral.com/favicon.ico';
 
   @override
   String get readerBaseUrl => 'https://weebcentral.com';
 
   @override
   Map<String, String>? get headers => {
-        'User-Agent':
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Referer': 'https://weebcentral.com/',
-      };
+    'User-Agent':
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept': 'text/html,application/xhtml+xml',
+    'Referer': 'https://weebcentral.com/',
+  };
 
   final http.Client _client = http.Client();
 
@@ -89,8 +90,8 @@ class WeebCentralSource implements MangaSource {
       final id = href.isEmpty
           ? ''
           : Uri.parse(href).pathSegments.length > 1
-              ? Uri.parse(href).pathSegments[1]
-              : href;
+          ? Uri.parse(href).pathSegments[1]
+          : href;
       final img = element.querySelector('img[src]');
       final titleEl = element.querySelector('.text-lg');
       final title = titleEl?.text.trim() ?? 'No name';
@@ -108,8 +109,9 @@ class WeebCentralSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
-      final html =
-          await _get(_searchUrl(page: page, text: query, sort: 'Best Match'));
+      final html = await _get(
+        _searchUrl(page: page, text: query, sort: 'Best Match'),
+      );
       return _parseSearchResults(html);
     } catch (_) {
       return [];
@@ -117,15 +119,19 @@ class WeebCentralSource implements MangaSource {
   }
 
   @override
-  Future<List<Manga>> searchMangaByTags(List<String> tags,
-      {int page = 1}) async {
+  Future<List<Manga>> searchMangaByTags(
+    List<String> tags, {
+    int page = 1,
+  }) async {
     try {
-      final html = await _get(_searchUrl(
-        page: page,
-        tags: tags,
-        sort: 'Popularity',
-        order: 'Descending',
-      ));
+      final html = await _get(
+        _searchUrl(
+          page: page,
+          tags: tags,
+          sort: 'Popularity',
+          order: 'Descending',
+        ),
+      );
       return _parseSearchResults(html);
     } catch (_) {
       return [];
@@ -136,7 +142,8 @@ class WeebCentralSource implements MangaSource {
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
       final html = await _get(
-          _searchUrl(page: page, sort: 'Popularity', order: 'Descending'));
+        _searchUrl(page: page, sort: 'Popularity', order: 'Descending'),
+      );
       return _parseSearchResults(html);
     } catch (_) {
       return [];
@@ -175,8 +182,7 @@ class WeebCentralSource implements MangaSource {
       final right = sections[1];
 
       final h1 = right.querySelector('h1')?.text.trim() ?? 'Unknown';
-      final cover =
-          left.querySelector('img[src]')?.attributes['src'] ?? '';
+      final cover = left.querySelector('img[src]')?.attributes['src'] ?? '';
       final title = h1.isEmpty ? 'Unknown' : h1;
 
       String description = '';
@@ -188,7 +194,10 @@ class WeebCentralSource implements MangaSource {
       bool hasStrong(Element li, String prefix) {
         return li
             .querySelectorAll('strong')
-            .any((s) => s.text.trim().toLowerCase().startsWith(prefix.toLowerCase()));
+            .any(
+              (s) =>
+                  s.text.trim().toLowerCase().startsWith(prefix.toLowerCase()),
+            );
       }
 
       for (final li in left.querySelectorAll('li')) {
@@ -274,25 +283,28 @@ class WeebCentralSource implements MangaSource {
         final span = link.querySelector('span.flex > span');
         final title = span?.text.trim() ?? '';
 
-        final numberMatch =
-            RegExp(r'(?<!S)\b(\d+(\.\d+)?)\b').firstMatch(title);
+        final numberMatch = RegExp(
+          r'(?<!S)\b(\d+(\.\d+)?)\b',
+        ).firstMatch(title);
         final chapterNumber = numberMatch?.group(1) ?? '';
 
         final time =
             link.querySelector('time[datetime]')?.attributes['datetime'] ?? '';
-        final scanlator = link.querySelector('svg[stroke]')?.attributes['stroke'] ==
-                '#d8b4fe'
+        final scanlator =
+            link.querySelector('svg[stroke]')?.attributes['stroke'] == '#d8b4fe'
             ? 'Official'
             : '';
 
-        chapters.add(Chapter(
-          id: chapterId,
-          title: title,
-          chapterNumber: chapterNumber,
-          releaseDate: time,
-          url: href.startsWith('http') ? href : '$baseUrl$href',
-          scanlator: scanlator,
-        ));
+        chapters.add(
+          Chapter(
+            id: chapterId,
+            title: title,
+            chapterNumber: chapterNumber,
+            releaseDate: time,
+            url: href.startsWith('http') ? href : '$baseUrl$href',
+            scanlator: scanlator,
+          ),
+        );
       }
       return chapters;
     } catch (_) {
@@ -304,11 +316,13 @@ class WeebCentralSource implements MangaSource {
   Future<List<String>> getPageUrls(String chapterId) async {
     try {
       final html = await _get(
-          '$baseUrl/chapters/$chapterId/images?is_prev=False&reading_style=long_strip');
+        '$baseUrl/chapters/$chapterId/images?is_prev=False&reading_style=long_strip',
+      );
       if (html.isEmpty) return [];
       final document = parser.parse(html);
-      final images =
-          document.querySelectorAll('section[id="chapter-images"] img[src]');
+      final images = document.querySelectorAll(
+        'section[id="chapter-images"] img[src]',
+      );
       return images.map((img) => img.attributes['src'] ?? '').toList();
     } catch (_) {
       return [];

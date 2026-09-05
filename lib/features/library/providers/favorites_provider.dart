@@ -19,8 +19,7 @@ final favoritesRevisionProvider = StateProvider<int>((ref) => 0);
 
 // Fetches + maps favorites from the database. Depends on the revision so it
 // automatically refreshes whenever a favorite is toggled.
-final favoritesProvider =
-    FutureProvider<List<Manga>>((ref) async {
+final favoritesProvider = FutureProvider<List<Manga>>((ref) async {
   ref.watch(favoritesRevisionProvider);
   final rows = await DatabaseHelper.instance.getFavorites();
   return mapFavoritesRows(rows);

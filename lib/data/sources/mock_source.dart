@@ -12,6 +12,7 @@ class MockSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://mock.com';
+  String get iconUrl => '';
 
   @override
   String get readerBaseUrl => 'https://mock-reader.com';
@@ -22,16 +23,38 @@ class MockSource implements MangaSource {
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     return [
-      Manga(id: '1', sourceId: id, title: 'Mock Manga 1', coverUrl: 'https://picsum.photos/seed/mock1/300/450'),
-      Manga(id: '2', sourceId: id, title: 'Mock Manga 2', coverUrl: 'https://picsum.photos/seed/mock2/300/450'),
+      Manga(
+        id: '1',
+        sourceId: id,
+        title: 'Mock Manga 1',
+        coverUrl: 'https://picsum.photos/seed/mock1/300/450',
+      ),
+      Manga(
+        id: '2',
+        sourceId: id,
+        title: 'Mock Manga 2',
+        coverUrl: 'https://picsum.photos/seed/mock2/300/450',
+      ),
     ];
   }
 
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     return [
-      Chapter(id: 'c1', title: 'Chapter 1', chapterNumber: '1', releaseDate: '', url: ''),
-      Chapter(id: 'c2', title: 'Chapter 2', chapterNumber: '2', releaseDate: '', url: ''),
+      Chapter(
+        id: 'c1',
+        title: 'Chapter 1',
+        chapterNumber: '1',
+        releaseDate: '',
+        url: '',
+      ),
+      Chapter(
+        id: 'c2',
+        title: 'Chapter 2',
+        chapterNumber: '2',
+        releaseDate: '',
+        url: '',
+      ),
     ];
   }
 
@@ -67,7 +90,10 @@ class MockSource implements MangaSource {
   Future<int> getTotalChapters(String mangaId) async => 0;
 
   @override
-  Future<List<Manga>> searchMangaByTags(List<String> tags, {int page = 1}) async => [];
+  Future<List<Manga>> searchMangaByTags(
+    List<String> tags, {
+    int page = 1,
+  }) async => [];
 
   @override
   Future<List<String>> getAvailableTags() async => [];
