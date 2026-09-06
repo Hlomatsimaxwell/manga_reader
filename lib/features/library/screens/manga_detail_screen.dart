@@ -72,6 +72,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Real reading progress from the database.
   double _progressPercent = 0;
   double _lastReadChapter = -1;
+  int _lastReadPage = 0;
 
   // Real bookmarks for this manga.
   List<Bookmark> _bookmarks = [];
@@ -187,6 +188,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       _lastReadChapter = row?['lastReadChapter'] is num
           ? (row!['lastReadChapter'] as num).toDouble()
           : -1;
+      _lastReadPage = (row?['lastReadPage'] as int?) ?? 0;
       final total = (row?['totalChapters'] as int? ?? 0);
       if (_lastReadChapter >= 0 && total > 0) {
         final clamped = _lastReadChapter.clamp(0, total.toDouble());
@@ -374,6 +376,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         builder: (context) => ReaderScreen(
           allChapters: _chapters,
           initialChapterIndex: indexToOpen,
+          initialPageIndex: _lastReadPage,
           mangaId: widget.mangaId,
           sourceId: _source?.id,
           mangaTitle: widget.title,

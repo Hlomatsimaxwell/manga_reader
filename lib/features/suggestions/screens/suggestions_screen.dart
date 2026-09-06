@@ -5,6 +5,7 @@ import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
+import 'package:yomou/core/theme/layout.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
   const SuggestionsScreen({super.key});
@@ -34,7 +35,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 120),
+          padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

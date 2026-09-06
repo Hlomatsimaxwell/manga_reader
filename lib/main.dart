@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -9,11 +11,13 @@ import 'features/library/screens/favorites_screen.dart';
 import 'package:yomou/features/explore/screens/explore_screen.dart';
 import 'package:yomou/features/feed/screens/feed_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
-import 'package:yomou/core/theme/colors.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:remixicon/remixicon.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,56 +32,88 @@ void main() async {
   runApp(const ProviderScope(child: YomouApp()));
 }
 
-class YomouApp extends StatelessWidget {
+class YomouApp extends ConsumerWidget {
   const YomouApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appearanceSettingsProvider);
+    final accent = ref.watch(accentProvider);
+
+    final isDark = switch (settings.themeMode) {
+      ThemeMode.light => false,
+      ThemeMode.dark => true,
+      ThemeMode.system =>
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+    };
+
+    // Accent-driven color scheme (Kotatsu "color scheme" presets).
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: isDark ? Brightness.dark : Brightness.light,
+    );
+
+    // scaffolds: pureBlackAmoled overrides dark background to true #000000.
+    final scaffoldBg = isDark
+        ? (settings.pureBlackAmoled ? Colors.black : const Color(0xFF050505))
+        : const Color(0xFFF2F2F7);
+
+    final commonTheme = ThemeData(
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+      focusColor: Colors.transparent,
+      dividerColor: Colors.transparent,
+      visualDensity: VisualDensity.standard,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.white),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+        ),
+        toolbarHeight: 44,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF2E2E33),
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: 40,
+          vertical: 20,
+        ),
+        elevation: 0,
+        showCloseIcon: false,
+      ),
+      listTileTheme: const ListTileThemeData(iconColor: Colors.white),
+    );
+
     return MaterialApp(
       title: 'Yomou',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
+      themeMode: settings.themeMode,
+      theme: commonTheme.copyWith(
+        brightness: Brightness.light,
+        colorScheme: colorScheme,
+        scaffoldBackgroundColor: scaffoldBg,
+      ),
+      darkTheme: commonTheme.copyWith(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.black,
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        focusColor: Colors.transparent,
-        dividerColor: Colors.transparent,
-        visualDensity: VisualDensity.standard,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          shadowColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          iconTheme: IconThemeData(color: Colors.white),
-          titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-          toolbarHeight: 44,
-        ),
-        snackBarTheme: SnackBarThemeData(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFF2E2E33),
-          contentTextStyle: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 40,
-            vertical: 20,
-          ),
-          elevation: 0,
-          showCloseIcon: false,
-        ),
+        colorScheme: colorScheme,
+        scaffoldBackgroundColor: scaffoldBg,
       ),
       home: const HomeScreen(),
     );
@@ -95,6 +131,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
   bool _isContinuing = false;
 
+  // Scroll-hide state for the nav bar + FAB (used when pinNavUiOnScroll is off).
+  bool _navHiddenOnScroll = false;
+
+  // Double-back-to-exit tracking (only active when exitConfirmation is on).
+  DateTime? _lastBackPress;
+
   final List<Widget> _screens = [
     const HistoryScreen(),
     const FavoritesScreen(),
@@ -106,85 +148,190 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final updatesCount = ref.watch(updatesCountProvider);
+    final accent = ref.watch(accentProvider);
+    final settings = ref.watch(appearanceSettingsProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      extendBody: true,
-      body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.only(
-          left: 12,
-          right: 12,
-          bottom: 24 + MediaQuery.paddingOf(context).bottom,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Bottom nav pill. Compact (icon-only) on History so the Continue
-            // FAB sits beside it; full-width on every other tab with the
-            // active item rendered as a filled icon+label badge.
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 240),
-              curve: Curves.easeOutCubic,
-              height: 64,
-              width: _currentIndex == 0
-                  ? MediaQuery.sizeOf(context).width - 24 - 72
-                  : MediaQuery.sizeOf(context).width - 24,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: const Color(0xFF2C2C30)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+    final showFab =
+        settings.showFloatingContinueButton && _currentIndex == 0;
+
+    return PopScope(
+      canPop: !settings.exitConfirmation,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final now = DateTime.now();
+        final recent = _lastBackPress != null &&
+            now.difference(_lastBackPress!) < const Duration(seconds: 2);
+        if (recent) {
+          SystemNavigator.pop();
+          return;
+        }
+        _lastBackPress = now;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Press back again to exit'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        extendBody: true,
+        body: NotificationListener<ScrollNotification>(
+          onNotification: _onScrollNotification,
+          child: Stack(
+            children: [
+              // Main body content — placed first so lists/grids extend
+              // edge-to-edge and scroll underneath the floating bar.
+              Positioned.fill(
+                child: IndexedStack(index: _currentIndex, children: _screens),
+              ),
+              // Continue Reading FAB (History tab only, opt-in). Sits above the
+              // bar: 12px past the bar's top edge. Cross-fades/scales away on
+              // every other tab or when scrolling down (unless pinned).
+              Positioned(
+                right: 16,
+                bottom: bottomBarClearance(context),
+                child: AnimatedSlide(
+                  offset: Offset(0, _navHiddenOnScroll ? 1.5 : 0),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(scale: animation, child: child),
+                    ),
+                    child: showFab
+                        ? KeyedSubtree(
+                            key: const ValueKey('continue-fab'),
+                            child: _buildContinueFab(accent),
+                          )
+                        : const SizedBox(
+                            key: ValueKey('fab-hidden'),
+                            width: 60,
+                            height: 60,
+                          ),
                   ),
-                ],
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(0, updatesCount),
-                  _buildNavItem(1, updatesCount),
-                  _buildNavItem(2, updatesCount),
-                  _buildNavItem(3, updatesCount),
-                  _buildNavItem(4, updatesCount),
-                ],
+              // Bottom navigation bar overlay (floating or solid).
+              AnimatedSlide(
+                offset: Offset(0, _navHiddenOnScroll ? 1.5 : 0),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: settings.useFloatingNavBar
+                    ? _buildFloatingNav(
+                        context, updatesCount, accent, settings)
+                    : _buildSolidNav(
+                        context, updatesCount, accent, settings),
               ),
-            ),
-            // Continue Reading FAB: only alongside the compact pill on the
-            // History tab. Cross-fades/scales out on every other tab.
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: ScaleTransition(scale: animation, child: child),
-              ),
-              child: _currentIndex == 0
-                  ? Padding(
-                      key: const ValueKey('continue-fab'),
-                      padding: const EdgeInsets.only(left: 12),
-                      child: _buildContinueFab(),
-                    )
-                  : const SizedBox.shrink(key: ValueKey('fab-hidden')),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // Hides the nav bar + FAB on downward scroll unless pinNavUiOnScroll is on.
+  bool _onScrollNotification(ScrollNotification notification) {
+    final pinned = ref.read(appearanceSettingsProvider).pinNavUiOnScroll;
+    if (notification is ScrollUpdateNotification) {
+      final delta = notification.scrollDelta ?? 0;
+      final pixels = notification.metrics.pixels;
+      final scrollingDown = delta > 0;
+      final enoughScrolled = pixels > 40;
+
+      if (!pinned) {
+        if (scrollingDown && enoughScrolled && !_navHiddenOnScroll) {
+          setState(() => _navHiddenOnScroll = true);
+        } else if (!scrollingDown && _navHiddenOnScroll) {
+          setState(() => _navHiddenOnScroll = false);
+        }
+      }
+    }
+    return false;
+  }
+
+  Widget _buildFloatingNav(
+    BuildContext context,
+    int updatesCount,
+    Color accent,
+    AppearanceSettings settings,
+  ) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: kBottomBarSideMargin,
+          right: kBottomBarSideMargin,
+          bottom:
+              kBottomBarBottomMargin + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: Container(
+          height: kBottomBarHeight,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1E),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFF2C2C30)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: _buildNavRow(updatesCount, accent, settings),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSolidNav(
+    BuildContext context,
+    int updatesCount,
+    Color accent,
+    AppearanceSettings settings,
+  ) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        width: double.infinity,
+        height: kBottomBarHeight + MediaQuery.paddingOf(context).bottom,
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+        color: const Color(0xFF1C1C1E),
+        child: _buildNavRow(updatesCount, accent, settings),
+      ),
+    );
+  }
+
+  Widget _buildNavRow(
+    int updatesCount,
+    Color accent,
+    AppearanceSettings settings,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildNavItem(0, updatesCount, accent, settings),
+        _buildNavItem(1, updatesCount, accent, settings),
+        _buildNavItem(2, updatesCount, accent, settings),
+        _buildNavItem(3, updatesCount, accent, settings),
+        _buildNavItem(4, updatesCount, accent, settings),
+      ],
+    );
+  }
+
   // Updates icon with its unread-count badge.
-  Widget _buildUpdatesIcon(int badgeCount, Color color, {double size = 24}) {
+  Widget _buildUpdatesIcon(int badgeCount, IconData icon, Color color, Color accent,
+      {double size = 22}) {
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        Icon(Icons.rss_feed_rounded, size: size, color: color),
+        Icon(icon, size: size, color: color),
         if (badgeCount > 0)
           Positioned(
             top: -4,
@@ -192,7 +339,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
-                color: kAccentColor,
+                color: accent,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -209,8 +356,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Single icon slot in the solid pill nav. Each item is a tappable circle
-  // that highlights its icon when the tab is active.
   static const List<String> _navLabels = [
     'History',
     'Favorites',
@@ -219,99 +364,81 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Updates',
   ];
 
-  // A single slot in the pill nav.
-  //  - History (compact pill): all items are icon-only.
-  //  - Other tabs (full-width pill): the active item becomes a filled
-  //    icon+label badge; inactive items stay icon-only. Each item
-  //    cross-fades between its icon and badge states.
-  Widget _buildNavItem(int index, int updatesCount) {
-    final selected = _currentIndex == index;
-    final compact = _currentIndex == 0;
-    final color = selected ? Colors.white : Colors.white54;
+  // Icon + label slot (friend's iOS-style bar, Remix icons). The active tab
+  // swaps from the line to the fill glyph, tints icon + label with the accent
+  // and scales up 5%; inactive tabs are muted grey.
+  Widget _buildNavItem(
+      int index, int updatesCount, Color accent, AppearanceSettings settings) {
+    final active = _currentIndex == index;
+    final color = active ? accent : const Color(0xFF8E8E93);
 
-    final Widget iconSlot = AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: selected
-            ? Colors.white.withValues(alpha: 0.12)
-            : Colors.transparent,
-      ),
-      child: Center(
-        child: _buildIcon(index, updatesCount, color, 24),
-      ),
-    );
+    final (IconData line, IconData fill) = switch (index) {
+      0 => (RemixIcons.history_line, RemixIcons.history_fill),
+      1 => (RemixIcons.heart_3_line, RemixIcons.heart_3_fill),
+      2 => (RemixIcons.lightbulb_line, RemixIcons.lightbulb_fill),
+      3 => (RemixIcons.compass_3_line, RemixIcons.compass_3_fill),
+      _ => (RemixIcons.rss_line, RemixIcons.rss_fill),
+    };
 
-    // Active badge sizes itself to its content (icon + full label), so the
-    // label never truncates. spaceEvenly on the pill Row then distributes
-    // the five natural-width items evenly across the pill.
-    final Widget badge = AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: kAccentColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildIcon(index, updatesCount, Colors.white, 20),
-          const SizedBox(width: 4),
-          Text(
-            _navLabels[index],
-            maxLines: 1,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _currentIndex = index),
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedScale(
+          scale: active ? 1.05 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: settings.showNavLabels ? 10 : 14,
+              horizontal: 4,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  switchInCurve: Curves.easeInOut,
+                  switchOutCurve: Curves.easeInOut,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(scale: animation, child: child),
+                  ),
+                  child: index == 4
+                      ? KeyedSubtree(
+                          key: ValueKey<bool>(active),
+                          child: _buildUpdatesIcon(
+                              updatesCount, active ? fill : line, color, accent),
+                        )
+                      : Icon(
+                          active ? fill : line,
+                          key: ValueKey<bool>(active),
+                          size: 22,
+                          color: color,
+                        ),
+                ),
+                if (settings.showNavLabels) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _navLabels[index],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                      color: color,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 2),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-
-    return InkWell(
-      onTap: () => setState(() => _currentIndex = index),
-      customBorder: const CircleBorder(),
-      child: Center(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(scale: animation, child: child),
-          ),
-          child: !compact && selected
-              ? KeyedSubtree(
-                  key: const ValueKey('nav-badge'),
-                  child: badge,
-                )
-              : KeyedSubtree(
-                  key: const ValueKey('nav-icon'),
-                  child: iconSlot,
-                ),
         ),
       ),
     );
   }
 
-  Widget _buildIcon(int index, int updatesCount, Color color, double size) {
-    return switch (index) {
-      0 => Icon(Icons.history_rounded, size: size, color: color),
-      1 => Icon(Icons.favorite_border_rounded, size: size, color: color),
-      2 => Icon(Icons.lightbulb_outline_rounded, size: size, color: color),
-      3 => Icon(Icons.explore_outlined, size: size, color: color),
-      _ => _buildUpdatesIcon(updatesCount, color, size: size),
-    };
-  }
-
-  Widget _buildContinueFab() {
+  Widget _buildContinueFab(Color accent) {
     return GestureDetector(
       onTap: _isContinuing ? null : _continueReading,
       child: AnimatedContainer(
@@ -321,7 +448,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _isContinuing ? const Color(0xFF2A2A2E) : kAccentColor,
+          color: _isContinuing ? const Color(0xFF2A2A2E) : accent,
           border: _isContinuing
               ? Border.all(color: const Color(0xFF3A3A40))
               : null,

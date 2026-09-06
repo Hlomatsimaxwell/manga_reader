@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -37,7 +38,14 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.palette_outlined,
             title: 'Appearance',
             subtitle: 'Theme, List mode, Language',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AppearanceSettingsScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context: context,
