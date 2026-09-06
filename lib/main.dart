@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
-import 'package:liquid_glass_bar/liquid_glass_bar.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -111,73 +110,81 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       extendBody: true,
-      body: Stack(
-        children: [
-          IndexedStack(index: _currentIndex, children: _screens),
-          // Continue Reading contextual FAB (History tab only).
-          // Rendered above the tab content; the body extends behind the nav
-          // bar (extendBody: true), and 112 keeps it floating clear of the
-          // glass pill's top edge with a little breathing room.
-          if (_currentIndex == 0)
-            Positioned(
-              right: 16,
-              bottom: 112,
-              child: _buildContinueFab(),
-            ),
-        ],
-      ),
-      bottomNavigationBar: Stack(
-        children: [
-          LiquidGlassBar(
-            items: [
-              const LiquidGlassBarItem(
-                iconData: Icons.history_rounded,
-                label: 'History',
+      body: IndexedStack(index: _currentIndex, children: _screens),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(
+          left: 12,
+          right: 12,
+          bottom: 24 + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Bottom nav pill. Compact (icon-only) on History so the Continue
+            // FAB sits beside it; full-width on every other tab with the
+            // active item rendered as a filled icon+label badge.
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              height: 64,
+              width: _currentIndex == 0
+                  ? MediaQuery.sizeOf(context).width - 24 - 72
+                  : MediaQuery.sizeOf(context).width - 24,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: const Color(0xFF2C2C30)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              const LiquidGlassBarItem(
-                iconData: Icons.favorite_border_rounded,
-                label: 'Favorites',
-              ),
-              const LiquidGlassBarItem(
-                iconData: Icons.lightbulb_outline_rounded,
-                label: 'Suggestions',
-              ),
-              const LiquidGlassBarItem(
-                iconData: Icons.explore_outlined,
-                label: 'Explore',
-              ),
-              LiquidGlassBarItem(
-                iconWidget: _buildUpdatesIcon(updatesCount),
-                label: 'Updates',
-              ),
-            ],
-            currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
-            style: LiquidGlassBarStyle(
-              activeColor: Colors.white,
-              inactiveColor: Colors.white54,
-              liquidGlassSettings: const LiquidGlassSettings(
-                thickness: 20,
-                blur: 18,
-                glassColor: Color(0x8CFFFFFF),
-                lightIntensity: 0.65,
-                refractiveIndex: 1.4,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(0, updatesCount),
+                  _buildNavItem(1, updatesCount),
+                  _buildNavItem(2, updatesCount),
+                  _buildNavItem(3, updatesCount),
+                  _buildNavItem(4, updatesCount),
+                ],
               ),
             ),
-          ),
-        ],
+            // Continue Reading FAB: only alongside the compact pill on the
+            // History tab. Cross-fades/scales out on every other tab.
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: animation, child: child),
+              ),
+              child: _currentIndex == 0
+                  ? Padding(
+                      key: const ValueKey('continue-fab'),
+                      padding: const EdgeInsets.only(left: 12),
+                      child: _buildContinueFab(),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('fab-hidden')),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Updates icon with its unread-count badge. LiquidGlassBar animates color
-  // only for plain iconData items; this iconWidget carries its own color.
-  Widget _buildUpdatesIcon(int badgeCount) {
+  // Updates icon with its unread-count badge.
+  Widget _buildUpdatesIcon(int badgeCount, Color color, {double size = 24}) {
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        const Icon(Icons.rss_feed_rounded, size: 24, color: Colors.white),
+        Icon(Icons.rss_feed_rounded, size: size, color: color),
         if (badgeCount > 0)
           Positioned(
             top: -4,
@@ -200,6 +207,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
       ],
     );
+  }
+
+  // Single icon slot in the solid pill nav. Each item is a tappable circle
+  // that highlights its icon when the tab is active.
+  static const List<String> _navLabels = [
+    'History',
+    'Favorites',
+    'Suggestions',
+    'Explore',
+    'Updates',
+  ];
+
+  // Accent used for the active tab's filled icon+label badge (Kotatsu style).
+  static const Color _navAccent = Color(0xFF4C8DFF);
+
+  // A single slot in the pill nav.
+  //  - History (compact pill): all items are icon-only.
+  //  - Other tabs (full-width pill): the active item becomes a filled
+  //    icon+label badge; inactive items stay icon-only. Each item
+  //    cross-fades between its icon and badge states.
+  Widget _buildNavItem(int index, int updatesCount) {
+    final selected = _currentIndex == index;
+    final compact = _currentIndex == 0;
+    final color = selected ? Colors.white : Colors.white54;
+
+    final Widget iconSlot = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected
+            ? Colors.white.withValues(alpha: 0.12)
+            : Colors.transparent,
+      ),
+      child: Center(
+        child: _buildIcon(index, updatesCount, color, 24),
+      ),
+    );
+
+    // Active badge sizes itself to its content (icon + full label), so the
+    // label never truncates. spaceEvenly on the pill Row then distributes
+    // the five natural-width items evenly across the pill.
+    final Widget badge = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _navAccent,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildIcon(index, updatesCount, Colors.white, 20),
+          const SizedBox(width: 4),
+          Text(
+            _navLabels[index],
+            maxLines: 1,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return InkWell(
+      onTap: () => setState(() => _currentIndex = index),
+      customBorder: const CircleBorder(),
+      child: Center(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(scale: animation, child: child),
+          ),
+          child: !compact && selected
+              ? KeyedSubtree(
+                  key: const ValueKey('nav-badge'),
+                  child: badge,
+                )
+              : KeyedSubtree(
+                  key: const ValueKey('nav-icon'),
+                  child: iconSlot,
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIcon(int index, int updatesCount, Color color, double size) {
+    return switch (index) {
+      0 => Icon(Icons.history_rounded, size: size, color: color),
+      1 => Icon(Icons.favorite_border_rounded, size: size, color: color),
+      2 => Icon(Icons.lightbulb_outline_rounded, size: size, color: color),
+      3 => Icon(Icons.explore_outlined, size: size, color: color),
+      _ => _buildUpdatesIcon(updatesCount, color, size: size),
+    };
   }
 
   Widget _buildContinueFab() {
