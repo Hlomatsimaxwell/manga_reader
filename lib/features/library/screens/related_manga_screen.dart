@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:manga_reader/data/models/manga.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
-import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
-import 'package:manga_reader/core/widgets/ios/ios_sheet.dart';
+import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 
 enum ListMode { compact, details, grid }
 

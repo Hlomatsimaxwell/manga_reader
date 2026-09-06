@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/data/models/chapter.dart';
-import 'package:manga_reader/data/models/manga.dart';
-import 'package:manga_reader/data/models/manga_details.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/data/models/chapter.dart';
+import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/data/models/manga_details.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Disk-backed, stale-while-revalidate cache for source fetch results.

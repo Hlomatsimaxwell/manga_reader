@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:manga_reader/features/suggestions/screens/suggestions_screen.dart';
+import 'package:yomou/features/suggestions/screens/suggestions_screen.dart';
 import 'features/history/screens/history_screen.dart';
 import 'features/library/screens/favorites_screen.dart';
-import 'package:manga_reader/features/explore/screens/explore_screen.dart';
-import 'package:manga_reader/features/feed/screens/feed_screen.dart';
-import 'package:manga_reader/features/feed/providers/updates_provider.dart';
-import 'package:manga_reader/features/reader/screens/reader_screen.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/core/database/source_cache.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:yomou/features/explore/screens/explore_screen.dart';
+import 'package:yomou/features/feed/screens/feed_screen.dart';
+import 'package:yomou/features/feed/providers/updates_provider.dart';
+import 'package:yomou/features/reader/screens/reader_screen.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/theme/colors.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,16 +25,16 @@ void main() async {
   }
 
   // 2. Run the app.
-  runApp(const ProviderScope(child: MangaReaderApp()));
+  runApp(const ProviderScope(child: YomouApp()));
 }
 
-class MangaReaderApp extends StatelessWidget {
-  const MangaReaderApp({super.key});
+class YomouApp extends StatelessWidget {
+  const YomouApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Manga Reader',
+      title: 'Yomou',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -192,13 +192,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0A8A8),
+                color: kAccentColor,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 '$badgeCount',
                 style: const TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontSize: 9,
                   fontWeight: FontWeight.bold,
                 ),
@@ -218,9 +218,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Explore',
     'Updates',
   ];
-
-  // Accent used for the active tab's filled icon+label badge (Kotatsu style).
-  static const Color _navAccent = Color(0xFF4C8DFF);
 
   // A single slot in the pill nav.
   //  - History (compact pill): all items are icon-only.
@@ -257,7 +254,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _navAccent,
+        color: kAccentColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -317,36 +314,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildContinueFab() {
     return GestureDetector(
       onTap: _isContinuing ? null : _continueReading,
-      child: LiquidGlass.withOwnLayer(
-        shape: const LiquidOval(),
-        settings: LiquidGlassSettings(
-          thickness: 18,
-          blur: 16,
-          glassColor: _isContinuing
-              ? const Color(0x668A8A93)
-              : const Color(0x8CFFFFFF),
-          lightIntensity: 0.65,
-          refractiveIndex: 1.4,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _isContinuing ? const Color(0xFF2A2A2E) : kAccentColor,
+          border: _isContinuing
+              ? Border.all(color: const Color(0xFF3A3A40))
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: SizedBox(
-          width: 60,
-          height: 60,
-          child: Center(
-            child: _isContinuing
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : const Icon(
-                    Icons.auto_stories_rounded,
+        child: Center(
+          child: _isContinuing
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
                     color: Colors.white,
-                    size: 30,
+                    strokeWidth: 2.5,
                   ),
-          ),
+                )
+              : const Icon(
+                  Icons.auto_stories_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
         ),
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:yomou/core/database/database_helper.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

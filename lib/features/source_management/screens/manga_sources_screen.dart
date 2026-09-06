@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
-import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
 
 class ManageSourcesScreen extends ConsumerStatefulWidget {
   const ManageSourcesScreen({super.key});

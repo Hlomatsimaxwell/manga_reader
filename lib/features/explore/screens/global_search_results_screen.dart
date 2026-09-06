@@ -1,13 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/source_cache.dart';
-import 'package:manga_reader/data/models/manga.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
-import 'package:manga_reader/features/explore/providers/search_provider.dart';
-import 'package:manga_reader/features/explore/screens/source_search_results_screen.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/explore/providers/search_provider.dart';
+import 'package:yomou/features/explore/screens/source_search_results_screen.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 
 class GlobalSearchResultsScreen extends ConsumerStatefulWidget {
   final String searchQuery;

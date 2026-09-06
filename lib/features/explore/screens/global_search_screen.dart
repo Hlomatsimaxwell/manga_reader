@@ -4,13 +4,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:manga_reader/data/models/manga.dart';
-import 'package:manga_reader/features/explore/providers/search_provider.dart';
-import 'package:manga_reader/features/explore/screens/global_search_results_screen.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
-import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
-import 'package:manga_reader/features/suggestions/providers/suggestions_provider.dart';
+import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/features/explore/providers/search_provider.dart';
+import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
   const GlobalSearchScreen({super.key});

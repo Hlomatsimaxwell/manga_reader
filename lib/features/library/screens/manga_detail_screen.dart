@@ -3,21 +3,22 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/core/widgets/ios/ios_press.dart';
-import 'package:manga_reader/core/database/source_cache.dart';
-import 'package:manga_reader/features/library/providers/favorites_provider.dart';
-import 'package:manga_reader/features/library/providers/downloads_provider.dart';
-import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
-import 'package:manga_reader/features/library/screens/related_manga_screen.dart';
-import 'package:manga_reader/features/reader/screens/reader_screen.dart';
-import 'package:manga_reader/features/reader/services/chapter_downloader.dart';
-import 'package:manga_reader/data/models/chapter.dart';
-import 'package:manga_reader/data/models/manga.dart';
-import 'package:manga_reader/data/models/manga_source.dart';
-import 'package:manga_reader/data/models/manga_details.dart';
-import 'package:manga_reader/data/models/bookmark.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/theme/colors.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/features/library/providers/favorites_provider.dart';
+import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/screens/related_manga_screen.dart';
+import 'package:yomou/features/reader/screens/reader_screen.dart';
+import 'package:yomou/features/reader/services/chapter_downloader.dart';
+import 'package:yomou/data/models/chapter.dart';
+import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/data/models/manga_source.dart';
+import 'package:yomou/data/models/manga_details.dart';
+import 'package:yomou/data/models/bookmark.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -733,7 +734,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     padding: EdgeInsets.only(right: 8),
                     child: Icon(
                       Icons.play_arrow_rounded,
-                      color: Colors.greenAccent,
+                      color: kAccentColor,
                       size: 20,
                     ),
                   ),

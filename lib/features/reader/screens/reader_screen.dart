@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yomou/core/theme/colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -12,12 +13,12 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
 import '../../../core/widgets/ios/ios_press.dart';
 import '../../../core/widgets/ios/ios_sheet.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
-import 'package:manga_reader/data/models/chapter.dart';
-import 'package:manga_reader/data/models/manga_source.dart';
-import 'package:manga_reader/features/history/providers/history_provider.dart';
-import 'package:manga_reader/features/library/providers/downloads_provider.dart';
-import 'package:manga_reader/features/settings/screens/settings_screen.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/data/models/chapter.dart';
+import 'package:yomou/data/models/manga_source.dart';
+import 'package:yomou/features/history/providers/history_provider.dart';
+import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/settings/screens/settings_screen.dart';
 import '../services/chapter_downloader.dart';
 
 // Reading modes (Kotatsu-style).
@@ -725,7 +726,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               children: [
                 Icon(
                   Icons.play_arrow,
-                  color: isCurrent ? Colors.green : Colors.transparent,
+                  color: isCurrent ? kAccentColor : Colors.transparent,
                   size: 16,
                 ),
                 const SizedBox(width: 4),
@@ -1374,8 +1375,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     required VoidCallback onTap,
     bool accent = false,
   }) {
-    final bgColor = accent ? const Color(0xFF2E4A2B) : const Color(0xFF232328);
-    final fgColor = accent ? const Color(0xFF7CE38B) : Colors.white;
+    final bgColor = accent ? kAccentSurface : const Color(0xFF232328);
+    final fgColor = accent ? kAccentLight : Colors.white;
     return AppPress(
       onTap: onTap,
       child: Container(
@@ -1439,7 +1440,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 decoration: BoxDecoration(
                   gradient: isSelected
                       ? const LinearGradient(
-                          colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
+                          colors: [kAccentColor, kAccentDark],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         )
@@ -1489,7 +1490,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  static const Color _activeGreen = Color(0xFF4CAF50);
+  static const Color _activeGreen = kAccentColor;
 
   Widget _buildSectionHeader(String text) {
     return Text(

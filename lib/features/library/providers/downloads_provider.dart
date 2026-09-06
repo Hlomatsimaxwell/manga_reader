@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:yomou/core/database/database_helper.dart';
 
 // Holds a revision counter. Bumped whenever a chapter download is added or
 // removed, so every card/tray that watches these providers refreshes and the

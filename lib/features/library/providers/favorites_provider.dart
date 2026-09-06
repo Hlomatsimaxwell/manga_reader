@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/data/models/manga.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/data/models/manga.dart';
 
 List<Manga> mapFavoritesRows(List<Map<String, dynamic>> rows) {
   return rows.map((row) {

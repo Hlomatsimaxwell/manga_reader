@@ -1,5 +1,5 @@
-name: manga_reader
-description: "A new Flutter project."
+name: yomou
+description: "Yomou - a Kotatsu-style manga reader."
 publish_to: 'none'
 
 version: 1.0.0+1

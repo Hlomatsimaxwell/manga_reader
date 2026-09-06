@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/source_cache.dart';
-import 'package:manga_reader/core/widgets/ios/ios_menu.dart';
-import 'package:manga_reader/core/widgets/ios/ios_press.dart';
-import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
-import 'package:manga_reader/features/library/screens/bookmarks_screen.dart';
-import 'package:manga_reader/features/library/screens/downloads_screen.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/settings/screens/settings_screen.dart';
-import 'package:manga_reader/features/source_management/screens/manga_grid_screen.dart';
-import 'package:manga_reader/features/source_management/screens/manga_sources_screen.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/features/explore/screens/global_search_screen.dart';
+import 'package:yomou/features/library/screens/bookmarks_screen.dart';
+import 'package:yomou/features/library/screens/downloads_screen.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/settings/screens/settings_screen.dart';
+import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
+import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});

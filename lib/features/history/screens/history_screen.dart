@@ -2,14 +2,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/settings/screens/settings_screen.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/core/widgets/ios/ios_press.dart';
-import 'package:manga_reader/core/widgets/ios/ios_sheet.dart';
-import 'package:manga_reader/features/history/providers/history_provider.dart';
-import 'package:manga_reader/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/explore/screens/global_search_screen.dart';
+import 'package:yomou/core/theme/colors.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/settings/screens/settings_screen.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/core/widgets/ios/ios_sheet.dart';
+import 'package:yomou/features/history/providers/history_provider.dart';
+import 'package:yomou/features/library/providers/downloads_provider.dart';
 
 class ProgressBadge extends StatelessWidget {
   final int progress;
@@ -1096,7 +1097,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                                   vertical: 4,
                                 ),
                                 decoration: const BoxDecoration(
-                                  color: Colors.redAccent,
+                                  color: kAccentColor,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Text(

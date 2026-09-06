@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/data/models/manga.dart';
-import 'package:manga_reader/features/library/providers/favorites_provider.dart';
-import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/features/library/providers/favorites_provider.dart';
+import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});

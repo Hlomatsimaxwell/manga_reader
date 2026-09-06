@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 
 /// A manga from the user's library that has new chapters available.
 class MangaUpdate {

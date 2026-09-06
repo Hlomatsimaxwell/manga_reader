@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'ios_sheet.dart';
+import 'package:yomou/core/theme/colors.dart';
 
 /// A single row in an [IosMenu]/[IosMenuButton] panel.
 class IosMenuItem<T> {
@@ -189,7 +190,7 @@ class MenuToggleRow extends StatelessWidget {
               value: value,
               onChanged: (v) => onChanged(v),
               activeColor: Colors.white,
-              activeTrackColor: const Color(0xFF5DAF6F),
+              activeTrackColor: kAccentColor,
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: const Color(0xFF3A3A3C),
             ),

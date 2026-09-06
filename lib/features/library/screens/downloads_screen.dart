@@ -1,11 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/core/widgets/ios/ios_press.dart';
-import 'package:manga_reader/features/library/providers/downloads_provider.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/reader/services/chapter_downloader.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/reader/services/chapter_downloader.dart';
 
 /// All chapters downloaded to local storage across every manga.
 class DownloadsScreen extends ConsumerStatefulWidget {

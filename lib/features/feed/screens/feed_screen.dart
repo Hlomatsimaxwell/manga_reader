@@ -1,10 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/features/explore/screens/global_search_screen.dart';
-import 'package:manga_reader/features/feed/providers/updates_provider.dart';
-import 'package:manga_reader/features/library/screens/manga_detail_screen.dart';
-import 'package:manga_reader/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/explore/screens/global_search_screen.dart';
+import 'package:yomou/features/feed/providers/updates_provider.dart';
+import 'package:yomou/core/theme/colors.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -206,7 +207,7 @@ class FeedScreen extends ConsumerWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8B1B1),
+                              color: kAccentColor,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -355,7 +356,7 @@ class FeedScreen extends ConsumerWidget {
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF8B1B1),
+                    color: kAccentColor,
                     shape: BoxShape.circle,
                   ),
                 ),

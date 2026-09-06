@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
+import 'package:yomou/core/database/database_helper.dart';
 import '../../library/providers/downloads_provider.dart';
 
 List<Map<String, dynamic>> mapHistoryRows(

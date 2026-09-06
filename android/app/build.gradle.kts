@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.stunna.manga_reader"
+        applicationId = "com.hlomatsi.yomou"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

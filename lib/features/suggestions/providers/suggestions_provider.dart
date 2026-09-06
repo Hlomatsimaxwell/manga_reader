@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/core/database/database_helper.dart';
-import 'package:manga_reader/core/database/source_cache.dart';
-import 'package:manga_reader/data/models/manga.dart';
-import 'package:manga_reader/data/providers/sources_provider.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 
 /// Returns manga suggestions, optionally filtered by [genre].
 ///
