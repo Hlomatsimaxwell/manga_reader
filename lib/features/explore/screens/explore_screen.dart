@@ -44,7 +44,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final sources = ref.watch(sourcesProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
@@ -78,11 +78,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Widget _buildSearchBar() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF2C2C2E),
+          color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
           borderRadius: BorderRadius.circular(28),
         ),
         child: Row(
@@ -102,13 +103,22 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   color: Colors.transparent,
                   alignment: Alignment.centerLeft,
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.search, color: Colors.white70, size: 22),
-                      SizedBox(width: 12),
+                      Icon(
+                        Icons.search,
+                        color:
+                            dark ? Colors.white70 : Colors.black54,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
                       Text(
                         'Search manga',
-                        style: TextStyle(color: Colors.white54, fontSize: 16),
+                        style: TextStyle(
+                          color:
+                              dark ? Colors.white54 : Colors.black54,
+                          fontSize: 16,
+                        ),
                       ),
                     ],
                   ),
@@ -155,11 +165,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   );
                 }
               },
-              child: const Padding(
-                padding: EdgeInsets.all(8),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
                 child: Icon(
                   Icons.more_horiz_rounded,
-                  color: Colors.white70,
+                  color: dark ? Colors.white70 : Colors.black54,
                   size: 22,
                 ),
               ),
@@ -172,6 +182,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Widget _buildQuickButtonsGrid() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor =
+        dark ? const Color(0xFF2C2C2E) : Colors.white;
+    final fgColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
@@ -191,34 +205,35 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             onTap: () => _handleQuickButton(btn['type'] as String),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF2C2C2E),
+                color: cardColor,
                 borderRadius: BorderRadius.circular(24),
+                border: dark ? null : Border.all(color: Colors.black12),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     if (isRandom && _loadingRandom)
-                      const SizedBox(
+                      SizedBox(
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(
-                          color: Colors.white38,
+                          color: dark ? Colors.white38 : Colors.black38,
                           strokeWidth: 2,
                         ),
                       )
                     else
                       Icon(
                         btn['icon'] as IconData,
-                        color: Colors.white,
+                        color: fgColor,
                         size: 22,
                       ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         btn['label'] as String,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: fgColor,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -310,6 +325,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     String actionLabel = 'More',
     required VoidCallback onMorePressed,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -317,8 +333,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
@@ -326,7 +342,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           TextButton(
             onPressed: onMorePressed,
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white70,
+              foregroundColor:
+                  dark ? Colors.white70 : const Color(0xFF49454F),
               padding: EdgeInsets.zero,
               minimumSize: const Size(0, 0),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -343,6 +360,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Widget _buildSourcesGrid(List<Map<String, dynamic>> sources) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final tileBg = dark ? const Color(0xFF242424) : Colors.white;
+    final tileBorder = dark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black12;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
@@ -366,10 +388,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           Widget fallbackTile() => Center(
             child: Text(
               fallbackLetter,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
               ),
             ),
           );
@@ -410,12 +432,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
-                        color: iconUrl.isNotEmpty
-                            ? const Color(0xFF242424)
-                            : fallbackColor,
+                        color: iconUrl.isNotEmpty ? tileBg : fallbackColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: tileBorder,
                           width: 1,
                         ),
                       ),
@@ -427,10 +447,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         bottom: 6,
                         child: Transform.rotate(
                           angle: -0.785398,
-                          child: const Icon(
+                          child: Icon(
                             Icons.push_pin,
                             size: 14,
-                            color: Colors.white70,
+                            color:
+                                dark ? Colors.white70 : Colors.black54,
                           ),
                         ),
                       ),
@@ -441,8 +462,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: dark ? Colors.white : const Color(0xFF1C1B1F),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),

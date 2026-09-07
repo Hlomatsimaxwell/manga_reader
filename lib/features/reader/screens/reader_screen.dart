@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:yomou/core/theme/colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +17,7 @@ import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import '../services/chapter_downloader.dart';
 
@@ -250,6 +250,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTapDown: (details) => _seekFromProgress(
@@ -263,6 +264,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             painter: _DottedProgressPainter(
               progress: progress,
               dotCount: dotCount,
+              activeDotColor: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
+              inactiveDotColor: dark ? Colors.white24 : Colors.black26,
             ),
           ),
         );
@@ -354,14 +359,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
+          final dark = Theme.of(context).brightness == Brightness.dark;
           return AlertDialog(
-            backgroundColor: const Color(0xFF1C1C1E),
+            backgroundColor: dark ? const Color(0xFF1C1C1E) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: const Text(
+            title: Text(
               'Color correction',
-              style: TextStyle(color: Colors.white, fontSize: 18),
+              style: TextStyle(
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
+                fontSize: 18,
+              ),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -394,9 +405,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   if (mounted) setState(() {});
                   _saveColorCorrection();
                 },
-                child: const Text(
+                child: Text(
                   'Reset',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: TextStyle(
+                    color: dark ? Colors.white70 : const Color(0xFF49454F),
+                    fontSize: 14,
+                  ),
                 ),
               ),
               TextButton(
@@ -405,9 +419,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   _saveColorCorrection();
                   Navigator.pop(context);
                 },
-                child: const Text(
+                child: Text(
                   'Done',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(
+                    color: dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.onSurface,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
@@ -422,24 +441,34 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     double value,
     ValueChanged<double> onChanged,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         SizedBox(
           width: 90,
           child: Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(
+              color: dark ? Colors.white70 : const Color(0xFF49454F),
+              fontSize: 14,
+            ),
           ),
         ),
         Expanded(
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 3,
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white12,
-              thumbColor: Colors.white,
+              activeTrackColor: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.primary,
+              inactiveTrackColor: dark ? Colors.white12 : Colors.black12,
+              thumbColor: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.primary,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-              overlayColor: Colors.white.withValues(alpha: 0.12),
+              overlayColor: dark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.12),
             ),
             child: Slider(min: 0, max: 200, value: value, onChanged: onChanged),
           ),
@@ -533,7 +562,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1C1C1E),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1C1C1E)
+          : Colors.white,
       barrierColor: Colors.black.withValues(alpha: 0.5),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -547,6 +578,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           builder: (context, sheetController) {
             return StatefulBuilder(
               builder: (context, setSheetState) {
+                final dark = Theme.of(context).brightness == Brightness.dark;
                 _trayOpen = true;
                 _trayRefresh = () => setSheetState(() {});
                 if (!didJump) {
@@ -562,7 +594,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         height: 5,
                         margin: const EdgeInsets.only(top: 12, bottom: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6E6E73),
+                          color: dark ? const Color(0xFF6E6E73) : Colors.black26,
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -648,6 +680,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     StateSetter setSheetState,
     VoidCallback scrollToCurrent,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
@@ -678,7 +711,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           const Spacer(),
           IconButton(
             tooltip: 'Current chapter',
-            icon: const Icon(Icons.my_location, color: Colors.white54),
+            icon: Icon(
+              Icons.my_location,
+              color: dark ? Colors.white54 : Colors.black54,
+            ),
             onPressed: scrollToCurrent,
           ),
         ],
@@ -691,19 +727,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     required bool selected,
     required VoidCallback onTap,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selected
+              ? dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           icon,
           size: 20,
-          color: selected ? Colors.black : Colors.white70,
+          color: selected
+              ? dark
+                  ? Colors.black
+                  : Colors.white
+              : dark
+              ? Colors.white70
+              : const Color(0xFF49454F),
         ),
       ),
     );
@@ -716,17 +763,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       padding: const EdgeInsets.only(bottom: 24),
       itemCount: widget.allChapters.length,
       itemBuilder: (context, index) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
         final chapter = widget.allChapters[index];
         final isCurrent = index == currentIndex;
         return Container(
-          color: isCurrent ? Colors.white10 : Colors.transparent,
+          color: isCurrent
+              ? dark
+                  ? Colors.white10
+                  : Colors.black12
+              : Colors.transparent,
           child: ListTile(
             dense: true,
             title: Row(
               children: [
                 Icon(
                   Icons.play_arrow,
-                  color: isCurrent ? kAccentColor : Colors.transparent,
+                  color: isCurrent
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
                   size: 16,
                 ),
                 const SizedBox(width: 4),
@@ -738,7 +792,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isCurrent ? Colors.white : Colors.white70,
+                      color: isCurrent
+                          ? dark
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurface
+                          : dark
+                          ? Colors.white70
+                          : const Color(0xFF49454F),
                       fontSize: 14,
                       fontWeight: isCurrent ? FontWeight.bold : FontWeight.w400,
                     ),
@@ -750,7 +810,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               _chapterSubtitle(chapter),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white38, fontSize: 11),
+              style: TextStyle(
+                color: dark ? Colors.white38 : Colors.black38,
+                fontSize: 11,
+              ),
             ),
             trailing: _buildChapterDownloadControl(chapter),
             onTap: () {
@@ -764,6 +827,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Widget _buildChapterDownloadControl(Chapter chapter) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final active = _activeDownloads[chapter.id];
     if (active != null) {
       final pct = active.total == 0
@@ -774,10 +838,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         children: [
           Text(
             '$pct%',
-            style: const TextStyle(color: Colors.white54, fontSize: 11),
+            style: TextStyle(
+              color: dark ? Colors.white54 : Colors.black54,
+              fontSize: 11,
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+            icon: Icon(
+              Icons.close,
+              color: dark ? Colors.white54 : Colors.black54,
+              size: 18,
+            ),
             tooltip: 'Cancel download',
             onPressed: active.cancel,
           ),
@@ -789,7 +860,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       tooltip: downloaded ? 'Remove download' : 'Download chapter',
       icon: Icon(
         downloaded ? Icons.cloud_done : Icons.download_for_offline_outlined,
-        color: downloaded ? _activeGreen : Colors.white38,
+        color: downloaded ? _activeGreen : (dark ? Colors.white38 : Colors.black38),
         size: 22,
       ),
       onPressed: () => _toggleChapterDownload(chapter),
@@ -802,10 +873,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     Map<String, String>? headers,
   ) {
     if (_pages.isEmpty) {
-      return const Center(
+      final dark = Theme.of(context).brightness == Brightness.dark;
+      return Center(
         child: Text(
           'Pages loading...',
-          style: TextStyle(color: Colors.white54, fontSize: 14),
+          style: TextStyle(
+            color: dark ? Colors.white54 : Colors.black54,
+            fontSize: 14,
+          ),
         ),
       );
     }
@@ -845,21 +920,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: DatabaseHelper.instance.getBookmarks(widget.mangaId),
       builder: (context, snapshot) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
         if (snapshot.hasError) {
-          return const Center(
+          return Center(
             child: Text(
               'Failed to load bookmarks',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(
+                color: dark ? Colors.white54 : Colors.black54,
+                fontSize: 14,
+              ),
             ),
           );
         }
         final bookmarks = snapshot.data ?? const [];
         if (bookmarks.isEmpty) {
-          return const Center(
-            child: Text(
-              'No bookmarks yet',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-            ),
+          return const EmptyState(
+            icon: Icons.bookmark_outline,
+            title: 'No bookmarks yet',
+            subtitle: 'Bookmark pages while reading to save them here',
           );
         }
 
@@ -890,8 +968,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                     child: Text(
                       'Chapter $chapterNum',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -940,12 +1020,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: DatabaseHelper.instance.getDownloads(widget.mangaId),
       builder: (context, snapshot) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
         final rows = snapshot.data ?? const [];
         if (rows.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               'No downloaded chapters yet',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(
+                color: dark ? Colors.white54 : Colors.black54,
+                fontSize: 14,
+              ),
             ),
           );
         }
@@ -963,7 +1047,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             final downloadedAt = row['downloadedAt'] as String? ?? '';
             return ListTile(
               dense: true,
-              leading: const Icon(
+              leading: Icon(
                 Icons.offline_pin,
                 color: _activeGreen,
                 size: 22,
@@ -974,18 +1058,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     : title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                style: TextStyle(
+                  color: dark ? Colors.white70 : const Color(0xFF49454F),
+                  fontSize: 14,
+                ),
               ),
               subtitle: Text(
                 '$pageCount pages • downloaded ${_formatChapterDate(downloadedAt)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
+                style: TextStyle(
+                  color: dark ? Colors.white38 : Colors.black38,
+                  fontSize: 11,
+                ),
               ),
               trailing: IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.delete_outline,
-                  color: Colors.white38,
+                  color: dark ? Colors.white38 : Colors.black38,
                   size: 20,
                 ),
                 tooltip: 'Remove download',
@@ -1043,27 +1133,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   ? Image.file(
                       File(localPath),
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stack) => Container(
-                        color: const Color(0xFF2C2C2E),
-                        child: const Icon(
-                          Icons.menu_book,
-                          color: Colors.white38,
-                          size: 20,
-                        ),
-                      ),
+                      errorBuilder: (context, error, stack) {
+                        final dark =
+                            Theme.of(context).brightness == Brightness.dark;
+                        return Container(
+                          color: dark
+                              ? const Color(0xFF2C2C2E)
+                              : Colors.white,
+                          child: Icon(
+                            Icons.menu_book,
+                            color: dark ? Colors.white38 : Colors.black38,
+                            size: 20,
+                          ),
+                        );
+                      },
                     )
                   : CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       httpHeaders: headers,
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFF2C2C2E),
-                        child: const Icon(
-                          Icons.menu_book,
-                          color: Colors.white38,
-                          size: 20,
-                        ),
-                      ),
+                      errorWidget: (context, url, error) {
+                        final dark =
+                            Theme.of(context).brightness == Brightness.dark;
+                        return Container(
+                          color: dark
+                              ? const Color(0xFF2C2C2E)
+                              : Colors.white,
+                          child: Icon(
+                            Icons.menu_book,
+                            color: dark ? Colors.white38 : Colors.black38,
+                            size: 20,
+                          ),
+                        );
+                      },
                     ),
             ),
           ),
@@ -1102,30 +1204,42 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final chapterTitle = bookmark['chapterTitle'] ?? '';
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2C2C2E),
-        title: const Text(
-          'Remove bookmark?',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          'Chapter $chapterTitle • Page ${pageIndex + 1}',
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white70),
+      builder: (context) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          title: Text(
+            'Remove bookmark?',
+            style: TextStyle(
+              color: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          content: Text(
+            'Chapter $chapterTitle • Page ${pageIndex + 1}',
+            style: TextStyle(
+              color: dark ? Colors.white70 : const Color(0xFF49454F),
+              fontSize: 14,
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: dark ? Colors.white70 : const Color(0xFF49454F),
+                ),
+              ),
+),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            ),
+],
+        );
+      },
     );
     if (confirmed != true) return;
 
@@ -1194,6 +1308,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
             return SafeArea(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
@@ -1207,11 +1322,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     children: [
                       Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'More',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: dark
+                                    ? Colors.white
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1221,13 +1340,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             onTap: () => Navigator.pop(context),
                             child: Container(
                               padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF232328),
+                              decoration: BoxDecoration(
+                                color: dark
+                                    ? const Color(0xFF232328)
+                                    : Colors.white,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.close,
-                                color: Colors.white70,
+                                color: dark
+                                    ? Colors.white70
+                                    : const Color(0xFF49454F),
                                 size: 18,
                               ),
                             ),
@@ -1268,7 +1391,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
                       _buildSectionHeader('Reading mode'),
                       const SizedBox(height: 10),
-                      _buildReadModeSelector(),
+                      _buildReadModeSelector(
+                        afterChange: () => setSheetState(() {}),
+                      ),
                       const SizedBox(height: 22),
 
                       _buildSectionHeader('Options'),
@@ -1281,13 +1406,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             ),
                             activeTrackColor: _activeGreen,
                             activeThumbColor: Colors.white,
-                            inactiveTrackColor: Colors.white12,
-                            inactiveThumbColor: Colors.white54,
+                            inactiveTrackColor:
+                                dark ? Colors.white12 : Colors.black12,
+                            inactiveThumbColor:
+                                dark ? Colors.white54 : Colors.black54,
                             dense: true,
                             title: _tileText('Two pages on landscape'),
                             subtitle: _tileSubtext('Experimental'),
                             value: _useTwoPagesLayout,
-                            onChanged: _toggleTwoPages,
+                            onChanged: (value) {
+                              _toggleTwoPages(value);
+                              setSheetState(() {});
+                            },
                           ),
                           _cardDivider(),
                           SwitchListTile(
@@ -1296,8 +1426,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             ),
                             activeTrackColor: _activeGreen,
                             activeThumbColor: Colors.white,
-                            inactiveTrackColor: Colors.white12,
-                            inactiveThumbColor: Colors.white54,
+                            inactiveTrackColor:
+                                dark ? Colors.white12 : Colors.black12,
+                            inactiveThumbColor:
+                                dark ? Colors.white54 : Colors.black54,
                             dense: true,
                             title: _tileText('Rotate screen'),
                             subtitle: _tileSubtext(
@@ -1306,7 +1438,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   : 'Rotate to landscape',
                             ),
                             value: _rotateScreen,
-                            onChanged: _toggleRotateScreen,
+                            onChanged: (value) {
+                              _toggleRotateScreen(value);
+                              setSheetState(() {});
+                            },
                           ),
                           _cardDivider(),
                           SwitchListTile(
@@ -1315,15 +1450,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             ),
                             activeTrackColor: _activeGreen,
                             activeThumbColor: Colors.white,
-                            inactiveTrackColor: Colors.white12,
-                            inactiveThumbColor: Colors.white54,
+                            inactiveTrackColor:
+                                dark ? Colors.white12 : Colors.black12,
+                            inactiveThumbColor:
+                                dark ? Colors.white54 : Colors.black54,
                             dense: true,
                             title: _tileText('Automatic scroll'),
                             subtitle: _tileSubtext(
                               'Continuous vertical scroll',
                             ),
                             value: _autoScroll,
-                            onChanged: _toggleAutoScroll,
+                            onChanged: (value) {
+                              _toggleAutoScroll(value);
+                              setSheetState(() {});
+                            },
                           ),
                         ],
                       ),
@@ -1375,8 +1515,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     required VoidCallback onTap,
     bool accent = false,
   }) {
-    final bgColor = accent ? kAccentSurface : const Color(0xFF232328);
-    final fgColor = accent ? kAccentLight : Colors.white;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+    final bgColor = accent
+        ? primary.withValues(alpha: 0.18)
+        : dark
+        ? const Color(0xFF232328)
+        : Colors.white;
+    final fgColor = accent
+        ? primary
+        : dark
+        ? Colors.white
+        : const Color(0xFF1C1B1F);
     return AppPress(
       onTap: onTap,
       child: Container(
@@ -1387,7 +1537,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           border: Border.all(
             color: accent
                 ? _activeGreen.withValues(alpha: 0.4)
-                : Colors.white10,
+                : dark
+                ? Colors.white10
+                : Colors.black12,
           ),
         ),
         child: Column(
@@ -1408,7 +1560,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  Widget _buildReadModeSelector() {
+  Widget _buildReadModeSelector({VoidCallback? afterChange}) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     const modes = [
       (ReadingMode.standard, Icons.menu_book, 'Standard'),
       (ReadingMode.rightToLeft, Icons.import_contacts, 'R-to-L'),
@@ -1429,7 +1582,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           children: modes.map((mode) {
             final isSelected = _readingMode == mode.$1;
             return GestureDetector(
-              onTap: () => _setReadingMode(mode.$1),
+              onTap: () {
+                _setReadingMode(mode.$1);
+                afterChange?.call();
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
@@ -1439,23 +1595,41 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 ),
                 decoration: BoxDecoration(
                   gradient: isSelected
-                      ? const LinearGradient(
-                          colors: [kAccentColor, kAccentDark],
+                      ? LinearGradient(
+                          colors: [
+                            Theme.of(context).colorScheme.primary,
+                            Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.6),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         )
                       : null,
-                  color: isSelected ? null : const Color(0xFF232328),
+                  color: isSelected
+                      ? null
+                      : dark
+                      ? const Color(0xFF232328)
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isSelected ? Colors.transparent : Colors.white10,
+                    color: isSelected
+                        ? Colors.transparent
+                        : dark
+                        ? Colors.white10
+                        : Colors.black12,
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       mode.$2,
-                      color: isSelected ? Colors.white : Colors.white70,
+                      color: isSelected
+                          ? Colors.white
+                          : dark
+                          ? Colors.white70
+                          : const Color(0xFF49454F),
                       size: 22,
                     ),
                     const SizedBox(width: 10),
@@ -1463,7 +1637,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       child: Text(
                         mode.$3,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white70,
+                          color: isSelected
+                              ? Colors.white
+                              : dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F),
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1482,21 +1660,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           }).toList(),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'The chosen configuration will be remembered for this manga.',
-          style: TextStyle(color: Colors.white38, fontSize: 11),
+          style: TextStyle(
+            color: dark ? Colors.white38 : Colors.black38,
+            fontSize: 11,
+          ),
         ),
       ],
     );
   }
 
-  static const Color _activeGreen = kAccentColor;
+  // Active/current accent — resolved from the active color scheme preset.
+  Color get _activeGreen => Theme.of(context).colorScheme.primary;
 
   Widget _buildSectionHeader(String text) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
-        color: Colors.white54,
+      style: TextStyle(
+        color: dark ? Colors.white54 : Colors.black54,
         fontSize: 12,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
@@ -1505,23 +1688,55 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Widget _buildSettingsCard({required List<Widget> children}) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF232328),
+        color: dark ? const Color(0xFF232328) : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: dark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
 
-  Widget _cardDivider() => const Divider(height: 1, color: Color(0xFF3A3A40));
+  Widget _cardDivider() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Divider(
+      height: 1,
+      color: dark ? const Color(0xFF3A3A40) : Colors.black12,
+    );
+  }
 
-  Widget _tileText(String text) =>
-      Text(text, style: const TextStyle(color: Colors.white, fontSize: 14));
+  Widget _tileText(String text) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Text(
+      text,
+      style: TextStyle(
+        color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        fontSize: 14,
+      ),
+    );
+  }
 
-  Widget _tileSubtext(String text) =>
-      Text(text, style: const TextStyle(color: Colors.white38, fontSize: 12));
+  Widget _tileSubtext(String text) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Text(
+      text,
+      style: TextStyle(
+        color: dark ? Colors.white38 : Colors.black38,
+        fontSize: 12,
+      ),
+    );
+  }
 
   Widget _iconTile({
     required IconData icon,
@@ -1530,21 +1745,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     bool chevron = false,
     required VoidCallback onTap,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       leading: Container(
         width: 36,
         height: 36,
-        decoration: const BoxDecoration(
-          color: Color(0xFF2F2F36),
+        decoration: BoxDecoration(
+          color: dark ? const Color(0xFF2F2F36) : Colors.black12,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white70, size: 20),
+        child: Icon(
+          icon,
+          color: dark ? Colors.white70 : const Color(0xFF49454F),
+          size: 20,
+        ),
       ),
       title: _tileText(title),
       subtitle: subtitle == null ? null : _tileSubtext(subtitle),
       trailing: chevron
-          ? const Icon(Icons.chevron_right, color: Colors.white38)
+          ? Icon(
+              Icons.chevron_right,
+              color: dark ? Colors.white38 : Colors.black38,
+            )
           : null,
       onTap: onTap,
     );
@@ -1820,30 +2043,42 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Future<void> _confirmRemoveDownload(String chapterId, String title) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2C2C2E),
-        title: const Text(
-          'Remove download?',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          title.isEmpty ? 'This chapter' : title,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white70),
+      builder: (context) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          title: Text(
+            'Remove download?',
+            style: TextStyle(
+              color: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          content: Text(
+            title.isEmpty ? 'This chapter' : title,
+            style: TextStyle(
+              color: dark ? Colors.white70 : const Color(0xFF49454F),
+              fontSize: 14,
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: dark ? Colors.white70 : const Color(0xFF49454F),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true) return;
 
@@ -2310,8 +2545,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 class _DottedProgressPainter extends CustomPainter {
   final double progress;
   final int dotCount;
+  final Color activeDotColor;
+  final Color inactiveDotColor;
 
-  _DottedProgressPainter({required this.progress, required this.dotCount});
+  _DottedProgressPainter({
+    required this.progress,
+    required this.dotCount,
+    this.activeDotColor = Colors.white,
+    this.inactiveDotColor = Colors.white24,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2331,8 +2573,8 @@ class _DottedProgressPainter extends CustomPainter {
         ? (progress * (dotCount - 1)).round().clamp(0, dotCount - 1)
         : 0;
 
-    final activePaint = Paint()..color = Colors.white;
-    final inactivePaint = Paint()..color = Colors.white24;
+    final activePaint = Paint()..color = activeDotColor;
+    final inactivePaint = Paint()..color = inactiveDotColor;
 
     for (var i = 0; i < dotCount; i++) {
       final x = startX + activeRadius + i * (activeRadius * 2 + spacing);
@@ -2349,7 +2591,10 @@ class _DottedProgressPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DottedProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.dotCount != dotCount;
+    return oldDelegate.progress != progress ||
+        oldDelegate.dotCount != dotCount ||
+        oldDelegate.activeDotColor != activeDotColor ||
+        oldDelegate.inactiveDotColor != inactiveDotColor;
   }
 }
 

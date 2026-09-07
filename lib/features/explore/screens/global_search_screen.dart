@@ -9,6 +9,7 @@ import 'package:yomou/features/explore/providers/search_provider.dart';
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 
@@ -112,30 +113,43 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: TextField(
           controller: _searchController,
           autofocus: true,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-          cursorColor: Colors.white,
+          style: TextStyle(
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+            fontSize: 16,
+          ),
+          cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
           textInputAction: TextInputAction.search,
           onChanged: _onQueryChanged,
           onSubmitted: (value) => _addQueryToHistoryAndSearch(value),
           decoration: InputDecoration(
             hintText: 'Enter manga title or genre',
-            hintStyle: const TextStyle(color: Colors.white54, fontSize: 15),
+            hintStyle: TextStyle(
+              color: dark ? Colors.white54 : Colors.black54,
+              fontSize: 15,
+            ),
             border: InputBorder.none,
             suffixIcon: _currentQuery.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70),
+                    icon: Icon(
+                      Icons.close,
+                      color: dark ? Colors.white70 : const Color(0xFF49454F),
+                    ),
                     onPressed: () {
                       _searchController.clear();
                       _onQueryChanged('');
@@ -146,7 +160,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: Icon(
+              Icons.search,
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
+            ),
             onPressed: () =>
                 _addQueryToHistoryAndSearch(_searchController.text),
           ),
@@ -171,7 +188,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Divider(color: Colors.white24, height: 1),
+            Divider(
+              color: dark ? Colors.white24 : Colors.black26,
+              height: 1,
+            ),
             const SizedBox(height: 12),
             _currentQuery.isEmpty
                 ? _buildInitialView()
@@ -184,6 +204,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
 
   // Displayed before the user starts typing.
   Widget _buildInitialView() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final genreTagsAsync = ref.watch(genreTagsProvider);
     final trendingAsync = ref.watch(trendingMangaProvider);
 
@@ -214,12 +235,13 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white38),
+                      color: dark ? Colors.transparent : const Color(0xFFE2E8F0),
+                      border: dark ? Border.all(color: Colors.white38) : null,
                     ),
                     child: Text(
                       genre,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: dark ? Colors.white : const Color(0xFF334155),
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -265,16 +287,24 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         ..._searchHistory.map(
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: const Icon(Icons.history, color: Colors.white70),
+            leading: Icon(
+              Icons.history,
+              color: dark ? Colors.white70 : const Color(0xFF49454F),
+            ),
             title: Text(
               query,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            trailing: const Icon(Icons.north_west, color: Colors.white54),
+            trailing: Icon(
+              Icons.north_west,
+              color: dark ? Colors.white54 : Colors.black54,
+            ),
             onTap: () {
               _searchController.text = query;
               _addQueryToHistoryAndSearch(query);
@@ -286,12 +316,15 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
   }
 
   Widget _buildSectionLabel(String label) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: dark
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurface,
           fontSize: 15,
           fontWeight: FontWeight.bold,
         ),
@@ -300,6 +333,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
   }
 
   Widget _buildTrendingCard(Manga manga) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () => _openManga(manga),
       child: Container(
@@ -312,16 +346,27 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                    imageUrl: manga.coverUrl,
-                    height: 140,
-                    width: 100,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFF2C2C2E),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: dark ? null : Border.all(color: Colors.black12),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: manga.coverUrl,
                       height: 140,
                       width: 100,
-                      child: const Icon(Icons.menu_book, color: Colors.white38),
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: dark
+                            ? const Color(0xFF2C2C2E)
+                            : Colors.black12,
+                        height: 140,
+                        width: 100,
+                        child: Icon(
+                          Icons.menu_book,
+                          color: dark ? Colors.white38 : Colors.black38,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -333,8 +378,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               manga.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -347,6 +394,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
 
   // Live search results while the user is typing.
   Widget _buildTypingSuggestionsView() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final queryLower = _currentQuery.toLowerCase();
     final filteredHistory = _searchHistory
         .where((q) => q.toLowerCase().contains(queryLower))
@@ -358,16 +406,24 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         ...filteredHistory.map(
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: const Icon(Icons.history, color: Colors.white70),
+            leading: Icon(
+              Icons.history,
+              color: dark ? Colors.white70 : const Color(0xFF49454F),
+            ),
             title: Text(
               query,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            trailing: const Icon(Icons.north_west, color: Colors.white54),
+            trailing: Icon(
+              Icons.north_west,
+              color: dark ? Colors.white54 : Colors.black54,
+            ),
             onTap: () {
               _searchController.text = query;
               _addQueryToHistoryAndSearch(query);
@@ -380,18 +436,21 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                    color: Colors.white54,
+                    color: dark ? Colors.white54 : Colors.black54,
                     strokeWidth: 2,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'Searching "$_currentQuery"...',
-                  style: const TextStyle(color: Colors.white54, fontSize: 14),
+                  style: TextStyle(
+                    color: dark ? Colors.white54 : Colors.black54,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
@@ -403,17 +462,17 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
   }
 
   Widget _buildLiveResults(String query) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final resultsAsync = ref.watch(searchResultsProvider(query));
 
     return resultsAsync.when(
       data: (results) {
         if (results.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'No results found',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-            ),
+          return const EmptyState(
+            icon: Icons.search_off,
+            title: 'No results found',
+            subtitle: 'Try a different search query.',
+            verticalPadding: 24,
           );
         }
         return GridView.builder(
@@ -445,15 +504,27 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: CachedNetworkImage(
-                            imageUrl: manga.coverUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => Container(
-                              color: const Color(0xFF2C2C2E),
-                              child: const Icon(
-                                Icons.menu_book,
-                                color: Colors.white38,
-                                size: 28,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: dark
+                                  ? null
+                                  : Border.all(color: Colors.black12),
+                            ),
+                            child: CachedNetworkImage(
+                              imageUrl: manga.coverUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
+                                color: dark
+                                    ? const Color(0xFF2C2C2E)
+                                    : Colors.black12,
+                                child: Icon(
+                                  Icons.menu_book,
+                                  color: dark
+                                      ? Colors.white38
+                                      : Colors.black38,
+                                  size: 28,
+                                ),
                               ),
                             ),
                           ),
@@ -467,8 +538,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                     manga.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       height: 1.2,
@@ -480,15 +553,22 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           },
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+      loading: () => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: CircularProgressIndicator(
+            color: dark ? Colors.white54 : Colors.black54,
+          ),
+        ),
       ),
-      error: (e, _) => const Padding(
-        padding: EdgeInsets.all(16),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
         child: Text(
           'Failed to search',
-          style: TextStyle(color: Colors.white54, fontSize: 14),
+          style: TextStyle(
+            color: dark ? Colors.white54 : Colors.black54,
+            fontSize: 14,
+          ),
         ),
       ),
     );

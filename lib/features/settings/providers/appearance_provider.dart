@@ -12,12 +12,16 @@ class SchemePalette {
       {required this.accent,
       required this.accentLight,
       required this.accentDark,
-      required this.surface});
+      required this.surface,
+      this.secondary});
 
   final Color accent;
   final Color accentLight;
   final Color accentDark;
   final Color surface;
+
+  /// Secondary color used to seed the Material 3 color scheme.
+  final Color? secondary;
 }
 
 const Map<AppColorScheme, SchemePalette> schemePalettes = {
@@ -26,31 +30,35 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
     accentLight: Color(0xFFA5C8FF),
     accentDark: Color(0xFF2B5CE6),
     surface: Color(0xFF22304D),
+    secondary: Color(0xFFA5C8FF),
   ),
   AppColorScheme.dynamic: SchemePalette(
     accent: Color(0xFF7C5AFF),
     accentLight: Color(0xFFB8A9FF),
     accentDark: Color(0xFF5435CC),
     surface: Color(0xFF2D2542),
+    secondary: Color(0xFFB8A9FF),
   ),
   AppColorScheme.expressive: SchemePalette(
     accent: Color(0xFFFF7043),
     accentLight: Color(0xFFFFAB91),
     accentDark: Color(0xFFE64A19),
     surface: Color(0xFF3E2620),
+    secondary: Color(0xFFFFAB91),
   ),
   AppColorScheme.miku: SchemePalette(
     accent: Color(0xFF3DDC84),
     accentLight: Color(0xFF8AF4B0),
     accentDark: Color(0xFF1BA25A),
     surface: Color(0xFF1A3326),
+    secondary: Color(0xFF8AF4B0),
   ),
 };
 
 /// Returns the palette for the current scheme name.
 SchemePalette paletteForScheme(String name) {
   final scheme = AppColorScheme.values.firstWhere(
-    (s) => s.name == name,
+    (s) => s.name.toLowerCase() == name.toLowerCase(),
     orElse: () => AppColorScheme.totoro,
   );
   return schemePalettes[scheme]!;
@@ -64,7 +72,6 @@ class AppearanceSettings {
   const AppearanceSettings({
     required this.colorScheme,
     required this.themeMode,
-    required this.pureBlackAmoled,
     required this.listMode,
     required this.gridSize,
     required this.showQuickFilters,
@@ -91,7 +98,6 @@ class AppearanceSettings {
   factory AppearanceSettings.defaults() => const AppearanceSettings(
         colorScheme: 'Totoro',
         themeMode: ThemeMode.system,
-        pureBlackAmoled: true,
         listMode: 'Grid',
         gridSize: 100,
         showQuickFilters: true,
@@ -127,7 +133,6 @@ class AppearanceSettings {
 
   final String colorScheme;
   final ThemeMode themeMode;
-  final bool pureBlackAmoled;
   final String listMode;
   final double gridSize; // 50-150 (% of normal)
   final bool showQuickFilters;
@@ -152,7 +157,6 @@ class AppearanceSettings {
   AppearanceSettings copyWith({
     String? colorScheme,
     ThemeMode? themeMode,
-    bool? pureBlackAmoled,
     String? listMode,
     double? gridSize,
     bool? showQuickFilters,
@@ -177,7 +181,6 @@ class AppearanceSettings {
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
         themeMode: themeMode ?? this.themeMode,
-        pureBlackAmoled: pureBlackAmoled ?? this.pureBlackAmoled,
         listMode: listMode ?? this.listMode,
         gridSize: gridSize ?? this.gridSize,
         showQuickFilters: showQuickFilters ?? this.showQuickFilters,
@@ -215,7 +218,6 @@ class _AppearancePersistence {
   static const _prefix = 'appearance.';
   static const _colorScheme = '${_prefix}colorScheme';
   static const _themeMode = '${_prefix}themeMode';
-  static const _pureBlack = '${_prefix}pureBlack';
   static const _listMode = '${_prefix}listMode';
   static const _gridSize = '${_prefix}gridSize';
   static const _showQuickFilters = '${_prefix}showQuickFilters';
@@ -245,7 +247,6 @@ class _AppearancePersistence {
     return AppearanceSettings(
       colorScheme: p.getString(_colorScheme) ?? 'Totoro',
       themeMode: themeMode,
-      pureBlackAmoled: p.getBool(_pureBlack) ?? true,
       listMode: p.getString(_listMode) ?? 'Grid',
       gridSize: p.getDouble(_gridSize) ?? 100,
       showQuickFilters: p.getBool(_showQuickFilters) ?? true,
@@ -275,7 +276,6 @@ class _AppearancePersistence {
     final p = await SharedPreferences.getInstance();
     await p.setString(_colorScheme, s.colorScheme);
     await p.setString(_themeMode, s.themeMode.name);
-    await p.setBool(_pureBlack, s.pureBlackAmoled);
     await p.setString(_listMode, s.listMode);
     await p.setDouble(_gridSize, s.gridSize);
     await p.setBool(_showQuickFilters, s.showQuickFilters);
@@ -338,8 +338,6 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
       set((s) => s.copyWith(themeMode: mode));
   Future<void> toggleBool(String key) async {
     switch (key) {
-      case 'pureBlackAmoled':
-        set((s) => s.copyWith(pureBlackAmoled: !s.pureBlackAmoled));
       case 'showQuickFilters':
         set((s) => s.copyWith(showQuickFilters: !s.showQuickFilters));
       case 'showReadingProgress':
@@ -419,4 +417,157 @@ final accentDarkProvider = Provider<Color>((ref) {
 final accentSurfaceProvider = Provider<Color>((ref) {
   final schemeName = ref.watch(appearanceSettingsProvider).colorScheme;
   return paletteForScheme(schemeName).surface;
+});
+
+// ---------------------------------------------------------------------------
+// Theme building
+// ---------------------------------------------------------------------------
+
+/// Primary seed color for each appearance preset (matches the spec hexes).
+Color themeSeedFor(String schemeName) {
+  // Prefer the accent already defined for the scheme; fall back to the spec's
+  // requested primaries so each preset has a distinct seed.
+  try {
+    final scheme = AppColorScheme.values.firstWhere(
+      (s) => s.name.toLowerCase() == schemeName.toLowerCase(),
+      orElse: () => AppColorScheme.totoro,
+    );
+    return schemePalettes[scheme]!.accent;
+  } catch (_) {
+    return const Color(0xFF4C8DFF);
+  }
+}
+
+/// Secondary color for the active preset, if defined.
+Color? themeSecondaryFor(String schemeName) {
+  try {
+    final scheme = AppColorScheme.values.firstWhere(
+      (s) => s.name.toLowerCase() == schemeName.toLowerCase(),
+      orElse: () => AppColorScheme.totoro,
+    );
+    return schemePalettes[scheme]?.secondary;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Complete set of light + dark [ThemeData] plus the mode, so the root
+/// MaterialApp can be driven from a single provider.
+class ThemeDataBundle {
+  final ThemeData lightTheme;
+  final ThemeData darkTheme;
+  final ThemeMode mode;
+
+  const ThemeDataBundle({
+    required this.lightTheme,
+    required this.darkTheme,
+    required this.mode,
+  });
+}
+
+/// Builds both themes; shared widget themes that don't depend on brightness
+/// are constructed once.
+ThemeData _baseTheme(bool dark) {
+  final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+  return ThemeData(
+    splashFactory: NoSplash.splashFactory,
+    highlightColor: Colors.transparent,
+    hoverColor: Colors.transparent,
+    focusColor: Colors.transparent,
+    dividerColor: Colors.transparent,
+    visualDensity: VisualDensity.standard,
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      shadowColor: Colors.transparent,
+      foregroundColor: fg,
+      iconTheme: IconThemeData(color: fg),
+      titleTextStyle: TextStyle(
+        color: fg,
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+      ),
+      toolbarHeight: 44,
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+      contentTextStyle: TextStyle(
+        color: dark ? Colors.white : const Color(0xFF1C1B1F),
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: dark ? BorderSide.none : const BorderSide(color: Colors.black12),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+      elevation: 0,
+      showCloseIcon: false,
+    ),
+    listTileTheme: ListTileThemeData(iconColor: fg),
+  );
+}
+
+/// Creates the final ThemeData for a given brightness. Dark mode always uses
+/// pure black (#000000) scaffold and surfaces.
+ThemeData _applyBrightness(
+  ThemeData base,
+  Color seed,
+  Color? secondary,
+  Brightness brightness,
+) {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: seed,
+    brightness: brightness,
+  );
+  final colorScheme = secondary != null
+      ? scheme.copyWith(secondary: secondary)
+      : scheme;
+
+  final dark = brightness == Brightness.dark;
+  final scaffoldBg = dark
+      ? Colors.black
+      : const Color(0xFFF8F9FA);
+
+  // Dark surfaces are all near-black for OLED displays; light cards are pure
+  // white so they lift off the soft off-white scaffold.
+  final surfaceColor = dark ? const Color(0xFF121212) : Colors.white;
+
+  // High-contrast text roles for the light theme.
+  final textTheme = dark
+      ? base.textTheme
+      : ThemeData(
+          brightness: Brightness.light,
+          colorScheme: colorScheme,
+        ).textTheme.apply(
+          bodyColor: const Color(0xFF1C1B1F),
+          displayColor: const Color(0xFF1C1B1F),
+        );
+
+  return base.copyWith(
+    brightness: brightness,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: scaffoldBg,
+    canvasColor: surfaceColor,
+    cardColor: surfaceColor,
+    textTheme: textTheme,
+  );
+}
+
+/// Derived theme bundle — watch this at the root to drive MaterialApp.
+final themeNotifierProvider = Provider<ThemeDataBundle>((ref) {
+  final settings = ref.watch(appearanceSettingsProvider);
+  final seed = themeSeedFor(settings.colorScheme);
+  final secondary = themeSecondaryFor(settings.colorScheme);
+  final base = _baseTheme(false);
+  final light = _applyBrightness(base, seed, secondary, Brightness.light);
+  final dark = _applyBrightness(_baseTheme(true), seed, secondary, Brightness.dark);
+  return ThemeDataBundle(
+    lightTheme: light,
+    darkTheme: dark,
+    mode: settings.themeMode,
+  );
 });

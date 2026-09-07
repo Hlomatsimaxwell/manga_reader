@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
-const Color kIosSheetBackground = Color(0xFF1C1C1E);
-const Color kIosSheetGrabber = Color(0xFF6E6E73);
+Color iosSheetBackground(BuildContext context) {
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  return dark ? const Color(0xFF1C1C1E) : Colors.white;
+}
+
+Color iosSheetGrabber(BuildContext context) {
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  return dark ? const Color(0xFF6E6E73) : Colors.black26;
+}
 
 /// Presents an iOS-style bottom sheet with a grabber handle, dark surface and
 /// corners rounded only at the top.
@@ -30,8 +37,8 @@ Future<T?> showIosSheet<T>(
                   maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.92,
                 )
               : null,
-          decoration: const BoxDecoration(
-            color: kIosSheetBackground,
+          decoration: BoxDecoration(
+            color: iosSheetBackground(sheetContext),
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
@@ -60,7 +67,7 @@ class _IosGrabber extends StatelessWidget {
       width: 36,
       height: 5,
       decoration: BoxDecoration(
-        color: kIosSheetGrabber,
+        color: iosSheetGrabber(context),
         borderRadius: BorderRadius.circular(3),
       ),
     );

@@ -31,6 +31,7 @@ class IosNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final Widget leadingWidget =
         leading ??
         (showBack
@@ -41,7 +42,10 @@ class IosNavBar extends StatelessWidget {
                   child: Icon(
                     Icons.chevron_left_rounded,
                     size: 32,
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: (dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface)
+                        .withValues(alpha: 0.9),
                   ),
                 ),
               )
@@ -52,10 +56,13 @@ class IosNavBar extends StatelessWidget {
       child: Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: const BoxDecoration(
-          color: Colors.black,
+        decoration: BoxDecoration(
+          color: dark ? Colors.black : Colors.white,
           border: Border(
-            bottom: BorderSide(color: Color(0xFF1F1F23), width: 0.5),
+            bottom: BorderSide(
+              color: dark ? const Color(0xFF1F1F23) : Colors.black12,
+              width: 0.5,
+            ),
           ),
         ),
         child: Row(
@@ -68,10 +75,12 @@ class IosNavBar extends StatelessWidget {
                     title ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 21,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
             ),

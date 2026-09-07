@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
@@ -100,30 +101,40 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final displayedManga = _mangaList.where((item) {
       if (_searchQuery.isEmpty) return true;
       return item.title.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-                cursorColor: Colors.white,
+                style: TextStyle(
+                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                  fontSize: 18,
+                ),
+                cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
                 onChanged: (val) => setState(() => _searchQuery = val),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search catalog...',
-                  hintStyle: TextStyle(color: Colors.white54),
+                  hintStyle: TextStyle(
+                    color: dark ? Colors.white54 : Colors.black54,
+                  ),
                   border: InputBorder.none,
                 ),
               )
@@ -132,7 +143,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
           IconButton(
             icon: Icon(
               _isSearching ? Icons.close : Icons.search,
-              color: Colors.white,
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
               setState(() {
@@ -146,18 +157,24 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
           ),
           // Updated dice button tap handler
           IconButton(
-            icon: const Icon(Icons.casino_outlined, color: Colors.white),
+            icon: Icon(
+              Icons.casino_outlined,
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
+            ),
             onPressed: _openRandomManga,
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: Icon(
+              Icons.more_vert,
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
+            ),
             onPressed: () {},
           ),
         ],
       ),
       body: RefreshIndicator(
-        color: Colors.white,
-        backgroundColor: const Color(0xFF2C2C2E),
+        color: dark ? Colors.white : scheme.primary,
+        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
         onRefresh: _refresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -175,24 +192,26 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                   children: [
                     Text(
                       widget.sourceName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: dark ? Colors.white : scheme.onSurface,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Row(
-                      children: const [
+                      children: [
                         Icon(
                           Icons.filter_list,
-                          color: Colors.white70,
+                          color: dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F),
                           size: 18,
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
                           'Updated',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: dark ? Colors.white : scheme.onSurface,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -206,10 +225,12 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
               _buildFilterChips(),
               const SizedBox(height: 16),
               if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 60),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
                   child: Center(
-                    child: CircularProgressIndicator(color: Colors.white70),
+                    child: CircularProgressIndicator(
+                      color: dark ? Colors.white70 : scheme.primary,
+                    ),
                   ),
                 )
               else if (_error != null)
@@ -218,16 +239,21 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                   child: Center(
                     child: Column(
                       children: [
-                        const Text(
+                        Text(
                           'Failed to load manga',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white70
+                                : const Color(0xFF49454F),
+                            fontSize: 16,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           _error!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white38,
+                          style: TextStyle(
+                            color: dark ? Colors.white38 : Colors.black38,
                             fontSize: 12,
                           ),
                         ),
@@ -237,8 +263,12 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                           icon: const Icon(Icons.refresh),
                           label: const Text('Retry'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white38),
+                            foregroundColor: dark
+                                ? Colors.white
+                                : scheme.onSurface,
+                            side: BorderSide(
+                              color: dark ? Colors.white38 : Colors.black38,
+                            ),
                           ),
                         ),
                       ],
@@ -255,6 +285,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
   }
 
   Widget _buildFilterChips() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 38,
       child: ListView.builder(
@@ -283,7 +314,9 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                   color: isSelected ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected ? Colors.white : Colors.white38,
+                    color: isSelected
+                        ? Colors.white
+                        : (dark ? Colors.white38 : Colors.black38),
                   ),
                 ),
                 child: Row(
@@ -293,14 +326,22 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                       Icon(
                         Icons.segment,
                         size: 16,
-                        color: isSelected ? Colors.black : Colors.white,
+                        color: isSelected
+                            ? Colors.black
+                            : (dark
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.onSurface),
                       ),
                       const SizedBox(width: 6),
                     ],
                     Text(
                       _filters[index],
                       style: TextStyle(
-                        color: isSelected ? Colors.black : Colors.white,
+                        color: isSelected
+                            ? Colors.black
+                            : (dark
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.onSurface),
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -317,14 +358,10 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
 
   Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: Text(
-            'No manga found',
-            style: TextStyle(color: Colors.white54, fontSize: 16),
-          ),
-        ),
+      return const EmptyState(
+        icon: Icons.menu_book,
+        title: 'No manga found',
+        subtitle: 'Try a different search query.',
       );
     }
 
@@ -349,6 +386,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
   }
 
   Widget _buildMangaCard(BuildContext context, Manga item) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -374,18 +412,37 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: item.coverUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFF2C2C2E),
-                      child: const Icon(
-                        Icons.menu_book,
-                        color: Colors.white38,
-                        size: 28,
-                      ),
-                    ),
-                  ),
+                  child: dark
+                      ? CachedNetworkImage(
+                          imageUrl: item.coverUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: const Color(0xFF2C2C2E),
+                            child: const Icon(
+                              Icons.menu_book,
+                              color: Colors.white38,
+                              size: 28,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.black12),
+                          ),
+                          child: CachedNetworkImage(
+                            imageUrl: item.coverUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.black12,
+                              child: const Icon(
+                                Icons.menu_book,
+                                color: Colors.black38,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
                 DownloadedMangaBadge(mangaId: item.id),
               ],
@@ -396,8 +453,10 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
             item.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               height: 1.2,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'ios_sheet.dart';
-import 'package:yomou/core/theme/colors.dart';
 
 /// A single row in an [IosMenu]/[IosMenuButton] panel.
 class IosMenuItem<T> {
@@ -34,7 +33,11 @@ class IosMenuButton<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = iconColor ?? Colors.white.withValues(alpha: 0.8);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final color = iconColor ??
+        (dark
+            ? Colors.white.withValues(alpha: 0.8)
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8));
     return AppSheetPress(
       child: Icon(Icons.more_horiz_rounded, size: 24, color: color),
       onTap: () async {
@@ -86,7 +89,7 @@ Future<T?> showIosMenuPanel<T>(
           width: 520,
           margin: const EdgeInsets.fromLTRB(8, 8, 8, 24),
           decoration: BoxDecoration(
-            color: kIosSheetBackground,
+            color: iosSheetBackground(sheetContext),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(mainAxisSize: MainAxisSize.min, children: children),
@@ -114,7 +117,10 @@ class IosMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = destructive ? const Color(0xFFFF453A) : Colors.white;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = destructive
+        ? const Color(0xFFFF453A)
+        : (dark ? Colors.white : Theme.of(context).colorScheme.onSurface);
     return AppSheetPress(
       onTap: onTap,
       child: SizedBox(
@@ -129,7 +135,7 @@ class IosMenuRow extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 16,
-                  color: destructive ? const Color(0xFFFF453A) : Colors.white,
+                  color: fg,
                 ),
               ),
             ),
@@ -147,7 +153,12 @@ class IosMenuDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(height: 1, thickness: 1, color: Color(0xFF2C2C2E));
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
+    );
   }
 }
 
@@ -167,6 +178,7 @@ class MenuToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return AppSheetPress(
       onTap: () => onChanged(!value),
       child: SizedBox(
@@ -177,22 +189,29 @@ class MenuToggleRow extends StatelessWidget {
             Icon(
               value ? Icons.visibility_off_rounded : Icons.visibility_rounded,
               size: 20,
-              color: Colors.white.withValues(alpha: 0.9),
+              color: (dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.onSurface)
+                  .withValues(alpha: 0.9),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 16, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 16,
+                  color:
+                      dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
             Switch(
               value: value,
               onChanged: (v) => onChanged(v),
               activeColor: Colors.white,
-              activeTrackColor: kAccentColor,
+              activeTrackColor: Theme.of(context).colorScheme.primary,
               inactiveThumbColor: Colors.white,
-              inactiveTrackColor: const Color(0xFF3A3A3C),
+              inactiveTrackColor: dark ? const Color(0xFF3A3A3C) : Colors.black26,
             ),
             const SizedBox(width: 8),
           ],
@@ -218,6 +237,7 @@ class _AppSheetPressState extends State<AppSheetPress> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
@@ -227,7 +247,9 @@ class _AppSheetPressState extends State<AppSheetPress> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         color: _pressed
-            ? Colors.white.withValues(alpha: 0.08)
+            ? (dark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.08))
             : Colors.transparent,
         child: widget.child,
       ),

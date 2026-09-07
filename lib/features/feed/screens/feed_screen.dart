@@ -3,20 +3,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
-import 'package:yomou/core/theme/colors.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 
-class FeedScreen extends ConsumerWidget {
+class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends ConsumerState<FeedScreen> {
+  bool _refreshing = false;
+
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    try {
+      final result = ref.refresh(updatesProvider.future);
+      await result;
+    } catch (_) {
+      // Swallow; the error branch of the body shows the failure state.
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final updatesAsync = ref.watch(updatesProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
@@ -26,20 +46,16 @@ class FeedScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               _buildSearchBar(context),
               const SizedBox(height: 12),
-              _buildSectionHeader(context, ref),
+              _buildSectionHeader(context),
               const SizedBox(height: 12),
               updatesAsync.when(
                 data: (updates) {
                   if (updates.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 60),
-                      child: Center(
-                        child: Text(
-                          'No new updates yet.\nManga you read will show here\nwhen new chapters are released.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white54, fontSize: 14),
-                        ),
-                      ),
+                    return const EmptyState(
+                      icon: Icons.rss_feed,
+                      title: 'No new updates yet',
+                      subtitle:
+                          'Manga you read will show here when new chapters are released.',
                     );
                   }
                   return Column(
@@ -51,10 +67,12 @@ class FeedScreen extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 60),
+                loading: () => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
                   child: Center(
-                    child: CircularProgressIndicator(color: Colors.white54),
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
                 error: (e, _) => Padding(
@@ -62,7 +80,13 @@ class FeedScreen extends ConsumerWidget {
                   child: Center(
                     child: Text(
                       'Failed to load updates',
-                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                      style: TextStyle(
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white54
+                                : const Color(0xFF49454F),
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -75,10 +99,13 @@ class FeedScreen extends ConsumerWidget {
   }
 
   Widget _buildSearchBar(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = dark ? Colors.white70 : Colors.black54;
+    final hintColor = dark ? Colors.white54 : Colors.black54;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2E),
+        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
         borderRadius: BorderRadius.circular(28),
       ),
       child: GestureDetector(
@@ -90,17 +117,17 @@ class FeedScreen extends ConsumerWidget {
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.search, color: Colors.white70, size: 22),
-              SizedBox(width: 12),
+              Icon(Icons.search, color: iconColor, size: 22),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Search manga',
-                  style: TextStyle(color: Colors.white54, fontSize: 16),
+                  style: TextStyle(color: hintColor, fontSize: 16),
                 ),
               ),
-              Icon(Icons.more_vert, color: Colors.white70, size: 22),
+              Icon(Icons.more_vert, color: iconColor, size: 22),
             ],
           ),
         ),
@@ -108,30 +135,47 @@ class FeedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, WidgetRef ref) {
+  Widget _buildSectionHeader(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Updates',
             style: TextStyle(
-              color: Colors.white,
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
           GestureDetector(
-            onTap: () => ref.invalidate(updatesProvider),
-            child: const Row(
+            onTap: _refreshing ? null : _refresh,
+            child: Row(
               children: [
-                Icon(Icons.refresh, color: Colors.white70, size: 15),
-                SizedBox(width: 4),
+                if (_refreshing)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: dark
+                          ? Colors.white70
+                          : Theme.of(context).colorScheme.primary,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.refresh,
+                    color: dark ? Colors.white70 : const Color(0xFF49454F),
+                    size: 15,
+                  ),
+                const SizedBox(width: 4),
                 Text(
-                  'Refresh',
+                  _refreshing ? 'Checking' : 'Refresh',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: dark ? Colors.white70 : const Color(0xFF49454F),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -159,6 +203,10 @@ class FeedScreen extends ConsumerWidget {
         itemCount: previews.length,
         itemBuilder: (context, index) {
           final update = previews[index];
+          final dark = Theme.of(context).brightness == Brightness.dark;
+          final titleColor = dark
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurface;
 
           return GestureDetector(
             onTap: () {
@@ -185,16 +233,24 @@ class FeedScreen extends ConsumerWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: CachedNetworkImage(
-                            imageUrl: update.coverUrl,
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => Container(
-                              color: const Color(0xFF2C2C2E),
-                              child: const Icon(
-                                Icons.menu_book,
-                                color: Colors.white38,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: dark
+                                  ? null
+                                  : Border.all(color: Colors.black12),
+                            ),
+                            child: CachedNetworkImage(
+                              imageUrl: update.coverUrl,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
+                                color: const Color(0xFF2C2C2E),
+                                child: const Icon(
+                                  Icons.menu_book,
+                                  color: Colors.white38,
+                                ),
                               ),
                             ),
                           ),
@@ -208,7 +264,7 @@ class FeedScreen extends ConsumerWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: kAccentColor,
+                              color: Theme.of(context).colorScheme.primary,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -253,8 +309,8 @@ class FeedScreen extends ConsumerWidget {
                     update.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: titleColor,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       height: 1.2,
@@ -294,14 +350,17 @@ class FeedScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             dateGroup,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : const Color(0xFF1C1B1F),
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         ...items.map((update) {
+          final dark = Theme.of(context).brightness == Brightness.dark;
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -323,14 +382,20 @@ class FeedScreen extends ConsumerWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                    imageUrl: update.coverUrl,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFF2C2C2E),
-                      child: const Icon(Icons.menu_book, color: Colors.white38),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: dark ? null : Border.all(color: Colors.black12),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: update.coverUrl,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: const Color(0xFF2C2C2E),
+                        child: const Icon(Icons.menu_book, color: Colors.white38),
+                      ),
                     ),
                   ),
                 ),
@@ -345,8 +410,8 @@ class FeedScreen extends ConsumerWidget {
               update.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -356,8 +421,8 @@ class FeedScreen extends ConsumerWidget {
                 Container(
                   width: 6,
                   height: 6,
-                  decoration: const BoxDecoration(
-                    color: kAccentColor,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -367,7 +432,10 @@ class FeedScreen extends ConsumerWidget {
                     '${update.newCount} new · ${update.latestChapterTitle}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: TextStyle(
+                      color: dark ? Colors.white54 : Colors.black54,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],

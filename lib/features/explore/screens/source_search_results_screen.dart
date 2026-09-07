@@ -5,17 +5,20 @@ import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 
 class SourceSearchResultsScreen extends StatefulWidget {
   final MangaSource source;
   final String query;
+  final String? genre;
 
   const SourceSearchResultsScreen({
     super.key,
     required this.source,
     required this.query,
+    this.genre,
   });
 
   @override
@@ -47,6 +50,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   void initState() {
     super.initState();
     _filterQuery = widget.query;
+    _selectedGenre = widget.genre;
     _scrollController.addListener(_onScroll);
     _loadGenres();
     _runSearch();
@@ -232,14 +236,18 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: _isSearching
@@ -247,20 +255,26 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                 controller: _searchController,
                 focusNode: _searchFocusNode,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white, fontSize: 17),
-                cursorColor: Colors.white,
+                style: TextStyle(
+                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                  fontSize: 17,
+                ),
+                cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
                 textInputAction: TextInputAction.search,
                 onSubmitted: _submitSearchFromAppBar,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search this source...',
-                  hintStyle: TextStyle(color: Colors.white54, fontSize: 16),
+                  hintStyle: TextStyle(
+                    color: dark ? Colors.white54 : Colors.black54,
+                    fontSize: 16,
+                  ),
                   border: InputBorder.none,
                 ),
               )
             : Text(
                 widget.source.name,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -268,17 +282,26 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
         actions: [
           if (_isSearching)
             IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
+              icon: Icon(
+                Icons.close,
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+              ),
               onPressed: _toggleSearch,
             )
           else ...[
             IconButton(
-              icon: const Icon(Icons.search, color: Colors.white),
+              icon: Icon(
+                Icons.search,
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+              ),
               onPressed: _toggleSearch,
             ),
             IconButton(
               tooltip: 'Random manga',
-              icon: const Icon(Icons.casino_outlined, color: Colors.white),
+              icon: Icon(
+                Icons.casino_outlined,
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+              ),
               onPressed: _openRandomManga,
             ),
             IosMenuButton<String>(
@@ -317,6 +340,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   }
 
   Widget _buildFilterChips() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final chips = <Widget>[];
 
     // Active search query chip (tap X to clear).
@@ -331,29 +355,43 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               constraints: const BoxConstraints(maxWidth: 240),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF2C2C2E),
+                color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white38),
+                border: Border.all(
+                  color: dark ? Colors.white38 : Colors.black12,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.search, size: 16, color: Colors.white),
+                  Icon(
+                    Icons.search,
+                    size: 16,
+                    color: dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       query,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(Icons.close, size: 16, color: Colors.white70),
+                  Icon(
+                    Icons.close,
+                    size: 16,
+                    color: dark ? Colors.white70 : const Color(0xFF49454F),
+                  ),
                 ],
               ),
             ),
@@ -373,11 +411,19 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: _genrePrefixSelected ? Colors.white : Colors.transparent,
+              color: _genrePrefixSelected
+                  ? (dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary)
+                  : (dark ? Colors.transparent : const Color(0xFFE2E8F0)),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _genrePrefixSelected ? Colors.white : Colors.white38,
-              ),
+              border: dark
+                  ? Border.all(
+                      color: _genrePrefixSelected
+                          ? Colors.white
+                          : Colors.white38,
+                    )
+                  : null,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -385,13 +431,17 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                 Icon(
                   Icons.segment,
                   size: 16,
-                  color: _genrePrefixSelected ? Colors.black : Colors.white,
+                  color: _genrePrefixSelected
+                      ? (dark ? Colors.black : Colors.white)
+                      : (dark ? Colors.white : const Color(0xFF334155)),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Genres',
                   style: TextStyle(
-                    color: _genrePrefixSelected ? Colors.black : Colors.white,
+                    color: _genrePrefixSelected
+                        ? (dark ? Colors.black : Colors.white)
+                        : (dark ? Colors.white : const Color(0xFF334155)),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -414,16 +464,24 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.transparent,
+                color: isSelected
+                    ? (dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.primary)
+                    : (dark ? Colors.transparent : const Color(0xFFE2E8F0)),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? Colors.white : Colors.white38,
-                ),
+                border: dark
+                    ? Border.all(
+                        color: isSelected ? Colors.white : Colors.white38,
+                      )
+                    : null,
               ),
               child: Text(
                 genre,
                 style: TextStyle(
-                  color: isSelected ? Colors.black : Colors.white,
+                  color: isSelected
+                      ? (dark ? Colors.black : Colors.white)
+                      : (dark ? Colors.white : const Color(0xFF334155)),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -446,9 +504,12 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   }
 
   Widget _buildResults() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     if (_isInitialLoading && _mangaList.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white70),
+      return Center(
+        child: CircularProgressIndicator(
+          color: dark ? Colors.white70 : const Color(0xFF49454F),
+        ),
       );
     }
 
@@ -457,9 +518,12 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Failed to load results',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: TextStyle(
+                color: dark ? Colors.white70 : const Color(0xFF49454F),
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
             Padding(
@@ -467,7 +531,10 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               child: Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                style: TextStyle(
+                  color: dark ? Colors.white38 : Colors.black38,
+                  fontSize: 12,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -476,8 +543,12 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white38),
+                foregroundColor: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
+                side: dark
+                    ? const BorderSide(color: Colors.white38)
+                    : const BorderSide(color: Colors.black38),
               ),
             ),
           ],
@@ -486,17 +557,16 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
     }
 
     if (_mangaList.isEmpty) {
-      return const Center(
-        child: Text(
-          'No manga found',
-          style: TextStyle(color: Colors.white54, fontSize: 16),
-        ),
+      return const EmptyState(
+        icon: Icons.search_off,
+        title: 'No manga found',
+        subtitle: 'Try a different search query.',
       );
     }
 
     return RefreshIndicator(
-      color: Colors.white,
-      backgroundColor: const Color(0xFF2C2C2E),
+      color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+      backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
       onRefresh: _refresh,
       child: Column(
         children: [
@@ -519,13 +589,13 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             ),
           ),
           if (_isLoadingMore)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                  color: Colors.white54,
+                  color: dark ? Colors.white54 : Colors.black54,
                   strokeWidth: 2,
                 ),
               ),
@@ -536,6 +606,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   }
 
   Widget _buildCard(BuildContext context, Manga item) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () => _openManga(item),
       child: Column(
@@ -549,15 +620,21 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: item.coverUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFF2C2C2E),
-                      child: const Icon(
-                        Icons.menu_book,
-                        color: Colors.white38,
-                        size: 28,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: dark ? null : Border.all(color: Colors.black12),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: item.coverUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                        child: Icon(
+                          Icons.menu_book,
+                          color: dark ? Colors.white38 : Colors.black38,
+                          size: 28,
+                        ),
                       ),
                     ),
                   ),
@@ -571,8 +648,10 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             item.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               height: 1.2,

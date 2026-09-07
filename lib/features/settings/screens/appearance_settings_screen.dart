@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yomou/core/theme/colors.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
 class AppearanceSettingsScreen extends ConsumerWidget {
@@ -10,20 +9,25 @@ class AppearanceSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appearanceSettingsProvider);
     final notifier = ref.read(appearanceSettingsProvider.notifier);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final subtitleColor = dark ? Colors.white54 : Colors.black54;
+    final appBarContentColor = dark ? Colors.white : const Color(0xFF1C1B1F);
 
     return Scaffold(
-      backgroundColor: settings.pureBlackAmoled ? Colors.black : Colors.grey[900],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: appBarContentColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Appearance',
           style: TextStyle(
-            color: Colors.white,
+            color: appBarContentColor,
             fontSize: 22,
             fontWeight: FontWeight.w400,
           ),
@@ -35,7 +39,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           // Color Scheme Carousel
           _SectionHeader(title: 'Color Scheme'),
           SizedBox(
-            height: 80,
+            height: 90,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -71,28 +75,18 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           // Theme Options
           _SectionHeader(title: 'Theme Options'),
           ListTile(
-            title: const Text('Theme', style: TextStyle(color: Colors.white)),
+            title: Text('Theme', style: TextStyle(color: titleColor)),
             subtitle: Text(
               settings.themeMode.name.capitalize(),
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
           ),
-          SwitchListTile(
-            title: const Text('Black', style: TextStyle(color: Colors.white)),
-            subtitle: const Text(
-              'Uses less power on AMOLED screens',
-              style: TextStyle(color: Colors.white54),
-            ),
-            value: settings.pureBlackAmoled,
-            onChanged: (_) => notifier.toggleBool('pureBlackAmoled'),
-            activeThumbColor: kAccentColor,
-          ),
           ListTile(
-            title: const Text('Language', style: TextStyle(color: Colors.white)),
+            title: Text('Language', style: TextStyle(color: titleColor)),
             subtitle: Text(
               settings.language == 'system' ? 'Follow system' : settings.language,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             onTap: () => _showLanguageSelector(context, ref, settings, notifier),
           ),
@@ -100,10 +94,10 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           // Manga List Section
           _SectionHeader(title: 'Manga List'),
           ListTile(
-            title: const Text('List mode', style: TextStyle(color: Colors.white)),
+            title: Text('List mode', style: TextStyle(color: titleColor)),
             subtitle: Text(
               settings.listMode,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             onTap: () => _showListModeSelector(context, ref, settings, notifier),
           ),
@@ -114,56 +108,56 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Grid size: ${settings.gridSize.round()}%',
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: titleColor),
                 ),
                 Slider(
                   value: settings.gridSize,
                   min: 50,
                   max: 150,
                   onChanged: (v) => notifier.setGridSize(v),
-                  activeColor: kAccentColor,
+                  activeColor: Theme.of(context).colorScheme.primary,
                 ),
               ],
             ),
           ),
           SwitchListTile(
-            title: const Text('Show quick filters', style: TextStyle(color: Colors.white)),
+            title: Text('Show quick filters', style: TextStyle(color: titleColor)),
             value: settings.showQuickFilters,
             onChanged: (_) => notifier.toggleBool('showQuickFilters'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Show reading progress', style: TextStyle(color: Colors.white)),
+            title: Text('Show reading progress', style: TextStyle(color: titleColor)),
             value: settings.showReadingProgress,
             onChanged: (_) => notifier.toggleBool('showReadingProgress'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Badges in lists', style: TextStyle(color: Colors.white)),
+            title: Text('Badges in lists', style: TextStyle(color: titleColor)),
             value: settings.showListBadges,
             onChanged: (_) => notifier.toggleBool('showListBadges'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
 
           // Details Section
           _SectionHeader(title: 'Details'),
           SwitchListTile(
-            title: const Text('Collapse long description', style: TextStyle(color: Colors.white)),
+            title: Text('Collapse long description', style: TextStyle(color: titleColor)),
             value: settings.collapseDescription,
             onChanged: (_) => notifier.toggleBool('collapseDescription'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Show pages thumbnails', style: TextStyle(color: Colors.white)),
+            title: Text('Show pages thumbnails', style: TextStyle(color: titleColor)),
             value: settings.showPagesThumbnails,
             onChanged: (_) => notifier.toggleBool('showPagesThumbnails'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           ListTile(
-            title: const Text('Default tab', style: TextStyle(color: Colors.white)),
+            title: Text('Default tab', style: TextStyle(color: titleColor)),
             subtitle: Text(
               settings.defaultTab,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             onTap: () => _showDefaultTabSelector(context, ref, settings, notifier),
           ),
@@ -171,86 +165,86 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           // Main Screen Section
           _SectionHeader(title: 'Main Screen'),
           ListTile(
-            title: const Text('Search suggestions', style: TextStyle(color: Colors.white)),
+            title: Text('Search suggestions', style: TextStyle(color: titleColor)),
             subtitle: Text(
               _suggestionSummary(settings),
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             onTap: () => _showSearchSuggestionsSheet(context, ref, settings, notifier),
           ),
           ListTile(
-            title: const Text('Main screen sections', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Categories to show in the main screen', style: TextStyle(color: Colors.white54)),
+            title: Text('Main screen sections', style: TextStyle(color: titleColor)),
+            subtitle: Text('Categories to show in the main screen', style: TextStyle(color: Colors.white54)),
             onTap: () => _showMainSectionsSheet(context, ref, settings, notifier),
           ),
           SwitchListTile(
-            title: const Text('Show floating Continue button', style: TextStyle(color: Colors.white)),
+            title: Text('Show floating Continue button', style: TextStyle(color: titleColor)),
             value: settings.showFloatingContinueButton,
             onChanged: (_) => notifier.toggleBool('showFloatingContinueButton'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Show labels in navigation bar', style: TextStyle(color: Colors.white)),
+            title: Text('Show labels in navigation bar', style: TextStyle(color: titleColor)),
             value: settings.showNavLabels,
             onChanged: (_) => notifier.toggleBool('showNavLabels'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Floating navigation bar', style: TextStyle(color: Colors.white)),
+            title: Text('Floating navigation bar', style: TextStyle(color: titleColor)),
             value: settings.useFloatingNavBar,
             onChanged: (_) => notifier.toggleBool('useFloatingNavBar'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Pin navigation UI', style: TextStyle(color: Colors.white)),
-            subtitle: const Text(
+            title: Text('Pin navigation UI', style: TextStyle(color: titleColor)),
+            subtitle: Text(
               'Do not hide navigation bar and search view on scroll',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             value: settings.pinNavUiOnScroll,
             onChanged: (_) => notifier.toggleBool('pinNavUiOnScroll'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Exit confirmation', style: TextStyle(color: Colors.white)),
-            subtitle: const Text(
+            title: Text('Exit confirmation', style: TextStyle(color: titleColor)),
+            subtitle: Text(
               'Press Back twice to exit the app',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             value: settings.exitConfirmation,
             onChanged: (_) => notifier.toggleBool('exitConfirmation'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Show recent manga shortcuts', style: TextStyle(color: Colors.white)),
+            title: Text('Show recent manga shortcuts', style: TextStyle(color: titleColor)),
             value: settings.showRecentShortcuts,
             onChanged: (_) => notifier.toggleBool('showRecentShortcuts'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: const Text('Hide NSFW from shortcuts', style: TextStyle(color: Colors.white)),
+            title: Text('Hide NSFW from shortcuts', style: TextStyle(color: titleColor)),
             value: settings.hideNsfwFromShortcuts,
             onChanged: (_) => notifier.toggleBool('hideNsfwFromShortcuts'),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
 
           // Privacy Section
           _SectionHeader(title: 'Privacy'),
           SwitchListTile(
-            title: const Text('Protect the app', style: TextStyle(color: Colors.white)),
-            subtitle: const Text(
+            title: Text('Protect the app', style: TextStyle(color: titleColor)),
+            subtitle: Text(
               'Require authentication to open Yomou',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             value: settings.protectApp,
             onChanged: (v) => notifier.setProtectApp(v),
-            activeThumbColor: kAccentColor,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           ListTile(
-            title: const Text('Screenshot policy', style: TextStyle(color: Colors.white)),
+            title: Text('Screenshot policy', style: TextStyle(color: titleColor)),
             subtitle: Text(
               settings.screenshotPolicy,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: subtitleColor),
             ),
             onTap: () => _showScreenshotPolicySheet(context, ref, settings, notifier),
           ),
@@ -267,9 +261,12 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettings settings,
     AppearanceSettingsNotifier notifier,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sheetTitleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E2E33),
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -282,15 +279,15 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white38,
+                color: dark ? Colors.white38 : Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'Theme',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             _buildThemeOption(ctx, 'System', ThemeMode.system, settings.themeMode, notifier),
@@ -310,10 +307,11 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     ThemeMode current,
     AppearanceSettingsNotifier notifier,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
-      title: Text(label, style: const TextStyle(color: Colors.white)),
+      title: Text(label, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
       trailing: mode == current
-          ? Icon(Icons.check, color: kAccentColor)
+          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
           : null,
       onTap: () {
         notifier.setThemeMode(mode);
@@ -330,10 +328,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
   ) {
     final languages = ['system', 'en', 'ja', 'ko', 'zh', 'ru'];
     final labels = ['Follow system', 'English', 'Japanese', 'Korean', 'Chinese', 'Russian'];
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sheetTitleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E2E33),
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -346,22 +347,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white38,
+                color: dark ? Colors.white38 : Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'Language',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             for (var i = 0; i < languages.length; i++)
               ListTile(
-                title: Text(labels[i], style: const TextStyle(color: Colors.white)),
+                title: Text(labels[i], style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                 trailing: languages[i] == settings.language
-                    ? Icon(Icons.check, color: kAccentColor)
+                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
                     : null,
                 onTap: () {
                   notifier.setLanguage(languages[i]);
@@ -381,9 +382,12 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettings settings,
     AppearanceSettingsNotifier notifier,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sheetTitleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E2E33),
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -396,15 +400,15 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white38,
+                color: dark ? Colors.white38 : Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'List mode',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             _buildListModeOption(ctx, 'Grid', settings.listMode, notifier),
@@ -422,10 +426,11 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     String current,
     AppearanceSettingsNotifier notifier,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
-      title: Text(mode, style: const TextStyle(color: Colors.white)),
+      title: Text(mode, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
       trailing: mode == current
-          ? Icon(Icons.check, color: kAccentColor)
+          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
           : null,
       onTap: () {
         notifier.setListMode(mode);
@@ -441,10 +446,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettingsNotifier notifier,
   ) {
     final tabs = ['Last used', 'History', 'Favorites', 'Suggestions', 'Explore', 'Updates'];
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sheetTitleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E2E33),
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -457,22 +465,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white38,
+                color: dark ? Colors.white38 : Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'Default tab',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             for (final tab in tabs)
               ListTile(
-                title: Text(tab, style: const TextStyle(color: Colors.white)),
+                title: Text(tab, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                 trailing: tab == settings.defaultTab
-                    ? Icon(Icons.check, color: kAccentColor)
+                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
                     : null,
                 onTap: () {
                   notifier.setDefaultTab(tab);
@@ -501,10 +509,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettingsNotifier notifier,
   ) {
     const options = {'history': 'History', 'trending': 'Trending', 'new': 'New', 'popular': 'Popular'};
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sheetTitleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E2E33),
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -517,22 +528,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white38,
+                color: dark ? Colors.white38 : Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'Search suggestions',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             for (final entry in options.entries)
               SwitchListTile(
-                title: Text(entry.value, style: const TextStyle(color: Colors.white)),
+                title: Text(entry.value, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                 value: settings.searchSuggestions[entry.key] ?? true,
-                activeThumbColor: kAccentColor,
+                activeThumbColor: Theme.of(context).colorScheme.primary,
                 onChanged: (_) => notifier.toggleSearchSuggestion(entry.key),
               ),
             const SizedBox(height: 16),
@@ -548,9 +559,12 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettings settings,
     AppearanceSettingsNotifier notifier,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sheetTitleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E2E33),
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -563,22 +577,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white38,
+                color: dark ? Colors.white38 : Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'Main screen sections',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             for (final entry in settings.mainScreenSections.entries)
               SwitchListTile(
-                title: Text(entry.key, style: const TextStyle(color: Colors.white)),
+                title: Text(entry.key, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                 value: entry.value,
-                activeThumbColor: kAccentColor,
+                activeThumbColor: Theme.of(context).colorScheme.primary,
                 onChanged: (_) => notifier.toggleMainSection(entry.key),
               ),
             const SizedBox(height: 16),
@@ -595,10 +609,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettingsNotifier notifier,
   ) {
     const policies = ['Allow', 'Block'];
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sheetTitleColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E2E33),
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -611,22 +628,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white38,
+                color: dark ? Colors.white38 : Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'Screenshot policy',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             for (final policy in policies)
               ListTile(
-                title: Text(policy, style: const TextStyle(color: Colors.white)),
+                title: Text(policy, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                 trailing: policy == settings.screenshotPolicy
-                    ? Icon(Icons.check, color: kAccentColor)
+                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
                     : null,
                 onTap: () {
                   notifier.setScreenshotPolicy(policy);
@@ -649,12 +666,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.5),
+          color: dark ? Colors.white.withValues(alpha: 0.5) : Colors.black54,
           fontSize: 13,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.8,
@@ -680,38 +698,84 @@ class _SchemePreset extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 72,
+        width: 76,
+        height: 90,
         margin: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: isActive ? palette.accent : const Color(0xFF2E2E33),
+          color: isActive
+              ? primary.withValues(alpha: 0.2)
+              : dark ? const Color(0xFF2B2B2B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isActive ? palette.accent : Colors.white24,
+            color: isActive ? primary : (dark ? Colors.white12 : Colors.black12),
             width: isActive ? 2 : 1,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isActive ? Icons.check_circle : Icons.circle,
-              color: Colors.white,
-              size: 32,
-            ),
-            const SizedBox(height: 4),
+            if (isActive)
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: primary,
+                ),
+                child: const Icon(
+                  Icons.check,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              )
+            else
+              _TwoToneBadge(
+                primary: palette.accent,
+                secondary: palette.secondary ?? palette.accentLight,
+              ),
+            const SizedBox(height: 6),
             Text(
               name,
               style: TextStyle(
-                color: Colors.white,
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A 28px circular badge split vertically into the preset's primary and
+/// secondary/container colors.
+class _TwoToneBadge extends StatelessWidget {
+  const _TwoToneBadge({required this.primary, required this.secondary});
+
+  final Color primary;
+  final Color secondary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: const BoxDecoration(shape: BoxShape.circle),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(child: Container(color: primary)),
+          Expanded(child: Container(color: secondary)),
+        ],
       ),
     );
   }

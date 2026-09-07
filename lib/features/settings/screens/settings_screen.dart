@@ -6,26 +6,28 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final appBarContentColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: appBarContentColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Settings',
           style: TextStyle(
-            color: Colors.white,
+            color: appBarContentColor,
             fontSize: 22,
             fontWeight: FontWeight.w400,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: Icon(Icons.search, color: appBarContentColor),
             onPressed: () {},
           ),
         ],
@@ -115,16 +117,21 @@ class SettingsScreen extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       leading: Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Icon(icon, color: Colors.white, size: 26),
+        child: Icon(
+          icon,
+          color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+          size: 26,
+        ),
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
           fontSize: 17,
           fontWeight: FontWeight.w500,
         ),
@@ -133,7 +140,7 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.only(top: 4),
         child: Text(
           subtitle,
-          style: const TextStyle(color: Colors.white54, fontSize: 14),
+          style: TextStyle(color: dark ? Colors.white54 : Colors.black54, fontSize: 14),
         ),
       ),
       onTap: onTap,

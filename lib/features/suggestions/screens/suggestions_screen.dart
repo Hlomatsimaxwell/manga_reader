@@ -6,6 +6,7 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
   const SuggestionsScreen({super.key});
@@ -32,7 +33,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     final genreTagsAsync = ref.watch(genreTagsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
@@ -52,10 +53,12 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
               const SizedBox(height: 16),
               suggestionsAsync.when(
                 data: (mangaList) => _buildMangaGrid(mangaList),
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 60),
+                loading: () => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
                   child: Center(
-                    child: CircularProgressIndicator(color: Colors.white54),
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
                 error: (e, _) => Padding(
@@ -63,7 +66,13 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   child: Center(
                     child: Text(
                       'Failed to load suggestions',
-                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                      style: TextStyle(
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white54
+                                : const Color(0xFF49454F),
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -76,32 +85,36 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   }
 
   Widget _buildSearchBar() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fieldColor = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final iconColor = dark ? Colors.white70 : Colors.black54;
+    final hintColor = dark ? Colors.white54 : Colors.black54;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2E),
+        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
         borderRadius: BorderRadius.circular(28),
       ),
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
-        cursorColor: Colors.white,
+        style: TextStyle(color: fieldColor, fontSize: 16),
+        cursorColor: fieldColor,
         onChanged: (value) {
           setState(() {
             _searchQuery = value;
           });
         },
         decoration: InputDecoration(
-          icon: const Icon(Icons.search, color: Colors.white70, size: 22),
+          icon: Icon(Icons.search, color: iconColor, size: 22),
           hintText: 'Search manga',
-          hintStyle: const TextStyle(color: Colors.white54, fontSize: 16),
+          hintStyle: TextStyle(color: hintColor, fontSize: 16),
           border: InputBorder.none,
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.clear,
-                    color: Colors.white70,
+                    color: iconColor,
                     size: 20,
                   ),
                   onPressed: () {
@@ -111,13 +124,15 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                     });
                   },
                 )
-              : const Icon(Icons.more_vert, color: Colors.white70, size: 22),
+              : Icon(Icons.more_vert, color: iconColor, size: 22),
         ),
       ),
     );
   }
 
   Widget _buildGenreChips(List<String> tags) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
     return SizedBox(
       height: 38,
       child: ListView.builder(
@@ -128,6 +143,13 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         itemBuilder: (context, index) {
           final tag = tags[index];
           final isSelected = _selectedGenre == tag;
+
+          final Color bg = dark
+              ? (isSelected ? Colors.white : Colors.transparent)
+              : (isSelected ? primary : const Color(0xFFE2E8F0));
+          final Color fg = dark
+              ? (isSelected ? Colors.black : Colors.white)
+              : (isSelected ? Colors.white : const Color(0xFF334155));
 
           return Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -143,11 +165,13 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : Colors.transparent,
+                  color: bg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? Colors.white : Colors.white38,
-                  ),
+                  border: dark
+                      ? Border.all(
+                          color: isSelected ? Colors.white : Colors.white38,
+                        )
+                      : null,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -155,13 +179,13 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                     Icon(
                       Icons.sell_outlined,
                       size: 16,
-                      color: isSelected ? Colors.black : Colors.white,
+                      color: fg,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       tag,
                       style: TextStyle(
-                        color: isSelected ? Colors.black : Colors.white,
+                        color: fg,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -183,14 +207,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     }).toList();
 
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: Text(
-            'No suggestions found',
-            style: TextStyle(color: Colors.white54, fontSize: 16),
-          ),
-        ),
+      return EmptyState(
+        icon: Icons.lightbulb_outline,
+        title: 'No suggestions found',
+        subtitle: 'Try a different search query.',
       );
     }
 
@@ -215,6 +235,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   }
 
   Widget _buildMangaCard(BuildContext context, Manga manga) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = dark
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -239,15 +263,21 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: manga.coverUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFF2C2C2E),
-                      child: const Icon(
-                        Icons.menu_book,
-                        color: Colors.white38,
-                        size: 28,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: dark ? null : Border.all(color: Colors.black12),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: manga.coverUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: const Color(0xFF2C2C2E),
+                        child: const Icon(
+                          Icons.menu_book,
+                          color: Colors.white38,
+                          size: 28,
+                        ),
                       ),
                     ),
                   ),
@@ -261,8 +291,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
             manga.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: titleColor,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               height: 1.2,

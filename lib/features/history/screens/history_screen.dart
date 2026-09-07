@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
-import 'package:yomou/core/theme/colors.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
@@ -212,25 +212,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
             return AlertDialog(
-              backgroundColor: const Color(0xFF2C2C2E),
+              backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
+                side: dark ? BorderSide.none : const BorderSide(color: Colors.black12),
               ),
               contentPadding: const EdgeInsets.only(top: 20, bottom: 8),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.delete_sweep_outlined,
-                    color: Colors.white,
+                    color: fg,
                     size: 28,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Clear history',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: fg,
                       fontSize: 22,
                       fontWeight: FontWeight.w400,
                     ),
@@ -270,10 +273,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: dark ? Colors.white : const Color(0xFF49454F),
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
@@ -288,10 +291,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       const SnackBar(content: Text('History updated')),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     'Clear',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: dark ? Colors.white : const Color(0xFF49454F),
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
@@ -311,6 +314,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     required int groupValue,
     required ValueChanged<int?> onChanged,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.primary;
     return AppPress(
       onTap: () => onChanged(value),
       child: Padding(
@@ -320,21 +326,24 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             Radio<int>(
               value: value,
               groupValue: groupValue,
-              activeColor: Colors.white,
+              activeColor: activeColor,
               fillColor: WidgetStateProperty.resolveWith<Color>((
                 Set<WidgetState> states,
               ) {
                 if (states.contains(WidgetState.selected)) {
-                  return Colors.white;
+                  return activeColor;
                 }
-                return Colors.white70;
+                return dark ? Colors.white70 : Colors.black38;
               }),
               onChanged: onChanged,
             ),
             const SizedBox(width: 12),
             Text(
               title,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -348,16 +357,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
             return Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'List mode',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: dark ? Colors.white70 : const Color(0xFF49454F),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -367,7 +377,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     height: 52,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(26),
-                      border: Border.all(color: Colors.white24, width: 1),
+                      border: Border.all(
+                        color: dark ? Colors.white24 : Colors.black12,
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -376,9 +389,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           Icons.format_list_bulleted,
                           setSheetState,
                         ),
-                        const VerticalDivider(
+                        VerticalDivider(
                           width: 1,
-                          color: Colors.white24,
+                          color: dark ? Colors.white24 : Colors.black12,
                           indent: 8,
                           endIndent: 8,
                         ),
@@ -387,9 +400,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           Icons.view_list,
                           setSheetState,
                         ),
-                        const VerticalDivider(
+                        VerticalDivider(
                           width: 1,
-                          color: Colors.white24,
+                          color: dark ? Colors.white24 : Colors.black12,
                           indent: 8,
                           endIndent: 8,
                         ),
@@ -405,18 +418,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Grid size',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: dark ? Colors.white70 : const Color(0xFF49454F),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
                         '${_gridSize.toInt()} Columns',
-                        style: const TextStyle(
-                          color: Colors.white54,
+                        style: TextStyle(
+                          color: dark ? Colors.white54 : Colors.black54,
                           fontSize: 12,
                         ),
                       ),
@@ -426,14 +439,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 6,
-                      activeTrackColor: Colors.white,
-                      inactiveTrackColor: Colors.white12,
-                      thumbColor: Colors.white,
+                      activeTrackColor: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                      inactiveTrackColor:
+                          dark ? Colors.white12 : Colors.black12,
+                      thumbColor: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
                       thumbShape: const RoundSliderThumbShape(
                         enabledThumbRadius: 10,
                         elevation: 4,
                       ),
-                      overlayColor: Colors.white.withValues(alpha: 0.12),
+                      overlayColor: (dark ? Colors.white : Colors.black)
+                          .withValues(alpha: 0.12),
                       overlayShape: const RoundSliderOverlayShape(
                         overlayRadius: 20,
                       ),
@@ -441,7 +460,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         tickMarkRadius: 2,
                       ),
                       activeTickMarkColor: Colors.transparent,
-                      inactiveTickMarkColor: Colors.white30,
+                      inactiveTickMarkColor:
+                          dark ? Colors.white30 : Colors.black26,
                     ),
                     child: Slider(
                       value: 7 - _gridSize,
@@ -460,10 +480,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Sorting order',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: dark ? Colors.white70 : const Color(0xFF49454F),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -475,21 +495,33 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2C2C2E),
+                      color: dark ? const Color(0xFF2C2C2E) : Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white12, width: 1),
+                      border: Border.all(
+                        color: dark ? Colors.white12 : Colors.black12,
+                        width: 1,
+                      ),
+                      boxShadow: dark
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 4,
+                              ),
+                            ],
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _sortingOrder,
-                        dropdownColor: const Color(0xFF2C2C2E),
+                        dropdownColor:
+                            dark ? const Color(0xFF2C2C2E) : Colors.white,
                         isExpanded: true,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.arrow_drop_down,
-                          color: Colors.white70,
+                          color: dark ? Colors.white70 : const Color(0xFF49454F),
                         ),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           fontSize: 15,
                         ),
                         items: _sortOptions.map((value) {
@@ -514,18 +546,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
                           Icon(
                             Icons.format_list_bulleted,
-                            color: Colors.white70,
+                            color:
+                                dark ? Colors.white70 : const Color(0xFF49454F),
                             size: 20,
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Text(
                             'Group',
                             style: TextStyle(
-                              color: Colors.white,
+                              color:
+                                  dark ? Colors.white : const Color(0xFF1C1B1F),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
@@ -534,10 +568,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                       Switch(
                         value: _isGrouped,
-                        activeThumbColor: Colors.black,
-                        activeTrackColor: Colors.white,
-                        inactiveThumbColor: Colors.white54,
-                        inactiveTrackColor: const Color(0xFF2C2C2E),
+                        activeThumbColor: dark ? Colors.black : Colors.white,
+                        activeTrackColor: dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                        inactiveThumbColor:
+                            dark ? Colors.white54 : Colors.black54,
+                        inactiveTrackColor:
+                            dark ? const Color(0xFF2C2C2E) : Colors.black12,
                         onChanged: (value) {
                           setSheetState(() {
                             _isGrouped = value;
@@ -563,6 +601,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     StateSetter setSheetState,
   ) {
     final isSelected = _listMode == mode;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final selectedBg = dark
+        ? const Color(0xFF6B6F76)
+        : Theme.of(context).colorScheme.primary;
+    final fg = isSelected ? Colors.white : (dark ? Colors.white : const Color(0xFF1C1B1F));
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -572,18 +615,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF6B6F76) : Colors.transparent,
+            color: isSelected ? selectedBg : Colors.transparent,
             borderRadius: BorderRadius.circular(28),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.white, size: 20),
+              Icon(icon, color: fg, size: 20),
               const SizedBox(height: 2),
               Text(
                 mode,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: fg,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -603,12 +646,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       MediaQuery.of(context).size.height - offset.dy,
     );
 
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final menuFg = dark ? Colors.white : const Color(0xFF1C1B1F);
+
     await showMenu(
       context: context,
       position: position,
-      color: const Color(0xFF2C2C2E),
+      color: dark ? const Color(0xFF2C2C2E) : Colors.white,
       elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: dark
+            ? BorderSide.none
+            : const BorderSide(color: Colors.black12),
+      ),
       items: [
         PopupMenuItem(
           onTap: () {
@@ -616,11 +667,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               if (mounted) _showClearHistoryDialog(context);
             });
           },
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               'Clear history',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
         ),
@@ -630,21 +681,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               if (mounted) _showListOptionsSheet(context);
             });
           },
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               'List options',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
         ),
         PopupMenuItem(
           onTap: () {},
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               'Statistics',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
         ),
@@ -659,15 +710,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Incognito mode',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(color: menuFg, fontSize: 16),
                   ),
                   Checkbox(
                     value: _isIncognitoMode,
-                    activeColor: Colors.white,
-                    checkColor: Colors.black,
-                    side: const BorderSide(color: Colors.white70, width: 2),
+                    activeColor: dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.primary,
+                    checkColor: dark ? Colors.black : Colors.white,
+                    side: BorderSide(
+                      color: dark ? Colors.white70 : Colors.black26,
+                      width: 2,
+                    ),
                     onChanged: (bool? value) {
                       setState(() {
                         _isIncognitoMode = value ?? false;
@@ -693,11 +749,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               }
             });
           },
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               'Settings',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
         ),
@@ -773,7 +829,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
@@ -786,14 +842,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               _buildFilterChips(),
               const SizedBox(height: 16),
               if (filteredList.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 60),
-                  child: Center(
-                    child: Text(
-                      'No reading history found',
-                      style: TextStyle(color: Colors.white54, fontSize: 16),
-                    ),
-                  ),
+                const EmptyState(
+                  icon: Icons.history,
+                  title: 'No reading history found',
+                  subtitle: 'Manga you read will appear here.',
                 )
               else if (_isGrouped)
                 ...groupedHistory.entries.map((entry) {
@@ -807,8 +859,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ),
                         child: Text(
                           entry.key,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : const Color(0xFF1C1B1F),
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
@@ -829,10 +884,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Widget _buildSearchBar() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = dark ? Colors.white70 : Colors.black54;
+    final hintColor = dark ? Colors.white54 : Colors.black54;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2E),
+        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
         borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
@@ -850,14 +908,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               child: Container(
                 padding: const EdgeInsets.only(left: 16, top: 14, bottom: 14),
                 color: Colors.transparent,
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.search, color: Colors.white70, size: 22),
-                    SizedBox(width: 12),
+                    Icon(Icons.search, color: iconColor, size: 22),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Search manga',
-                        style: TextStyle(color: Colors.white54, fontSize: 16),
+                        style: TextStyle(color: hintColor, fontSize: 16),
                       ),
                     ),
                   ],
@@ -872,9 +930,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               color: Colors.transparent,
-              child: const Icon(
+              child: Icon(
                 Icons.more_vert,
-                color: Colors.white70,
+                color: iconColor,
                 size: 22,
               ),
             ),
@@ -891,6 +949,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       {'icon': Icons.done_all, 'label': 'Completed'},
     ];
 
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -898,6 +959,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         children: List.generate(filters.length, (index) {
           final filter = filters[index];
           final isSelected = _selectedFilter == index;
+
+          final Color bg = dark
+              ? (isSelected ? Colors.white : Colors.transparent)
+              : (isSelected ? primary : const Color(0xFFE2E8F0));
+          final Color fg = dark
+              ? (isSelected ? Colors.black : Colors.white)
+              : (isSelected ? Colors.white : const Color(0xFF334155));
 
           return GestureDetector(
             onTap: () {
@@ -909,24 +977,26 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.transparent,
+                color: bg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? Colors.white : Colors.white38,
-                ),
+                border: dark
+                    ? Border.all(
+                        color: isSelected ? Colors.white : Colors.white38,
+                      )
+                    : null,
               ),
               child: Row(
                 children: [
                   Icon(
                     filter['icon'] as IconData,
                     size: 16,
-                    color: isSelected ? Colors.black : Colors.white,
+                    color: fg,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     filter['label'] as String,
                     style: TextStyle(
-                      color: isSelected ? Colors.black : Colors.white,
+                      color: fg,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -962,8 +1032,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: items.length,
-      separatorBuilder: (context, index) =>
-          const Divider(color: Colors.white12, height: 1),
+      separatorBuilder: (context, index) => Divider(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white12
+            : Colors.black12,
+        height: 1,
+      ),
       itemBuilder: (context, index) {
         final item = items[index];
         return CompactHistoryCard(
@@ -1049,6 +1123,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
     final newChapters = widget.item['newChapters'] as int;
     final hasDownloadedChapters = widget.item['hasDownloadedChapters'] == true;
     final bool isCompactGrid = widget.gridSize >= 4;
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -1062,17 +1137,23 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: CachedNetworkImage(
-                    imageUrl: widget.item['coverUrl'],
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFF2C2C2E),
-                      child: const Icon(
-                        Icons.menu_book,
-                        color: Colors.white38,
-                        size: 20,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: dark ? null : Border.all(color: Colors.black12),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: widget.item['coverUrl'],
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: const Color(0xFF2C2C2E),
+                        child: const Icon(
+                          Icons.menu_book,
+                          color: Colors.white38,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -1097,8 +1178,8 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                                   horizontal: 6,
                                   vertical: 4,
                                 ),
-                                decoration: const BoxDecoration(
-                                  color: kAccentColor,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Text(
@@ -1140,7 +1221,9 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.white,
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: isCompactGrid ? 10 : 12,
                 fontWeight: FontWeight.w600,
                 height: 1.2,
@@ -1170,11 +1253,22 @@ class DetailedHistoryCard extends StatefulWidget {
 class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E20),
+        color: dark ? const Color(0xFF1E1E20) : Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: dark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: AppPress(
         onTap: widget.onTap,
@@ -1200,8 +1294,8 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
                       widget.item['title'],
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: onSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1209,17 +1303,19 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
                     const SizedBox(height: 6),
                     Text(
                       'Last read: Chapter ${widget.item['lastReadChapter']}',
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: dark ? Colors.white70 : const Color(0xFF49454F),
                         fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: (widget.item['progress'] as int) / 100,
-                      backgroundColor: Colors.white12,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.white,
+                      backgroundColor: dark ? Colors.white12 : Colors.black12,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
                       ),
                       minHeight: 3,
                     ),
@@ -1251,30 +1347,41 @@ class CompactHistoryCard extends StatefulWidget {
 class _CompactHistoryCardState extends State<CompactHistoryCard> {
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 4),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: CachedNetworkImage(
-          imageUrl: widget.item['coverUrl'],
-          width: 40,
-          height: 56,
-          fit: BoxFit.cover,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: dark ? null : Border.all(color: Colors.black12),
+          ),
+          child: CachedNetworkImage(
+            imageUrl: widget.item['coverUrl'],
+            width: 40,
+            height: 56,
+            fit: BoxFit.cover,
+          ),
         ),
       ),
       title: Text(
         widget.item['title'],
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: onSurface,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(
         'Ch. ${widget.item['lastReadChapter']}',
-        style: const TextStyle(color: Colors.white54, fontSize: 12),
+        style: TextStyle(
+          color: dark ? Colors.white54 : const Color(0xFF49454F),
+          fontSize: 12,
+        ),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,

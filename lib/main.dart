@@ -37,84 +37,14 @@ class YomouApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(appearanceSettingsProvider);
-    final accent = ref.watch(accentProvider);
-
-    final isDark = switch (settings.themeMode) {
-      ThemeMode.light => false,
-      ThemeMode.dark => true,
-      ThemeMode.system =>
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
-    };
-
-    // Accent-driven color scheme (Kotatsu "color scheme" presets).
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: isDark ? Brightness.dark : Brightness.light,
-    );
-
-    // scaffolds: pureBlackAmoled overrides dark background to true #000000.
-    final scaffoldBg = isDark
-        ? (settings.pureBlackAmoled ? Colors.black : const Color(0xFF050505))
-        : const Color(0xFFF2F2F7);
-
-    final commonTheme = ThemeData(
-      splashFactory: NoSplash.splashFactory,
-      highlightColor: Colors.transparent,
-      hoverColor: Colors.transparent,
-      focusColor: Colors.transparent,
-      dividerColor: Colors.transparent,
-      visualDensity: VisualDensity.standard,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        shadowColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        iconTheme: IconThemeData(color: Colors.white),
-        titleTextStyle: TextStyle(
-          color: Colors.white,
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        ),
-        toolbarHeight: 44,
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF2E2E33),
-        contentTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-        ),
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: 40,
-          vertical: 20,
-        ),
-        elevation: 0,
-        showCloseIcon: false,
-      ),
-      listTileTheme: const ListTileThemeData(iconColor: Colors.white),
-    );
+    final theme = ref.watch(themeNotifierProvider);
 
     return MaterialApp(
       title: 'Yomou',
       debugShowCheckedModeBanner: false,
-      themeMode: settings.themeMode,
-      theme: commonTheme.copyWith(
-        brightness: Brightness.light,
-        colorScheme: colorScheme,
-        scaffoldBackgroundColor: scaffoldBg,
-      ),
-      darkTheme: commonTheme.copyWith(
-        brightness: Brightness.dark,
-        colorScheme: colorScheme,
-        scaffoldBackgroundColor: scaffoldBg,
-      ),
+      themeMode: theme.mode,
+      theme: theme.lightTheme,
+      darkTheme: theme.darkTheme,
       home: const HomeScreen(),
     );
   }
@@ -174,7 +104,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         extendBody: true,
         body: NotificationListener<ScrollNotification>(
           onNotification: _onScrollNotification,
@@ -272,12 +202,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Container(
           height: kBottomBarHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1C1C1E)
+                : Colors.white,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0xFF2C2C30)),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF2C2C30)
+                  : Colors.black12,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: Colors.black.withValues(
+                  alpha:
+                      Theme.of(context).brightness == Brightness.dark ? 0.08 : 0.12,
+                ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -301,7 +240,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         width: double.infinity,
         height: kBottomBarHeight + MediaQuery.paddingOf(context).bottom,
         padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
-        color: const Color(0xFF1C1C1E),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1C1C1E)
+            : Colors.white,
         child: _buildNavRow(updatesCount, accent, settings),
       ),
     );
@@ -364,13 +305,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Updates',
   ];
 
-  // Icon + label slot (friend's iOS-style bar, Remix icons). The active tab
-  // swaps from the line to the fill glyph, tints icon + label with the accent
-  // and scales up 5%; inactive tabs are muted grey.
+  // Icon + label slot (friend's iOS-style bar, Remix icons). Every tab shows
+  // icon + small label; the active tab swaps to the fill glyph, tints with the
+  // accent and scales up 5%. Each item is Expanded so the 5 tabs share the
+  // available width evenly; the label is wrapped in FittedBox so it scales down
+  // instead of overflowing on narrow screens.
   Widget _buildNavItem(
       int index, int updatesCount, Color accent, AppearanceSettings settings) {
     final active = _currentIndex == index;
-    final color = active ? accent : const Color(0xFF8E8E93);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final color = active
+        ? accent
+        : dark
+            ? const Color(0xFF8E8E93)
+            : const Color(0xFF49454F);
+    final showLabels = settings.showNavLabels;
 
     final (IconData line, IconData fill) = switch (index) {
       0 => (RemixIcons.history_line, RemixIcons.history_fill),
@@ -389,10 +338,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
           child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: settings.showNavLabels ? 10 : 14,
-              horizontal: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -418,18 +364,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           color: color,
                         ),
                 ),
-                if (settings.showNavLabels) ...[
+                if (showLabels) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    _navLabels[index],
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                      color: color,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _navLabels[index],
+                      softWrap: false,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                        color: color,
+                      ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 2),
               ],
             ),
           ),

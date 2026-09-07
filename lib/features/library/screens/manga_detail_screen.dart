@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:yomou/core/database/database_helper.dart';
-import 'package:yomou/core/theme/colors.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
@@ -16,9 +15,12 @@ import 'package:yomou/features/reader/services/chapter_downloader.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/models/bookmark.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/explore/screens/source_search_results_screen.dart';
+import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -444,8 +446,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        final textColor = dark
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface;
         return Dialog(
-          backgroundColor: const Color(0xFF2C2C2E),
+          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -457,16 +463,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.local_offer_outlined,
-                      color: Colors.white,
+                      color: textColor,
                       size: 24,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       tagName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: textColor,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -477,10 +483,22 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 AppPress(
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Searching "$tagName" on $_sourceName...',
+                    final source = _source;
+                    if (source == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Searching "$tagName" everywhere...'),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SourceSearchResultsScreen(
+                          source: source,
+                          query: tagName,
+                          genre: tagName,
                         ),
                       ),
                     );
@@ -491,8 +509,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       children: [
                         Text(
                           'Search on $_sourceName',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: textColor,
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
                           ),
@@ -504,20 +522,22 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 AppPress(
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Searching "$tagName" everywhere...'),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            GlobalSearchResultsScreen(searchQuery: tagName),
                       ),
                     );
                   },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Row(
                       children: [
                         Text(
                           'Search everywhere',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: textColor,
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
                           ),
@@ -531,10 +551,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
+                    child: Text(
                       'Close',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: textColor,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -552,7 +572,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           Positioned.fill(
@@ -594,9 +614,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               snapSizes: const [0.08, 0.5, 1.0],
               builder: (context, scrollController) {
                 _sheetContentController = scrollController;
+                final dark = Theme.of(context).brightness == Brightness.dark;
                 return Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E20),
+                    color: dark ? const Color(0xFF1E1E20) : Colors.white,
                     borderRadius: _isExpanded
                         ? BorderRadius.zero
                         : const BorderRadius.vertical(top: Radius.circular(28)),
@@ -667,6 +688,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildChapterListSliver() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     final downloadedChapterIds =
         ref
             .watch(downloadedChaptersForMangaProvider(widget.mangaId))
@@ -674,11 +697,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         const <String>{};
 
     if (_isLoadingChapters) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 80),
+          padding: const EdgeInsets.symmetric(vertical: 80),
           child: Center(
-            child: CircularProgressIndicator(color: Colors.white54),
+            child: CircularProgressIndicator(
+              color: dark
+                  ? Colors.white54
+                  : Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       );
@@ -690,9 +717,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
           child: Column(
             children: [
-              const Text(
+              Text(
                 'No chapters available',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+                style: TextStyle(
+                  color: dark ? Colors.white70 : const Color(0xFF49454F),
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -700,7 +730,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     ? 'This source is not supported from here.'
                     : _chapterError!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                style: TextStyle(
+                  color: dark ? Colors.white38 : Colors.black38,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -726,18 +759,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             shape: isSelected
                 ? RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Colors.white, width: 1.5),
+                    side: BorderSide(
+                      color: dark ? Colors.white : const Color(0xFF334155),
+                      width: 1.5,
+                    ),
                   )
                 : null,
-            tileColor: isSelected ? const Color(0xFF2C2C2C) : null,
+            tileColor: isSelected
+                ? (dark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0))
+                : null,
             title: Row(
               children: [
                 if (isCurrent)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
                     child: Icon(
                       Icons.play_arrow_rounded,
-                      color: kAccentColor,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 20,
                     ),
                   ),
@@ -749,7 +787,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isRead ? Colors.grey : Colors.white,
+                      color: isRead ? Colors.grey : (dark ? Colors.white : onSurface),
                       fontWeight: isCurrent
                           ? FontWeight.bold
                           : FontWeight.normal,
@@ -775,24 +813,26 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (downloaded)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
                     child: Icon(
                       Icons.sd_card_outlined,
-                      color: Colors.white70,
+                      color: dark ? Colors.white70 : const Color(0xFF49454F),
                       size: 18,
                     ),
                   ),
                 if (isSelected)
-                  const Icon(
+                  Icon(
                     Icons.check_circle,
-                    color: Colors.white,
+                    color: dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.primary,
                     size: 18,
                   )
                 else if (isRead)
-                  const Icon(
+                  Icon(
                     Icons.check_circle_outline,
-                    color: Colors.white70,
+                    color: dark ? Colors.white70 : const Color(0xFF49454F),
                     size: 18,
                   ),
               ],
@@ -992,12 +1032,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildPagesGridSliver() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoadingPages) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 80),
+          padding: const EdgeInsets.symmetric(vertical: 80),
           child: Center(
-            child: CircularProgressIndicator(color: Colors.white54),
+            child: CircularProgressIndicator(
+              color: dark
+                  ? Colors.white54
+                  : Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       );
@@ -1012,7 +1057,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               _chapters.isEmpty
                   ? 'Start reading to see pages'
                   : 'No pages available',
-              style: const TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(
+                color: dark ? Colors.white54 : Colors.black54,
+                fontSize: 14,
+              ),
             ),
           ),
         ),
@@ -1035,20 +1083,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               imageUrl: _previewPages[index],
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
-                color: const Color(0xFF2C2C2E),
-                child: const Center(
+                color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                child: Center(
                   child: CircularProgressIndicator(
-                    color: Colors.white24,
+                    color: dark ? Colors.white24 : Colors.black12,
                     strokeWidth: 2,
                   ),
                 ),
               ),
               errorWidget: (context, url, error) => Container(
-                color: const Color(0xFF2C2C2E),
-                child: const Center(
+                color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                child: Center(
                   child: Icon(
                     Icons.broken_image,
-                    color: Colors.white38,
+                    color: dark ? Colors.white38 : Colors.black38,
                     size: 24,
                   ),
                 ),
@@ -1061,37 +1109,31 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildBookmarksSliver() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     if (_isLoadingBookmarks) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 80),
+          padding: const EdgeInsets.symmetric(vertical: 80),
           child: Center(
-            child: CircularProgressIndicator(color: Colors.white54),
+            child: CircularProgressIndicator(
+              color: dark
+                  ? Colors.white54
+                  : Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       );
     }
 
     if (_bookmarks.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 80),
-          child: Column(
-            children: [
-              Text(
-                'No bookmarks yet',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'You can create bookmark while reading manga',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: const EmptyState(
+            icon: Icons.bookmark_outline,
+            title: 'No bookmarks yet',
+            subtitle: 'You can create bookmarks while reading manga.',
           ),
         ),
       );
@@ -1114,15 +1156,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 errorWidget: (context, url, error) => Container(
                   width: 48,
                   height: 64,
-                  color: const Color(0xFF2C2C2E),
-                  child: const Icon(Icons.broken_image, color: Colors.white38),
+                  color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                  child: Icon(
+                    Icons.broken_image,
+                    color: dark ? Colors.white38 : Colors.black38,
+                  ),
                 ),
               ),
             ),
             title: Text(
               '${bm.chapterTitle} • Page ${bm.pageIndex + 1}',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: dark ? Colors.white : onSurface,
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
@@ -1137,7 +1182,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     style: TextStyle(color: Colors.grey, fontSize: 13),
                   ),
             trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.white54),
+              icon: Icon(
+                Icons.delete_outline,
+                color: dark ? Colors.white54 : Colors.black54,
+              ),
               onPressed: () async {
                 await DatabaseHelper.instance.deleteBookmark(bm.id);
                 await _loadBookmarks();
@@ -1150,6 +1198,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildTopAppBar(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     if (_selectedIds.isNotEmpty) {
       return _buildContextualAppBar(context);
     }
@@ -1158,24 +1208,24 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: Icon(Icons.arrow_back, color: iconColor),
             onPressed: () => Navigator.of(context).pop(),
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: Icon(Icons.refresh, color: iconColor),
             onPressed: () => _loadChapters(forceRefresh: true),
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: Colors.white),
+            icon: Icon(Icons.share_outlined, color: iconColor),
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
+            icon: Icon(Icons.file_download_outlined, color: iconColor),
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: Icon(Icons.more_vert, color: iconColor),
             onPressed: () {},
           ),
         ],
@@ -1185,27 +1235,29 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   // Contextual app bar shown while chapters are selected in the chapter list.
   Widget _buildContextualAppBar(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     final hasDownloaded = _isSelectedDownloaded;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(Icons.close, color: iconColor),
             onPressed: _exitSelection,
           ),
           const SizedBox(width: 4),
           Text(
             '${_selectedIds.length}',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: iconColor,
               fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.format_line_spacing, color: Colors.white),
+            icon: Icon(Icons.format_line_spacing, color: iconColor),
             tooltip: 'Select range',
             onPressed: _selectChapterRange,
           ),
@@ -1214,20 +1266,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               _isAllSelectedRead
                   ? Icons.visibility_off
                   : Icons.visibility,
-              color: Colors.white,
+              color: iconColor,
             ),
             tooltip: 'Toggle read',
             onPressed: _toggleSelectedRead,
           ),
           if (hasDownloaded)
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.white),
+              icon: Icon(Icons.delete_outline, color: iconColor),
               tooltip: 'Delete download',
               onPressed: _deleteSelectedDownloads,
             )
           else
             IconButton(
-              icon: const Icon(Icons.download_rounded, color: Colors.white),
+              icon: Icon(Icons.download_rounded, color: iconColor),
               tooltip: 'Download',
               onPressed: _downloadSelectedChapters,
             ),
@@ -1237,6 +1289,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildHeaderSection() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -1244,13 +1297,19 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         children: [
           Stack(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: CachedNetworkImage(
-                  imageUrl: widget.imageUrl,
-                  width: 125,
-                  height: 175,
-                  fit: BoxFit.cover,
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: dark ? null : Border.all(color: Colors.black12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedNetworkImage(
+                    imageUrl: widget.imageUrl,
+                    width: 125,
+                    height: 175,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               DownloadedMangaBadge(mangaId: widget.mangaId),
@@ -1264,20 +1323,24 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 Text(
                   widget.title,
                   maxLines: 3,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.onSurface,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
                 _isLoadingPreferences
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 36,
                         width: 36,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: dark
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.primary,
                         ),
                       )
                     : GestureDetector(
@@ -1288,14 +1351,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: _isFavorite
-                                ? const Color(0xFF3A3A3C)
-                                : const Color(0xFF1E1E22),
+                            color: dark
+                                ? (_isFavorite
+                                      ? const Color(0xFF3A3A3C)
+                                      : const Color(0xFF1E1E22))
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isFavorite
-                                  ? Colors.white70
-                                  : Colors.white24,
+                              color: dark
+                                  ? (_isFavorite
+                                        ? Colors.white70
+                                        : Colors.white24)
+                                  : (_isFavorite
+                                        ? Colors.redAccent
+                                        : Colors.black12),
                             ),
                           ),
                           child: Row(
@@ -1307,14 +1376,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                                     : Icons.favorite_border,
                                 color: _isFavorite
                                     ? Colors.redAccent
-                                    : Colors.white,
+                                    : (dark
+                                          ? Colors.white
+                                          : Theme.of(context)
+                                                .colorScheme
+                                                .onSurface),
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 _isFavorite ? 'Favorited' : 'Favorite',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: dark
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurface,
                                   fontSize: 14,
                                 ),
                               ),
@@ -1331,6 +1406,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildSourceCard() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     // Prefer the API-declared chapter count; fall back to the fetched list.
     final totalChapters = _resolvedTotalChapters;
     final chaptersText = _lastReadChapter >= 0
@@ -1341,8 +1417,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2E),
+        color: dark ? const Color(0xFF2C2C2E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: dark ? null : Border.all(color: Colors.black12),
+        boxShadow: dark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         children: [
@@ -1379,9 +1465,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     value: _lastReadChapter >= 0
                         ? (_progressPercent / 100).clamp(0.0, 1.0)
                         : 0,
-                    backgroundColor: Colors.white12,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.white,
+                    backgroundColor: dark ? Colors.white12 : Colors.black12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
                     ),
                     minHeight: 6,
                   ),
@@ -1390,7 +1478,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               const SizedBox(width: 12),
               Text(
                 _lastReadChapter >= 0 ? '${_progressPercent.round()}%' : '0%',
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(
+                  color: dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -1400,6 +1493,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildCardRow(String label, String value, {IconData? icon}) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -1418,14 +1513,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 16, color: Colors.white),
+                  Icon(icon, size: 16, color: dark ? Colors.white : onSurface),
                   const SizedBox(width: 6),
                 ],
                 Flexible(
                   child: Text(
                     value,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: dark ? Colors.white : onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1440,6 +1535,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildDescriptionSection() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final description = _details?.description.isEmpty ?? true
         ? 'No description available.'
         : _details!.description;
@@ -1449,13 +1545,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Description',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1465,8 +1563,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           const SizedBox(height: 8),
           Text(
             canExpand ? '${description.substring(0, 280)}…' : description,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: dark ? Colors.white70 : const Color(0xFF49454F),
               fontSize: 14,
               height: 1.4,
             ),
@@ -1477,6 +1575,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildTagChips() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final tags = (_details?.tags.isNotEmpty ?? false)
         ? _details!.tags
         : const <String>[];
@@ -1493,11 +1592,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white30),
+                color: dark ? Colors.transparent : const Color(0xFFE2E8F0),
+                border: dark ? Border.all(color: Colors.white30) : null,
               ),
               child: Text(
                 tag,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(
+                  color: dark ? Colors.white : const Color(0xFF334155),
+                  fontSize: 13,
+                ),
               ),
             ),
           );
@@ -1507,6 +1610,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildRelatedMangaSection() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     if (_relatedManga.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1516,10 +1621,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Related manga',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: dark ? Colors.white : onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1536,10 +1641,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     ),
                   );
                 },
-                child: const Text(
+                child: Text(
                   'Show all',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: dark ? Colors.white : onSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1564,6 +1669,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildRelatedCard(Manga manga) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -1586,18 +1693,29 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           children: [
             Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                    imageUrl: manga.coverUrl,
-                    height: 120,
-                    width: 100,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => Container(
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: dark ? null : Border.all(color: Colors.black12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: manga.coverUrl,
                       height: 120,
                       width: 100,
-                      color: const Color(0xFF2C2C2E),
-                      child: const Icon(Icons.menu_book, color: Colors.white38),
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        height: 120,
+                        width: 100,
+                        color: dark
+                            ? const Color(0xFF2C2C2E)
+                            : Colors.white,
+                        child: Icon(
+                          Icons.menu_book,
+                          color: dark ? Colors.white38 : Colors.black38,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1609,7 +1727,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               manga.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 11),
+              style: TextStyle(
+                color: dark ? Colors.white : onSurface,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -1647,11 +1768,18 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onBarTap,
       child: Container(
-        color: const Color(0xFF1E1E20),
+        decoration: BoxDecoration(
+          color: dark ? const Color(0xFF1E1E20) : Colors.white,
+          border: dark
+              ? null
+              : const Border(bottom: BorderSide(color: Colors.black12)),
+        ),
         padding: EdgeInsets.only(
           left: 10,
           right: 10,
@@ -1665,6 +1793,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             _buildTabIcon(
               Icons.format_list_bulleted,
               activeTab == 0,
+              dark: dark,
+              scheme: scheme,
               onTap: () => onTabSelected(0),
               badge: unreadCount > 0 ? _badge(unreadCount) : null,
             ),
@@ -1672,6 +1802,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             _buildTabIcon(
               Icons.grid_view_rounded,
               activeTab == 1,
+              dark: dark,
+              scheme: scheme,
               onTap: () => onTabSelected(1),
             ),
             const SizedBox(width: 2),
@@ -1680,20 +1812,34 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
                   ? Icons.bookmark_rounded
                   : Icons.bookmark_border_rounded,
               activeTab == 2,
+              dark: dark,
+              scheme: scheme,
               onTap: () => onTabSelected(2),
             ),
             const Spacer(),
             // Continue/Read action, only for the chapter list tab.
             if (showContinueButton) ...[
-              _buildPrimaryButton(),
+              _buildPrimaryButton(dark: dark, scheme: scheme),
               const SizedBox(width: 6),
             ],
             if (isExpanded) ...[
-              _buildTabIcon(Icons.search_rounded, false, onTap: () {}),
+              _buildTabIcon(
+                Icons.search_rounded,
+                false,
+                dark: dark,
+                scheme: scheme,
+                onTap: () {},
+              ),
               const SizedBox(width: 2),
-              _buildTabIcon(Icons.more_vert_rounded, false, onTap: () {}),
+              _buildTabIcon(
+                Icons.more_vert_rounded,
+                false,
+                dark: dark,
+                scheme: scheme,
+                onTap: () {},
+              ),
             ] else ...[
-              _buildExpandButton(),
+              _buildExpandButton(dark: dark, scheme: scheme),
             ],
           ],
         ),
@@ -1705,6 +1851,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   Widget _buildTabIcon(
     IconData icon,
     bool active, {
+    required bool dark,
+    required ColorScheme scheme,
     VoidCallback? onTap,
     Widget? badge,
   }) {
@@ -1713,13 +1861,19 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: Container(
         padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF2C2C2E) : Colors.transparent,
+          color: active
+              ? (dark ? const Color(0xFF2C2C2E) : Colors.black12)
+              : Colors.transparent,
           shape: BoxShape.circle,
         ),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            Icon(icon, color: active ? Colors.white : Colors.grey, size: 18),
+            Icon(
+              icon,
+              color: active ? (dark ? Colors.white : scheme.onSurface) : Colors.grey,
+              size: 18,
+            ),
             if (badge != null) Positioned(top: -3, right: -3, child: badge),
           ],
         ),
@@ -1749,18 +1903,22 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   // Subtle chevron that expands the tray.
-  Widget _buildExpandButton() {
+  Widget _buildExpandButton({
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
     return GestureDetector(
       onTap: onBarTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFF2C2C2E),
+          color: dark ? const Color(0xFF2C2C2E) : Colors.white,
           borderRadius: BorderRadius.circular(10),
+          border: dark ? null : Border.all(color: Colors.black12),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.keyboard_arrow_up,
-          color: Colors.white,
+          color: dark ? Colors.white : scheme.onSurface,
           size: 16,
         ),
       ),
@@ -1768,7 +1926,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   // Primary Continue/Read action pill that lives on the tray.
-  Widget _buildPrimaryButton() {
+  Widget _buildPrimaryButton({
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
     final label = hasRead ? 'Continue' : 'Read';
     final showUnread = unreadCount > 0 && hasRead;
     return GestureDetector(
@@ -1776,9 +1937,9 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: const Color(0xFF2C2C2E),
+          color: dark ? const Color(0xFF2C2C2E) : scheme.primary,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white12, width: 1),
+          border: dark ? Border.all(color: Colors.white12, width: 1) : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

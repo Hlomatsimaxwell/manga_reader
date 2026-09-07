@@ -82,16 +82,18 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            final scheme = Theme.of(context).colorScheme;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'List mode',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: dark ? Colors.white : scheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -101,25 +103,30 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                   // Segmented Mode Selector
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C1E),
+                      color: dark
+                          ? const Color(0xFF1C1C1E)
+                          : const Color(0xFFEBEFEF),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     padding: const EdgeInsets.all(4),
                     child: Row(
                       children: [
                         _buildModeButton(
+                          context,
                           label: 'Compact',
                           icon: Icons.reorder_rounded,
                           mode: ListMode.compact,
                           setSheetState: setSheetState,
                         ),
                         _buildModeButton(
+                          context,
                           label: 'Details',
                           icon: Icons.format_list_bulleted_rounded,
                           mode: ListMode.details,
                           setSheetState: setSheetState,
                         ),
                         _buildModeButton(
+                          context,
                           label: 'Grid',
                           icon: Icons.grid_view_rounded,
                           mode: ListMode.grid,
@@ -132,10 +139,10 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
 
                   // Grid Size Slider
                   if (_selectedMode == ListMode.grid) ...[
-                    const Text(
+                    Text(
                       'Grid size',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: dark ? Colors.white : scheme.onSurface,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -143,10 +150,12 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                     const SizedBox(height: 8),
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: Colors.white,
-                        inactiveTrackColor: Colors.white24,
-                        thumbColor: Colors.white,
-                        overlayColor: Colors.white12,
+                        activeTrackColor: dark ? Colors.white : scheme.primary,
+                        inactiveTrackColor: dark
+                            ? Colors.white24
+                            : Colors.black26,
+                        thumbColor: dark ? Colors.white : scheme.primary,
+                        overlayColor: dark ? Colors.white12 : Colors.black12,
                         trackHeight: 12,
                       ),
                       child: Slider(
@@ -171,12 +180,14 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
     );
   }
 
-  Widget _buildModeButton({
+  Widget _buildModeButton(
+    BuildContext context, {
     required String label,
     required IconData icon,
     required ListMode mode,
     required StateSetter setSheetState,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedMode == mode;
     return Expanded(
       child: GestureDetector(
@@ -187,21 +198,29 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF3A3A3C) : Colors.transparent,
+            color: isSelected
+                ? (dark
+                      ? const Color(0xFF3A3A3C)
+                      : Theme.of(context).colorScheme.primary)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
             children: [
               Icon(
                 icon,
-                color: isSelected ? Colors.white : Colors.white54,
+                color: isSelected
+                    ? Colors.white
+                    : (dark ? Colors.white54 : const Color(0xFF49454F)),
                 size: 20,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white54,
+                  color: isSelected
+                      ? Colors.white
+                      : (dark ? Colors.white54 : const Color(0xFF49454F)),
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -215,13 +234,17 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -248,8 +271,10 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               widget.title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -263,6 +288,8 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
   }
 
   Widget _buildBodyContent() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     final items = _items;
     switch (_selectedMode) {
       case ListMode.grid:
@@ -288,18 +315,39 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: CachedNetworkImage(
-                            imageUrl: item.coverUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorWidget: (context, url, error) => Container(
-                              color: const Color(0xFF2C2C2E),
-                              child: const Icon(
-                                Icons.menu_book,
-                                color: Colors.white38,
-                              ),
-                            ),
-                          ),
+                          child: dark
+                              ? CachedNetworkImage(
+                                  imageUrl: item.coverUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: const Color(0xFF2C2C2E),
+                                        child: const Icon(
+                                          Icons.menu_book,
+                                          color: Colors.white38,
+                                        ),
+                                      ),
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.black12),
+                                  ),
+                                  child: CachedNetworkImage(
+                                    imageUrl: item.coverUrl,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                          color: Colors.black12,
+                                          child: const Icon(
+                                            Icons.menu_book,
+                                            color: Colors.black38,
+                                          ),
+                                        ),
+                                  ),
+                                ),
                         ),
                         DownloadedMangaBadge(mangaId: item.id),
                       ],
@@ -310,8 +358,8 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                     item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: dark ? Colors.white : onSurface,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -340,21 +388,44 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: CachedNetworkImage(
-                          imageUrl: item.coverUrl,
-                          width: isDetails ? 60 : 45,
-                          height: isDetails ? 80 : 60,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) => Container(
-                            width: isDetails ? 60 : 45,
-                            height: isDetails ? 80 : 60,
-                            color: const Color(0xFF2C2C2E),
-                            child: const Icon(
-                              Icons.menu_book,
-                              color: Colors.white38,
-                            ),
-                          ),
-                        ),
+                        child: dark
+                            ? CachedNetworkImage(
+                                imageUrl: item.coverUrl,
+                                width: isDetails ? 60 : 45,
+                                height: isDetails ? 80 : 60,
+                                fit: BoxFit.cover,
+                                errorWidget: (context, url, error) => Container(
+                                  width: isDetails ? 60 : 45,
+                                  height: isDetails ? 80 : 60,
+                                  color: const Color(0xFF2C2C2E),
+                                  child: const Icon(
+                                    Icons.menu_book,
+                                    color: Colors.white38,
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.black12),
+                                ),
+                                child: CachedNetworkImage(
+                                  imageUrl: item.coverUrl,
+                                  width: isDetails ? 60 : 45,
+                                  height: isDetails ? 80 : 60,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        width: isDetails ? 60 : 45,
+                                        height: isDetails ? 80 : 60,
+                                        color: Colors.black12,
+                                        child: const Icon(
+                                          Icons.menu_book,
+                                          color: Colors.black38,
+                                        ),
+                                      ),
+                                ),
+                              ),
                       ),
                       DownloadedMangaBadge(
                         mangaId: item.id,
@@ -367,8 +438,8 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                   Expanded(
                     child: Text(
                       item.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: dark ? Colors.white : onSurface,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),

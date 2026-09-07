@@ -25,6 +25,8 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final sources = ref.watch(sourcesProvider);
 
     final filteredSources = sources.where((source) {
@@ -35,31 +37,39 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-                cursorColor: Colors.white,
+                style: TextStyle(
+                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                  fontSize: 18,
+                ),
+                cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
                 onChanged: (val) => setState(() => _searchQuery = val),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search sources...',
-                  hintStyle: TextStyle(color: Colors.white54),
+                  hintStyle: TextStyle(
+                    color: dark ? Colors.white54 : Colors.black54,
+                  ),
                   border: InputBorder.none,
                 ),
               )
-            : const Text(
+            : Text(
                 'Manage sources',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -68,7 +78,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
           IconButton(
             icon: Icon(
               _isSearching ? Icons.close : Icons.search,
-              color: Colors.white,
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
               setState(() {
@@ -97,7 +107,8 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               padding: const EdgeInsets.all(8),
               child: Icon(
                 Icons.more_horiz_rounded,
-                color: Colors.white.withValues(alpha: 0.8),
+                color: (dark ? Colors.white : const Color(0xFF1C1B1F))
+                    .withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -157,15 +168,19 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             title: Row(
               children: [
                 if (isPinned) ...[
-                  const Icon(Icons.push_pin, color: Colors.white, size: 14),
+                  Icon(
+                    Icons.push_pin,
+                    color: dark ? Colors.white : scheme.onSurface,
+                    size: 14,
+                  ),
                   const SizedBox(width: 6),
                 ],
                 Expanded(
                   child: Text(
                     sourceName,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: dark ? Colors.white : scheme.onSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -175,7 +190,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             ),
             subtitle: Text(
               source['language'] as String,
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
+              style: TextStyle(
+                color: dark ? Colors.white54 : Colors.black54,
+                fontSize: 13,
+              ),
             ),
             trailing: IosMenuButton<String>(
               items: [
