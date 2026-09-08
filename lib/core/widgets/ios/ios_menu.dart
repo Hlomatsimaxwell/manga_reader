@@ -39,7 +39,7 @@ class IosMenuButton<T> extends StatelessWidget {
             ? Colors.white.withValues(alpha: 0.8)
             : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8));
     return AppSheetPress(
-      child: Icon(Icons.more_horiz_rounded, size: 24, color: color),
+      child: Icon(Icons.more_vert_rounded, size: 24, color: color),
       onTap: () async {
         final result = await showIosMenu<T>(context, items: items);
         if (result != null) onSelected(result);

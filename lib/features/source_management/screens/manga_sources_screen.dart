@@ -107,7 +107,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: Icon(
-                Icons.more_horiz_rounded,
+                Icons.more_vert_rounded,
                 color: (dark ? Colors.white : const Color(0xFF1C1B1F))
                     .withValues(alpha: 0.8),
               ),

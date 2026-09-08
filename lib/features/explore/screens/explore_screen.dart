@@ -179,7 +179,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Icon(
-                  Icons.more_horiz_rounded,
+                  Icons.more_vert_rounded,
                   color: dark ? Colors.white70 : Colors.black54,
                   size: 22,
                 ),
