@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
@@ -54,7 +55,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 data: (updates) {
                   if (updates.isEmpty) {
                     return EmptyState(
-                      icon: Icons.rss_feed,
+                      icon: RemixIcons.rss_line,
                       title: AppLocalizations.of(context).feedNoNewUpdates,
                       subtitle: AppLocalizations.of(context).feedUpdatesHint,
                     );
@@ -106,7 +107,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       trailing: Padding(
         padding: const EdgeInsets.all(8),
         child: Icon(
-          Icons.more_vert,
+          RemixIcons.more_2_line,
           color: dark ? Colors.white70 : Colors.black54,
           size: 22,
         ),
@@ -152,7 +153,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   )
                 else
                   Icon(
-                    Icons.refresh,
+                    RemixIcons.refresh_line,
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
                     size: 15,
                   ),
@@ -235,7 +236,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                               errorWidget: (context, url, error) => Container(
                                 color: const Color(0xFF2C2C2E),
                                 child: const Icon(
-                                  Icons.menu_book,
+                                  RemixIcons.book_open_line,
                                   color: Colors.white38,
                                 ),
                               ),
@@ -275,8 +276,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                             ),
                             child: Icon(
                               update.isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
+                                  ? RemixIcons.heart_3_fill
+                                  : RemixIcons.heart_3_line,
                               color: Colors.white,
                               size: 10,
                             ),
@@ -381,7 +382,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFF2C2C2E),
-                        child: const Icon(Icons.menu_book, color: Colors.white38),
+                        child: const Icon(RemixIcons.book_open_line, color: Colors.white38),
                       ),
                     ),
                   ),

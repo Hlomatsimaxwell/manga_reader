@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -97,7 +98,7 @@ class _GlobalSearchResultsScreenState
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            RemixIcons.arrow_left_line,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -121,7 +122,7 @@ class _GlobalSearchResultsScreenState
             border: InputBorder.none,
             suffixIcon: IconButton(
               icon: Icon(
-                Icons.close,
+                RemixIcons.close_line,
                 color: dark ? Colors.white70 : const Color(0xFF49454F),
               ),
               onPressed: () {
@@ -137,7 +138,7 @@ class _GlobalSearchResultsScreenState
                 ? AppLocalizations.of(context).hideFailedSources
                 : AppLocalizations.of(context).showFailedSources,
             icon: Icon(
-              _showFailedSources ? Icons.public : Icons.public_off,
+              _showFailedSources ? RemixIcons.globe_line : RemixIcons.global_off_line,
               color: _showFailedSources
                   ? Colors.orange
                   : (dark ? Colors.white : const Color(0xFF1C1B1F)),
@@ -148,7 +149,7 @@ class _GlobalSearchResultsScreenState
           ),
           IconButton(
             icon: Icon(
-              Icons.search,
+              RemixIcons.search_line,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: _submitSearch,
@@ -201,7 +202,7 @@ class _GlobalSearchResultsScreenState
 
     if (visible.isEmpty) {
       return EmptyState(
-        icon: Icons.search_off,
+        icon: RemixIcons.search_2_line,
         title: AppLocalizations.of(context).noResultsFound,
         subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
@@ -264,7 +265,7 @@ class _GlobalSearchResultsScreenState
                       ),
                       const SizedBox(width: 4),
                       Icon(
-                        Icons.chevron_right,
+                        RemixIcons.arrow_right_s_line,
                         color:
                             dark ? Colors.white70 : const Color(0xFF49454F),
                         size: 18,
@@ -327,7 +328,7 @@ class _GlobalSearchResultsScreenState
                               height: 140,
                               width: 100,
                               child: Icon(
-                                Icons.menu_book,
+                                RemixIcons.book_open_line,
                                 color: dark
                                     ? Colors.white38
                                     : Colors.black38,
@@ -383,7 +384,7 @@ class _GlobalSearchResultsScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              result.hasError ? Icons.error_outline : Icons.search_off,
+              result.hasError ? RemixIcons.error_warning_line : RemixIcons.search_2_line,
               color: dark ? Colors.white38 : Colors.black38,
               size: 20,
             ),

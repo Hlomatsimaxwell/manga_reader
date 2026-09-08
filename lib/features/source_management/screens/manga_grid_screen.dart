@@ -1,3 +1,4 @@
+import 'package:remixicon/remixicon.dart';
 import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -116,7 +117,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            RemixIcons.arrow_left_line,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -143,7 +144,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isSearching ? Icons.close : Icons.search,
+              _isSearching ? RemixIcons.close_line : RemixIcons.search_line,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
@@ -159,14 +160,14 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
           // Updated dice button tap handler
           IconButton(
             icon: Icon(
-              Icons.casino_outlined,
+              RemixIcons.dice_line,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: _openRandomManga,
           ),
           IconButton(
             icon: Icon(
-              Icons.more_vert,
+              RemixIcons.more_2_line,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {},
@@ -202,7 +203,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                     Row(
                       children: [
                         Icon(
-                          Icons.filter_list,
+                          RemixIcons.filter_line,
                           color: dark
                               ? Colors.white70
                               : const Color(0xFF49454F),
@@ -261,7 +262,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                         const SizedBox(height: 16),
                         OutlinedButton.icon(
                           onPressed: _loadManga,
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(RemixIcons.refresh_line),
                           label: Text(AppLocalizations.of(context).retry),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: dark
@@ -325,7 +326,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                   children: [
                     if (isGenresButton) ...[
                       Icon(
-                        Icons.segment,
+                        RemixIcons.equalizer_line,
                         size: 16,
                         color: isSelected
                             ? Colors.black
@@ -360,7 +361,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
   Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
       return EmptyState(
-        icon: Icons.menu_book,
+        icon: RemixIcons.book_open_line,
         title: AppLocalizations.of(context).noMangaFound,
         subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
@@ -420,7 +421,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                           errorWidget: (context, url, error) => Container(
                             color: const Color(0xFF2C2C2E),
                             child: const Icon(
-                              Icons.menu_book,
+                              RemixIcons.book_open_line,
                               color: Colors.white38,
                               size: 28,
                             ),
@@ -437,7 +438,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                             errorWidget: (context, url, error) => Container(
                               color: Colors.black12,
                               child: const Icon(
-                                Icons.menu_book,
+                                RemixIcons.book_open_line,
                                 color: Colors.black38,
                                 size: 28,
                               ),

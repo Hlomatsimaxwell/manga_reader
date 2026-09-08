@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
@@ -229,7 +230,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.delete_sweep_outlined,
+                    RemixIcons.delete_bin_5_line,
                     color: fg,
                     size: 28,
                   ),
@@ -390,7 +391,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       children: [
                         _buildSegmentTab(
                           'Compact',
-                          Icons.format_list_bulleted,
+                          RemixIcons.list_unordered,
                           setSheetState,
                         ),
                         VerticalDivider(
@@ -401,7 +402,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ),
                         _buildSegmentTab(
                           'Details',
-                          Icons.view_list,
+                          RemixIcons.list_view,
                           setSheetState,
                         ),
                         VerticalDivider(
@@ -412,7 +413,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ),
                         _buildSegmentTab(
                           'Grid',
-                          Icons.grid_view_rounded,
+                          RemixIcons.grid_line,
                           setSheetState,
                         ),
                       ],
@@ -521,7 +522,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             dark ? const Color(0xFF2C2C2E) : Colors.white,
                         isExpanded: true,
                         icon: Icon(
-                          Icons.arrow_drop_down,
+                          RemixIcons.arrow_drop_down_line,
                           color: dark ? Colors.white70 : const Color(0xFF49454F),
                         ),
                         style: TextStyle(
@@ -553,7 +554,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       Row(
                         children: [
                           Icon(
-                            Icons.format_list_bulleted,
+                            RemixIcons.list_unordered,
                             color:
                                 dark ? Colors.white70 : const Color(0xFF49454F),
                             size: 20,
@@ -872,7 +873,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               const SizedBox(height: 16),
               if (filteredList.isEmpty)
                 EmptyState(
-                  icon: Icons.history,
+                  icon: RemixIcons.history_line,
                   title: AppLocalizations.of(context).historyEmptyTitle,
                   subtitle: AppLocalizations.of(context).historyEmptySubtitle,
                 )
@@ -932,7 +933,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
-            Icons.more_vert,
+            RemixIcons.more_2_line,
             color: iconColor,
             size: 22,
           ),
@@ -943,9 +944,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Widget _buildFilterChips() {
     final filters = [
-      {'icon': Icons.sd_card_outlined, 'labelKey': 'onDevice'},
-      {'icon': Icons.history_toggle_off, 'labelKey': 'newChapters'},
-      {'icon': Icons.done_all, 'labelKey': 'completed'},
+      {'icon': RemixIcons.sd_card_line, 'labelKey': 'onDevice'},
+      {'icon': RemixIcons.file_history_line, 'labelKey': 'newChapters'},
+      {'icon': RemixIcons.check_double_line, 'labelKey': 'completed'},
     ];
 
     final l = AppLocalizations.of(context);
@@ -1152,7 +1153,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFF2C2C2E),
                         child: const Icon(
-                          Icons.menu_book,
+                          RemixIcons.book_open_line,
                           color: Colors.white38,
                           size: 20,
                         ),
@@ -1201,7 +1202,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
-                                  Icons.sd_card_outlined,
+                                  RemixIcons.sd_card_line,
                                   color: Colors.white,
                                   size: 14,
                                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
 
@@ -16,7 +17,7 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: appBarContentColor),
+          icon: Icon(RemixIcons.arrow_left_line, color: appBarContentColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -29,7 +30,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.search, color: appBarContentColor),
+            icon: Icon(RemixIcons.search_line, color: appBarContentColor),
             onPressed: () {},
           ),
         ],
@@ -39,7 +40,7 @@ class SettingsScreen extends StatelessWidget {
         children: [
           _buildSettingTile(
             context: context,
-            icon: Icons.palette_outlined,
+            icon: RemixIcons.palette_line,
             title: l.settingsAppearance,
             subtitle: l.settingsAppearanceSubtitle,
             onTap: () {
@@ -53,56 +54,56 @@ class SettingsScreen extends StatelessWidget {
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.collections_bookmark_outlined,
+            icon: RemixIcons.bookmark_3_line,
             title: l.settingsMangaSources,
             subtitle: l.settingsMangaSourcesSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.menu_book_outlined,
+            icon: RemixIcons.book_open_line,
             title: l.settingsReader,
             subtitle: l.settingsReaderSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.pie_chart_outline_rounded,
+            icon: RemixIcons.pie_chart_2_line,
             title: l.settingsStorage,
             subtitle: l.settingsStorageSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.file_download_outlined,
+            icon: RemixIcons.download_line,
             title: l.settingsDownloads,
             subtitle: l.settingsDownloadsSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.rss_feed_rounded,
+            icon: RemixIcons.rss_line,
             title: l.settingsNewChapters,
             subtitle: l.settingsNewChaptersSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.extension_outlined,
+            icon: RemixIcons.puzzle_2_line,
             title: l.settingsServices,
             subtitle: l.settingsServicesSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.history_rounded,
+            icon: RemixIcons.history_line,
             title: l.settingsBackup,
             subtitle: l.settingsBackupSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
-            icon: Icons.info_outline_rounded,
+            icon: RemixIcons.information_line,
             title: l.settingsAbout,
             subtitle: l.settingsAboutSubtitle,
             onTap: () {},

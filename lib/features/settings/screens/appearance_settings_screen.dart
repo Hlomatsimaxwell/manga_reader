@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
@@ -23,7 +24,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: appBarContentColor),
+          icon: Icon(RemixIcons.arrow_left_line, color: appBarContentColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -320,7 +321,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     return ListTile(
       title: Text(label, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
       trailing: mode == current
-          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+          ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
           : null,
       onTap: () {
         notifier.setThemeMode(mode);
@@ -388,7 +389,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
                       ListTile(
                         title: Text(labels[i], style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                         trailing: languages[i] == settings.language
-                            ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                            ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
                             : null,
                         onTap: () {
                           notifier.setLanguage(languages[i]);
@@ -461,7 +462,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     return ListTile(
       title: Text(label, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
       trailing: mode == current
-          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+          ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
           : null,
       onTap: () {
         notifier.setListMode(mode);
@@ -519,7 +520,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               ListTile(
                 title: Text(tab.$2, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                 trailing: tab.$1 == settings.defaultTab
-                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                    ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
                     : null,
                 onTap: () {
                   notifier.setDefaultTab(tab.$1);
@@ -744,7 +745,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               ListTile(
                 title: Text(policyLabels[i], style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
                 trailing: policyCodes[i] == settings.screenshotPolicy
-                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                    ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
                     : null,
                 onTap: () {
                   notifier.setScreenshotPolicy(policyCodes[i]);
@@ -831,7 +832,7 @@ class _SchemePreset extends StatelessWidget {
                   color: primary,
                 ),
                 child: Icon(
-                  Icons.check,
+                  RemixIcons.check_line,
                   size: 18,
                   color: onPrimary,
                 ),

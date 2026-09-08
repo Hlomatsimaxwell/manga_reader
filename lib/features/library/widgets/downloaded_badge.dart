@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import '../providers/downloads_provider.dart';
 
 /// Small SD-card badge shown on a manga cover when at least one chapter of
@@ -40,7 +41,7 @@ class DownloadedMangaBadge extends ConsumerWidget {
           shape: BoxShape.circle,
         ),
         child: Icon(
-          Icons.sd_card_outlined,
+          RemixIcons.sd_card_line,
           color: Colors.white,
           size: iconSize,
         ),

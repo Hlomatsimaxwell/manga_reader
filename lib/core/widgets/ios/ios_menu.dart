@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:remixicon/remixicon.dart';
 import 'ios_sheet.dart';
 
 /// A single row in an [IosMenu]/[IosMenuButton] panel.
@@ -39,7 +40,7 @@ class IosMenuButton<T> extends StatelessWidget {
             ? Colors.white.withValues(alpha: 0.8)
             : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8));
     return AppSheetPress(
-      child: Icon(Icons.more_vert_rounded, size: 24, color: color),
+      child: Icon(RemixIcons.more_2_line, size: 24, color: color),
       onTap: () async {
         final result = await showIosMenu<T>(context, items: items);
         if (result != null) onSelected(result);
@@ -187,7 +188,7 @@ class MenuToggleRow extends StatelessWidget {
           children: [
             const SizedBox(width: 18),
             Icon(
-              value ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+              value ? RemixIcons.eye_off_line : RemixIcons.eye_line,
               size: 20,
               color: (dark
                       ? Colors.white

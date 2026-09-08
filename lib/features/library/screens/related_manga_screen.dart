@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
@@ -114,21 +115,21 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                         _buildModeButton(
                           context,
                           label: 'Compact',
-                          icon: Icons.reorder_rounded,
+                          icon: RemixIcons.drag_drop_line,
                           mode: ListMode.compact,
                           setSheetState: setSheetState,
                         ),
                         _buildModeButton(
                           context,
                           label: 'Details',
-                          icon: Icons.format_list_bulleted_rounded,
+                          icon: RemixIcons.list_unordered,
                           mode: ListMode.details,
                           setSheetState: setSheetState,
                         ),
                         _buildModeButton(
                           context,
                           label: 'Grid',
-                          icon: Icons.grid_view_rounded,
+                          icon: RemixIcons.grid_line,
                           mode: ListMode.grid,
                           setSheetState: setSheetState,
                         ),
@@ -242,7 +243,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            RemixIcons.arrow_left_line,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -253,7 +254,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
               IosMenuItem(
                 value: 'options',
                 label: 'List options',
-                icon: Icons.tune_rounded,
+                icon: RemixIcons.equalizer_line,
               ),
             ],
             onSelected: (value) {
@@ -324,7 +325,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                                       Container(
                                         color: const Color(0xFF2C2C2E),
                                         child: const Icon(
-                                          Icons.menu_book,
+                                          RemixIcons.book_open_line,
                                           color: Colors.white38,
                                         ),
                                       ),
@@ -342,7 +343,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                                         Container(
                                           color: Colors.black12,
                                           child: const Icon(
-                                            Icons.menu_book,
+                                            RemixIcons.book_open_line,
                                             color: Colors.black38,
                                           ),
                                         ),
@@ -399,7 +400,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                                   height: isDetails ? 80 : 60,
                                   color: const Color(0xFF2C2C2E),
                                   child: const Icon(
-                                    Icons.menu_book,
+                                    RemixIcons.book_open_line,
                                     color: Colors.white38,
                                   ),
                                 ),
@@ -420,7 +421,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                                         height: isDetails ? 80 : 60,
                                         color: Colors.black12,
                                         child: const Icon(
-                                          Icons.menu_book,
+                                          RemixIcons.book_open_line,
                                           color: Colors.black38,
                                         ),
                                       ),

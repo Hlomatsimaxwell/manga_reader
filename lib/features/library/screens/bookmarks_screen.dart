@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -123,7 +124,7 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
             )
           : _rows.isEmpty
           ? EmptyState(
-              icon: Icons.bookmark_outline,
+              icon: RemixIcons.bookmark_3_line,
               title: l.bookmarksEmpty,
               subtitle: l.bookmarksEmptySubtitle,
             )
@@ -203,7 +204,7 @@ class _BookmarkTile extends StatelessWidget {
                         height: 64,
                         color: const Color(0xFF2C2C2E),
                         child: const Icon(
-                          Icons.menu_book,
+                          RemixIcons.book_open_line,
                           color: Colors.white38,
                         ),
                       ),
@@ -223,7 +224,7 @@ class _BookmarkTile extends StatelessWidget {
                           height: 64,
                           color: Colors.black12,
                           child: const Icon(
-                            Icons.menu_book,
+                            RemixIcons.book_open_line,
                             color: Colors.black38,
                           ),
                         ),
@@ -272,7 +273,7 @@ class _BookmarkTile extends StatelessWidget {
             ),
             IconButton(
               icon: Icon(
-                Icons.delete_outline,
+                RemixIcons.delete_bin_6_line,
                 color: dark ? Colors.white38 : Colors.black38,
                 size: 20,
               ),

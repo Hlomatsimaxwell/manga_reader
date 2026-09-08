@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -28,14 +29,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   final List<Map<String, dynamic>> _quickButtons = [
     {
-      'icon': Icons.sd_card_outlined,
+      'icon': RemixIcons.sd_card_line,
       'labelKey': 'storage',
       'type': 'downloads',
     },
-    {'icon': Icons.bookmark_outline, 'labelKey': 'bookmarks', 'type': 'bookmarks'},
-    {'icon': Icons.casino_outlined, 'labelKey': 'random', 'type': 'random'},
+    {'icon': RemixIcons.bookmark_3_line, 'labelKey': 'bookmarks', 'type': 'bookmarks'},
+    {'icon': RemixIcons.dice_line, 'labelKey': 'random', 'type': 'random'},
     {
-      'icon': Icons.download_outlined,
+      'icon': RemixIcons.download_line,
       'labelKey': 'downloads',
       'type': 'downloads',
     },
@@ -99,7 +100,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             context,
             children: [
               IosMenuRow(
-                icon: Icons.tune_rounded,
+                icon: RemixIcons.equalizer_line,
                 label: AppLocalizations.of(context).manageSources,
                 onTap: () => Navigator.pop(context, 'manage'),
               ),
@@ -111,7 +112,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
               const IosMenuDivider(),
               IosMenuRow(
-                icon: Icons.settings_rounded,
+                icon: RemixIcons.settings_3_line,
                 label: AppLocalizations.of(context).settings,
                 onTap: () => Navigator.pop(context, 'settings'),
               ),
@@ -136,7 +137,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
-            Icons.more_vert_rounded,
+            RemixIcons.more_2_line,
             color: dark ? Colors.white70 : Colors.black54,
             size: 22,
           ),
@@ -421,7 +422,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         child: Transform.rotate(
                           angle: -0.785398,
                           child: Icon(
-                            Icons.push_pin,
+                            RemixIcons.pushpin_2_fill,
                             size: 14,
                             color:
                                 dark ? Colors.white70 : Colors.black54,

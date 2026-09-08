@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:remixicon/remixicon.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -486,7 +487,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 Row(
                   children: [
                     Icon(
-                      Icons.local_offer_outlined,
+                      RemixIcons.price_tag_3_line,
                       color: textColor,
                       size: 24,
                     ),
@@ -808,7 +809,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: Icon(
-                      Icons.play_arrow_rounded,
+                      RemixIcons.play_fill,
                       color: Theme.of(context).colorScheme.primary,
                       size: 20,
                     ),
@@ -850,14 +851,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   Padding(
                     padding: const EdgeInsets.only(right: 10),
                     child: Icon(
-                      Icons.sd_card_outlined,
+                      RemixIcons.sd_card_line,
                       color: dark ? Colors.white70 : const Color(0xFF49454F),
                       size: 18,
                     ),
                   ),
                 if (isSelected)
                   Icon(
-                    Icons.check_circle,
+                    RemixIcons.checkbox_circle_fill,
                     color: dark
                         ? Colors.white
                         : Theme.of(context).colorScheme.primary,
@@ -865,7 +866,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   )
                 else if (isRead)
                   Icon(
-                    Icons.check_circle_outline,
+                    RemixIcons.checkbox_circle_line,
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
                     size: 18,
                   ),
@@ -1165,7 +1166,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 color: dark ? const Color(0xFF2C2C2E) : Colors.white,
                 child: Center(
                   child: Icon(
-                    Icons.broken_image,
+                    RemixIcons.image_2_line,
                     color: dark ? Colors.white38 : Colors.black38,
                     size: 24,
                   ),
@@ -1201,7 +1202,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: EmptyState(
-            icon: Icons.bookmark_outline,
+            icon: RemixIcons.bookmark_3_line,
             title: AppLocalizations.of(context).bookmarksEmpty,
             subtitle: AppLocalizations.of(context).mangaDetailBookmarksEmpty,
           ),
@@ -1228,7 +1229,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   height: 64,
                   color: dark ? const Color(0xFF2C2C2E) : Colors.white,
                   child: Icon(
-                    Icons.broken_image,
+                    RemixIcons.image_2_line,
                     color: dark ? Colors.white38 : Colors.black38,
                   ),
                 ),
@@ -1254,7 +1255,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   ),
             trailing: IconButton(
               icon: Icon(
-                Icons.delete_outline,
+                RemixIcons.delete_bin_6_line,
                 color: dark ? Colors.white54 : Colors.black54,
               ),
               onPressed: () async {
@@ -1276,24 +1277,24 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: iconColor),
+            icon: Icon(RemixIcons.arrow_left_line, color: iconColor),
             onPressed: () => Navigator.of(context).pop(),
           ),
           const Spacer(),
           IconButton(
-            icon: Icon(Icons.refresh, color: iconColor),
+            icon: Icon(RemixIcons.refresh_line, color: iconColor),
             onPressed: () => _loadChapters(forceRefresh: true),
           ),
           IconButton(
-            icon: Icon(Icons.share_outlined, color: iconColor),
+            icon: Icon(RemixIcons.share_line, color: iconColor),
             onPressed: () {},
           ),
           IconButton(
-            icon: Icon(Icons.file_download_outlined, color: iconColor),
+            icon: Icon(RemixIcons.download_line, color: iconColor),
             onPressed: () => _showSaveMangaDialog(context),
           ),
           IconButton(
-            icon: Icon(Icons.more_vert, color: iconColor),
+            icon: Icon(RemixIcons.more_2_line, color: iconColor),
             onPressed: () => _showOverflowMenu(context),
           ),
         ],
@@ -1345,16 +1346,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
               ),
             ),
-            _buildOverflowRow(ctx, Icons.edit_outlined, l.mangaEdit, 'edit'),
+            _buildOverflowRow(ctx, RemixIcons.edit_2_line, l.mangaEdit, 'edit'),
             _buildOverflowRow(
-                ctx, Icons.travel_explore_outlined, l.findSimilar, 'similar'),
+                ctx, RemixIcons.earth_line, l.findSimilar, 'similar'),
             _buildOverflowRow(
-                ctx, Icons.alt_route, l.alternatives, 'alternatives'),
-            _buildOverflowRow(ctx, Icons.public, l.openInBrowser, 'web'),
+                ctx, RemixIcons.git_branch_line, l.alternatives, 'alternatives'),
+            _buildOverflowRow(ctx, RemixIcons.globe_line, l.openInBrowser, 'web'),
             _buildOverflowRow(
-                ctx, Icons.launch_outlined, l.createShortcut, 'shortcut'),
+                ctx, RemixIcons.external_link_line, l.createShortcut, 'shortcut'),
             _buildOverflowRow(
-                ctx, Icons.swap_horiz, l.replaceSource, 'replace'),
+                ctx, RemixIcons.swap_line, l.replaceSource, 'replace'),
             const SizedBox(height: 8),
           ],
         ),
@@ -1486,14 +1487,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
               const SizedBox(height: 8),
               _buildEditRow(
-                  ctx, l.editMangaTitle, widget.title, Icons.edit_outlined),
+                  ctx, l.editMangaTitle, widget.title, RemixIcons.edit_2_line),
               _buildEditRow(
-                  ctx, l.editMangaCover, widget.imageUrl, Icons.image_outlined),
+                  ctx, l.editMangaCover, widget.imageUrl, RemixIcons.image_2_line),
               _buildEditRow(
                   ctx,
                   l.editMangaTags,
                   (details?.tags ?? const <String>[]).join(', '),
-                  Icons.local_offer_outlined),
+                  RemixIcons.price_tag_3_line),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -1616,7 +1617,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       contentPadding:
                           const EdgeInsets.symmetric(horizontal: 16),
                       leading: Icon(
-                        Icons.layers_outlined,
+                        RemixIcons.stack_line,
                         color: Theme.of(ctx).colorScheme.primary,
                       ),
                       title: Text(
@@ -1628,7 +1629,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       ),
                       trailing: source['name'] == _source?.name
                           ? Icon(
-                              Icons.check,
+                              RemixIcons.check_line,
                               color: Theme.of(ctx).colorScheme.primary,
                             )
                           : null,
@@ -1881,7 +1882,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline,
+                        Icon(RemixIcons.information_line,
                             size: 18,
                             color:
                                 dark ? Colors.white54 : const Color(0xFF49454F)),
@@ -2111,8 +2112,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             children: [
                               Icon(
                                 _isFavorite
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
+                                    ? RemixIcons.heart_3_fill
+                                    : RemixIcons.heart_3_line,
                                 color: _isFavorite
                                     ? Colors.redAccent
                                     : (dark
@@ -2179,7 +2180,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             _details?.sourceId == 'mock'
                 ? l.mockSource
                 : (_sourceName ?? l.unknown),
-            icon: Icons.pets,
+            leading: _buildSourceIcon(),
           ),
           _buildCardRow(
             l.detailAuthor,
@@ -2234,7 +2235,58 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  Widget _buildCardRow(String label, String value, {IconData? icon}) {
+  // Small favicon tile (20×20) for the source row, matching the explore
+  // screen fallback: first-letter on a deterministic hue when no icon.
+  Widget _buildSourceIcon() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final name = _sourceName ?? '';
+    final source = getSourceBySourceId(widget.sourceId ?? '');
+    final iconUrl = source?.iconUrl ?? '';
+    final fallbackLetter = name.isEmpty ? '?' : name[0];
+
+    int hash = 0;
+    for (final c in name.codeUnits) {
+      hash = (hash * 31 + c) & 0x7FFFFFFF;
+    }
+    final bg = HSLColor.fromAHSL(1, (hash % 360).toDouble(), 0.35, 0.35)
+        .toColor();
+
+    Widget fallback() => Center(
+      child: Text(
+        fallbackLetter,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+        ),
+      ),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: ColoredBox(
+        color: bg,
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: iconUrl.isNotEmpty
+              ? Image.network(
+                  iconUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => fallback(),
+                )
+              : fallback(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardRow(
+    String label,
+    String value, {
+    IconData? icon,
+    Widget? leading,
+  }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     return Padding(
@@ -2254,7 +2306,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (icon != null) ...[
+                if (leading != null) ...[
+                  leading,
+                  const SizedBox(width: 6),
+                ] else if (icon != null) ...[
                   Icon(icon, size: 16, color: dark ? Colors.white : onSurface),
                   const SizedBox(width: 6),
                 ],
@@ -2505,7 +2560,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             ? const Color(0xFF2C2C2E)
                             : Colors.white,
                         child: Icon(
-                          Icons.menu_book,
+                          RemixIcons.book_open_line,
                           color: dark ? Colors.white38 : Colors.black38,
                         ),
                       ),
@@ -2628,7 +2683,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       children: [
         // Chapter list tab (shows unread count when there are unread chapters).
         _buildTabIcon(
-          Icons.format_list_bulleted,
+          RemixIcons.list_unordered,
           activeTab == 0,
           dark: dark,
           scheme: scheme,
@@ -2637,7 +2692,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         const SizedBox(width: 2),
         _buildTabIcon(
-          Icons.grid_view_rounded,
+          RemixIcons.grid_line,
           activeTab == 1,
           dark: dark,
           scheme: scheme,
@@ -2646,8 +2701,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         const SizedBox(width: 2),
         _buildTabIcon(
           activeTab == 2
-              ? Icons.bookmark_rounded
-              : Icons.bookmark_border_rounded,
+              ? RemixIcons.bookmark_2_fill
+              : RemixIcons.bookmark_2_line,
           activeTab == 2,
           dark: dark,
           scheme: scheme,
@@ -2658,7 +2713,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         // search and overflow menu icons in the tray's trailing corner.
         if (isExpanded) ...[
           _buildTabIcon(
-            Icons.search_rounded,
+            RemixIcons.search_line,
             false,
             dark: dark,
             scheme: scheme,
@@ -2666,12 +2721,14 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           ),
           const SizedBox(width: 2),
           _buildTabIcon(
-            Icons.swap_vert,
+            RemixIcons.arrow_up_down_line,
             false,
             dark: dark,
             scheme: scheme,
             onTap: () {},
           ),
+          const SizedBox(width: 6),
+          _buildExpandButton(dark: dark, scheme: scheme),
         ] else ...[
           // Continue/Read action, only for the chapter list tab.
           if (showContinueButton) ...[
@@ -2699,7 +2756,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       key: const ValueKey('selectionTrayHeader'),
       children: [
         IconButton(
-          icon: Icon(Icons.close, color: iconColor),
+          icon: Icon(RemixIcons.close_line, color: iconColor),
           onPressed: onExitSelection,
         ),
         const SizedBox(width: 4),
@@ -2713,13 +2770,13 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         const Spacer(),
         IconButton(
-          icon: Icon(Icons.format_line_spacing, color: iconColor),
+          icon: Icon(RemixIcons.list_unordered, color: iconColor),
           tooltip: AppLocalizations.of(context).selectRange,
           onPressed: onSelectRange,
         ),
         IconButton(
           icon: Icon(
-            isAllSelectedRead ? Icons.visibility_off : Icons.visibility,
+            isAllSelectedRead ? RemixIcons.eye_off_line : RemixIcons.eye_line,
             color: iconColor,
           ),
           tooltip: AppLocalizations.of(context).toggleRead,
@@ -2727,13 +2784,13 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         if (hasDownloaded)
           IconButton(
-            icon: Icon(Icons.delete_outline, color: iconColor),
+            icon: Icon(RemixIcons.delete_bin_6_line, color: iconColor),
             tooltip: AppLocalizations.of(context).removeDownloadTooltip,
             onPressed: onRemoveDownloads,
           )
         else
           IconButton(
-            icon: Icon(Icons.download_rounded, color: iconColor),
+            icon: Icon(RemixIcons.download_line, color: iconColor),
             tooltip: AppLocalizations.of(context).detailDownload,
             onPressed: onDownload,
           ),
@@ -2815,7 +2872,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           border: dark ? null : Border.all(color: Colors.black12),
         ),
         child: Icon(
-          Icons.keyboard_arrow_up,
+          isExpanded ? RemixIcons.arrow_down_s_line : RemixIcons.arrow_up_s_line,
           color: dark ? Colors.white : scheme.onSurface,
           size: 16,
         ),

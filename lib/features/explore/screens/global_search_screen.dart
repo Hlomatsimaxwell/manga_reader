@@ -1,3 +1,4 @@
+import 'package:remixicon/remixicon.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -122,7 +123,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            RemixIcons.arrow_left_line,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -148,7 +149,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
             suffixIcon: _currentQuery.isNotEmpty
                 ? IconButton(
                     icon: Icon(
-                      Icons.close,
+                      RemixIcons.close_line,
                       color: dark ? Colors.white70 : const Color(0xFF49454F),
                     ),
                     onPressed: () {
@@ -162,7 +163,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              Icons.search,
+              RemixIcons.search_line,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () =>
@@ -173,7 +174,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               IosMenuItem(
                 value: 'clear_history',
                 label: AppLocalizations.of(context).clearSearchHistory,
-                icon: Icons.delete_outline_rounded,
+                icon: RemixIcons.delete_bin_6_line,
               ),
             ],
             onSelected: (value) {
@@ -289,7 +290,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(
-              Icons.history,
+              RemixIcons.history_line,
               color: dark ? Colors.white70 : const Color(0xFF49454F),
             ),
             title: Text(
@@ -303,7 +304,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               ),
             ),
             trailing: Icon(
-              Icons.north_west,
+              RemixIcons.arrow_left_up_line,
               color: dark ? Colors.white54 : Colors.black54,
             ),
             onTap: () {
@@ -364,7 +365,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                         height: 140,
                         width: 100,
                         child: Icon(
-                          Icons.menu_book,
+                          RemixIcons.book_open_line,
                           color: dark ? Colors.white38 : Colors.black38,
                         ),
                       ),
@@ -408,7 +409,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(
-              Icons.history,
+              RemixIcons.history_line,
               color: dark ? Colors.white70 : const Color(0xFF49454F),
             ),
             title: Text(
@@ -422,7 +423,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               ),
             ),
             trailing: Icon(
-              Icons.north_west,
+              RemixIcons.arrow_left_up_line,
               color: dark ? Colors.white54 : Colors.black54,
             ),
             onTap: () {
@@ -470,7 +471,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
       data: (results) {
         if (results.isEmpty) {
           return EmptyState(
-            icon: Icons.search_off,
+            icon: RemixIcons.search_2_line,
             title: AppLocalizations.of(context).noResultsFound,
             subtitle: AppLocalizations.of(context).tryDifferentSearch,
             verticalPadding: 24,
@@ -520,7 +521,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                                     ? const Color(0xFF2C2C2E)
                                     : Colors.black12,
                                 child: Icon(
-                                  Icons.menu_book,
+                                  RemixIcons.book_open_line,
                                   color: dark
                                       ? Colors.white38
                                       : Colors.black38,

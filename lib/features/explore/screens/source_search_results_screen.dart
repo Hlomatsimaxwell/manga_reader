@@ -1,3 +1,4 @@
+import 'package:remixicon/remixicon.dart';
 import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -246,7 +247,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
         centerTitle: false,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            RemixIcons.arrow_left_line,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -284,7 +285,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
           if (_isSearching)
             IconButton(
               icon: Icon(
-                Icons.close,
+                RemixIcons.close_line,
                 color: dark ? Colors.white : const Color(0xFF1C1B1F),
               ),
               onPressed: _toggleSearch,
@@ -292,7 +293,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
           else ...[
             IconButton(
               icon: Icon(
-                Icons.search,
+                RemixIcons.search_line,
                 color: dark ? Colors.white : const Color(0xFF1C1B1F),
               ),
               onPressed: _toggleSearch,
@@ -300,7 +301,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             IconButton(
               tooltip: AppLocalizations.of(context).randomMangaTooltip,
               icon: Icon(
-                Icons.casino_outlined,
+                RemixIcons.dice_line,
                 color: dark ? Colors.white : const Color(0xFF1C1B1F),
               ),
               onPressed: _openRandomManga,
@@ -310,12 +311,12 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                 IosMenuItem(
                   value: 'refresh',
                   label: AppLocalizations.of(context).refreshResults,
-                  icon: Icons.refresh_rounded,
+                  icon: RemixIcons.refresh_line,
                 ),
                 IosMenuItem(
                   value: 'clear_query',
                   label: AppLocalizations.of(context).clearSearchQuery,
-                  icon: Icons.close_rounded,
+                  icon: RemixIcons.close_line,
                 ),
               ],
               onSelected: (value) {
@@ -366,7 +367,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.search,
+                    RemixIcons.search_line,
                     size: 16,
                     color: dark
                         ? Colors.white
@@ -389,7 +390,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                   ),
                   const SizedBox(width: 6),
                   Icon(
-                    Icons.close,
+                    RemixIcons.close_line,
                     size: 16,
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
                   ),
@@ -430,7 +431,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.segment,
+                  RemixIcons.equalizer_line,
                   size: 16,
                   color: _genrePrefixSelected
                       ? (dark ? Colors.black : Colors.white)
@@ -541,7 +542,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: _runSearch,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(RemixIcons.refresh_line),
               label: Text(AppLocalizations.of(context).retry),
               style: OutlinedButton.styleFrom(
                 foregroundColor: dark
@@ -559,7 +560,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
 
     if (_mangaList.isEmpty) {
       return EmptyState(
-        icon: Icons.search_off,
+        icon: RemixIcons.search_2_line,
         title: AppLocalizations.of(context).noMangaFound,
         subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
@@ -632,7 +633,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                       errorWidget: (context, url, error) => Container(
                         color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
                         child: Icon(
-                          Icons.menu_book,
+                          RemixIcons.book_open_line,
                           color: dark ? Colors.white38 : Colors.black38,
                           size: 28,
                         ),

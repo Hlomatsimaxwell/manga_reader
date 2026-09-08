@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
@@ -106,7 +107,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       trailing: Padding(
         padding: const EdgeInsets.all(8),
         child: Icon(
-          Icons.more_vert,
+          RemixIcons.more_2_line,
           color: dark ? Colors.white70 : Colors.black54,
           size: 22,
         ),
@@ -161,7 +162,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.sell_outlined,
+                      RemixIcons.price_tag_3_line,
                       size: 16,
                       color: fg,
                     ),
@@ -192,7 +193,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
 
     if (items.isEmpty) {
       return EmptyState(
-        icon: Icons.lightbulb_outline,
+        icon: RemixIcons.lightbulb_line,
         title: AppLocalizations.of(context).suggestionsNoResults,
         subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
@@ -258,7 +259,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFF2C2C2E),
                         child: const Icon(
-                          Icons.menu_book,
+                          RemixIcons.book_open_line,
                           color: Colors.white38,
                           size: 28,
                         ),

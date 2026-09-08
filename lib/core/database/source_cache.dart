@@ -195,6 +195,14 @@ class SourceCache {
     final fallback = cached;
     try {
       final value = await fetch();
+      // When the source swallows network errors and returns an empty
+      // result (empty list / empty map) while a valid stale cache exists,
+      // preserve the stale data instead of overwriting it with empties.
+      final isEmptyResult =
+          (value is List && value.isEmpty) || (value is Map && value.isEmpty);
+      if (isEmptyResult && fallback != null) {
+        return fallback;
+      }
       await db.insert('source_cache', {
         'key': key,
         'json': encode(value),

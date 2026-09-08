@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
@@ -107,7 +108,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       trailing: Padding(
         padding: const EdgeInsets.all(8),
         child: Icon(
-          Icons.more_vert,
+          RemixIcons.more_2_line,
           color: dark ? Colors.white70 : Colors.black54,
           size: 22,
         ),
@@ -119,7 +120,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     if (items.isEmpty) {
       final l = AppLocalizations.of(context);
       return EmptyState(
-        icon: Icons.favorite_border,
+        icon: RemixIcons.heart_3_line,
         title: _searchQuery.isNotEmpty
             ? l.favoritesNoMatch
             : l.favoritesEmpty,
@@ -190,7 +191,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFF2C2C2E),
                         child: const Icon(
-                          Icons.menu_book,
+                          RemixIcons.book_open_line,
                           color: Colors.white38,
                           size: 28,
                         ),
@@ -208,7 +209,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.favorite,
+                      RemixIcons.heart_3_fill,
                       color: Colors.white,
                       size: 13,
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:remixicon/remixicon.dart';
 
 /// The single shared search bar look used across the app: a rounded pill with
 /// a leading search icon, a hint/text field, and an optional clear button.
@@ -88,7 +89,7 @@ class YomouSearchBar extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16),
-          child: Icon(Icons.search, color: iconColor, size: 22),
+          child: Icon(RemixIcons.search_line, color: iconColor, size: 22),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -102,7 +103,7 @@ class YomouSearchBar extends StatelessWidget {
         ),
         if (clearVisible)
           IconButton(
-            icon: Icon(Icons.clear, color: iconColor, size: 20),
+            icon: Icon(RemixIcons.close_line, color: iconColor, size: 20),
             onPressed: onClear,
           )
         else if (trailing != null)

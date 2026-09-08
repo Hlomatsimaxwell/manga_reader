@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -44,7 +45,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            RemixIcons.arrow_left_line,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -78,7 +79,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isSearching ? Icons.close : Icons.search,
+              _isSearching ? RemixIcons.close_line : RemixIcons.search_line,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
@@ -107,7 +108,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: Icon(
-                Icons.more_vert_rounded,
+                RemixIcons.more_2_line,
                 color: (dark ? Colors.white : const Color(0xFF1C1B1F))
                     .withValues(alpha: 0.8),
               ),
@@ -172,7 +173,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               children: [
                 if (isPinned) ...[
                   Icon(
-                    Icons.push_pin,
+                    RemixIcons.pushpin_2_fill,
                     color: dark ? Colors.white : scheme.onSurface,
                     size: 14,
                   ),
@@ -203,24 +204,24 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                 IosMenuItem(
                   value: 'top',
                   label: AppLocalizations.of(context).toTop,
-                  icon: Icons.vertical_align_top_rounded,
+                  icon: RemixIcons.align_top,
                 ),
                 IosMenuItem(
                   value: 'pin',
                   label: AppLocalizations.of(context).pin,
                   icon: isPinned
-                      ? Icons.check_box
-                      : Icons.check_box_outline_blank,
+                      ? RemixIcons.checkbox_fill
+                      : RemixIcons.checkbox_blank_line,
                 ),
                 IosMenuItem(
                   value: 'shortcut',
                   label: AppLocalizations.of(context).createShortcut,
-                  icon: Icons.launch_rounded,
+                  icon: RemixIcons.external_link_line,
                 ),
                 IosMenuItem(
                   value: 'settings',
                   label: AppLocalizations.of(context).settings,
-                  icon: Icons.settings_rounded,
+                  icon: RemixIcons.settings_3_line,
                 ),
               ],
               onSelected: (value) {

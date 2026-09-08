@@ -438,7 +438,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 )
               : Icon(
-                  Icons.auto_stories_rounded,
+                  RemixIcons.book_open_line,
                   color: ThemeData.estimateBrightnessForColor(accent) ==
                           Brightness.dark
                       ? Colors.white
