@@ -7,6 +7,7 @@ import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/reader/services/chapter_downloader.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// All chapters downloaded to local storage across every manga.
 class DownloadsScreen extends ConsumerStatefulWidget {
@@ -44,16 +45,17 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
     final chapterId = row['chapterId'] as String? ?? '';
     final title =
         row['chapterTitle'] as String? ??
-        'Chapter ${_formatChapterNumber(((row['chapterNumber'] as num?) ?? 0).toDouble())}';
+        AppLocalizations.of(context).chapterNum(_formatChapterNumber(((row['chapterNumber'] as num?) ?? 0).toDouble()));
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         final dark = Theme.of(context).brightness == Brightness.dark;
+        final l = AppLocalizations.of(context);
         return AlertDialog(
           backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
           title: Text(
-            'Remove download?',
+            l.removeDownloadTitle,
             style: TextStyle(
               color: dark
                   ? Colors.white
@@ -62,7 +64,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
             ),
           ),
           content: Text(
-            '"$title" will be deleted from your device.',
+            l.removeDownloadContent(title),
             style: TextStyle(
               color: dark ? Colors.white70 : const Color(0xFF49454F),
               fontSize: 14,
@@ -72,7 +74,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: Text(
-                'Cancel',
+                l.cancel,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF49454F),
                 ),
@@ -80,9 +82,9 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text(
-                'Remove',
-                style: TextStyle(color: Colors.redAccent),
+              child: Text(
+                l.remove,
+                style: const TextStyle(color: Colors.redAccent),
               ),
             ),
           ],
@@ -99,12 +101,13 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: Text(
-          'Downloads',
+          l.downloads,
           style: TextStyle(
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
             fontWeight: FontWeight.bold,
@@ -122,8 +125,8 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
           : _rows.isEmpty
           ? EmptyState(
               icon: Icons.download_for_offline_outlined,
-              title: 'No downloaded chapters yet',
-              subtitle: 'Download chapters in the reader to read offline',
+              title: l.downloadsEmpty,
+              subtitle: l.downloadsEmptySubtitle,
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -155,6 +158,7 @@ class _DownloadTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final onSurface = Theme.of(context).colorScheme.onSurface;
+    final l = AppLocalizations.of(context);
     final mangaId = row['mangaId'] as String? ?? '';
     final mangaTitle = row['mangaTitle'] as String? ?? mangaId;
     final mangaCover = row['mangaCover'] as String? ?? '';
@@ -252,7 +256,7 @@ class _DownloadTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    title.isEmpty ? 'Chapter ${_fmtNum(chapterNumber)}' : title,
+                    title.isEmpty ? l.chapterNum(_fmtNum(chapterNumber)) : title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -262,7 +266,7 @@ class _DownloadTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '$pageCount pages • ${_fmtDate(downloadedAt)}',
+                    l.downloadsPagesDate(pageCount, _fmtDate(downloadedAt, l)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -279,7 +283,7 @@ class _DownloadTile extends StatelessWidget {
                 color: dark ? Colors.white38 : Colors.black38,
                 size: 20,
               ),
-              tooltip: 'Remove download',
+              tooltip: l.removeDownloadTooltip,
               onPressed: () => onDelete(row),
             ),
           ],
@@ -295,7 +299,7 @@ class _DownloadTile extends StatelessWidget {
     return number.toStringAsFixed(1);
   }
 
-  String _fmtDate(String iso) {
+  String _fmtDate(String iso, AppLocalizations l) {
     final dt = DateTime.tryParse(iso);
     if (dt == null) return '';
     final local = dt.toLocal();
@@ -303,22 +307,22 @@ class _DownloadTile extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final that = DateTime(local.year, local.month, local.day);
     final diff = today.difference(that).inDays;
-    if (diff == 0) return 'today';
-    if (diff == 1) return 'yesterday';
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    if (diff == 0) return l.today;
+    if (diff == 1) return l.yesterday;
+    final months = [
+      l.jan,
+      l.feb,
+      l.mar,
+      l.apr,
+      l.may,
+      l.jun,
+      l.jul,
+      l.aug,
+      l.sep,
+      l.oct,
+      l.nov,
+      l.dec,
     ];
-    return '${months[local.month - 1]} ${local.day}, ${local.year}';
+    return l.dateLong(months[local.month - 1], local.day, local.year);
   }
 }

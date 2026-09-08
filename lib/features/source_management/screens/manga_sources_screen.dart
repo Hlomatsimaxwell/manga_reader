@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class ManageSourcesScreen extends ConsumerStatefulWidget {
   const ManageSourcesScreen({super.key});
@@ -59,7 +60,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                 cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
                 onChanged: (val) => setState(() => _searchQuery = val),
                 decoration: InputDecoration(
-                  hintText: 'Search sources...',
+                  hintText: AppLocalizations.of(context).searchSources,
                   hintStyle: TextStyle(
                     color: dark ? Colors.white54 : Colors.black54,
                   ),
@@ -67,7 +68,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                 ),
               )
             : Text(
-                'Manage sources',
+                AppLocalizations.of(context).manageSources,
                 style: TextStyle(
                   color: dark ? Colors.white : const Color(0xFF1C1B1F),
                   fontSize: 20,
@@ -96,7 +97,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                 context,
                 children: [
                   MenuToggleRow(
-                    label: 'Disable NSFW',
+                    label: AppLocalizations.of(context).disableNsfw,
                     value: _disableNSFW,
                     onChanged: (v) => setState(() => _disableNSFW = v),
                   ),
@@ -133,7 +134,9 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               // 2. Show a a nice confirmation to the user
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Switched to $sourceName'),
+                  content: Text(
+                    AppLocalizations.of(context).switchedToSource(sourceName),
+                  ),
                   backgroundColor: source['bgColor'] as Color,
                   duration: const Duration(seconds: 1),
                 ),
@@ -197,26 +200,26 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             ),
             trailing: IosMenuButton<String>(
               items: [
-                const IosMenuItem(
+                IosMenuItem(
                   value: 'top',
-                  label: 'To top',
+                  label: AppLocalizations.of(context).toTop,
                   icon: Icons.vertical_align_top_rounded,
                 ),
                 IosMenuItem(
                   value: 'pin',
-                  label: 'Pin',
+                  label: AppLocalizations.of(context).pin,
                   icon: isPinned
                       ? Icons.check_box
                       : Icons.check_box_outline_blank,
                 ),
-                const IosMenuItem(
+                IosMenuItem(
                   value: 'shortcut',
-                  label: 'Create shortcut',
+                  label: AppLocalizations.of(context).createShortcut,
                   icon: Icons.launch_rounded,
                 ),
-                const IosMenuItem(
+                IosMenuItem(
                   value: 'settings',
-                  label: 'Settings',
+                  label: AppLocalizations.of(context).settings,
                   icon: Icons.settings_rounded,
                 ),
               ],

@@ -7,6 +7,7 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -53,7 +54,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 60),
                   child: Center(
                     child: Text(
-                      'Could not load favorites',
+                      AppLocalizations.of(context).favoritesCouldNotLoad,
                       style: TextStyle(
                         color:
                             Theme.of(context).brightness == Brightness.dark
@@ -108,7 +109,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         },
         decoration: InputDecoration(
           icon: Icon(Icons.search, color: iconColor, size: 22),
-          hintText: 'Search favorites',
+          hintText: AppLocalizations.of(context).favoritesSearchHint,
           hintStyle: TextStyle(color: hintColor, fontSize: 16),
           border: InputBorder.none,
           suffixIcon: _searchQuery.isNotEmpty
@@ -133,12 +134,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
+      final l = AppLocalizations.of(context);
       return EmptyState(
         icon: Icons.favorite_border,
         title: _searchQuery.isNotEmpty
-            ? 'No favorites match your search'
-            : 'No favorites yet',
-        subtitle: 'Tap the heart on any manga to add it here.',
+            ? l.favoritesNoMatch
+            : l.favoritesEmpty,
+        subtitle: l.favoritesEmptySubtitle,
       );
     }
 

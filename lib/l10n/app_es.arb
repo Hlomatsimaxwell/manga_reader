@@ -1,0 +1,474 @@
+{
+  "@@locale": "es",
+  "cancel": "Cancelar",
+  "delete": "Eliminar",
+  "remove": "Quitar",
+  "retry": "Reintentar",
+  "close": "Cerrar",
+  "confirm": "Confirmar",
+  "today": "hoy",
+  "yesterday": "ayer",
+  "history": "Historial",
+  "favorites": "Favoritos",
+  "suggestions": "Sugerencias",
+  "explore": "Explorar",
+  "updates": "Actualizaciones",
+  "settings": "Ajustes",
+  "downloads": "Descargas",
+  "bookmarks": "Marcadores",
+  "mangaSources": "Fuentes de manga",
+  "searchManga": "Buscar manga",
+  "lastUsed": "Usado por última vez",
+  "jan": "ene",
+  "feb": "feb",
+  "mar": "mar",
+  "apr": "abr",
+  "may": "may",
+  "jun": "jun",
+  "jul": "jul",
+  "aug": "ago",
+  "sep": "sep",
+  "oct": "oct",
+  "nov": "nov",
+  "dec": "dic",
+  "dateLong": "{month} {day}, {year}",
+  "pressBackToExit": "Presiona atrás de nuevo para salir",
+  "noReadingHistoryYet": "Aún no hay historial de lectura",
+  "noSourceAvailable": "No hay fuente disponible",
+  "noChaptersAvailable": "No hay capítulos disponibles",
+  "failedToContinueReading": "No se pudo continuar la lectura: {error}",
+  "settingsAppearance": "Apariencia",
+  "settingsAppearanceSubtitle": "Tema, modo de lista, idioma",
+  "settingsMangaSources": "Fuentes de manga",
+  "settingsMangaSourcesSubtitle": "1033 de 931 activas",
+  "settingsReader": "Ajustes del lector",
+  "settingsReaderSubtitle": "Modo de lectura, modo de escala, cambio de páginas",
+  "settingsStorage": "Almacenamiento y red",
+  "settingsStorageSubtitle": "Uso de almacenamiento, proxy, precarga de contenido",
+  "settingsDownloads": "Descargas",
+  "settingsDownloadsSubtitle": "Carpeta de descargas, descargar solo con Wi-Fi",
+  "settingsNewChapters": "Buscar capítulos nuevos",
+  "settingsNewChaptersSubtitle": "Buscar actualizaciones, ajustes de notificaciones",
+  "settingsServices": "Servicios",
+  "settingsServicesSubtitle": "Sugerencias, sincronización, seguimiento",
+  "settingsBackup": "Copia de seguridad y restauración",
+  "settingsBackupSubtitle": "Crear o restaurar copia, copias periódicas",
+  "settingsAbout": "Acerca de",
+  "settingsAboutSubtitle": "Versión 9.8.1",
+  "appearanceTitle": "Apariencia",
+  "appearanceColorScheme": "Esquema de color",
+  "appearanceSectionThemeOptions": "Opciones de tema",
+  "appearanceSectionMangaList": "Lista de manga",
+  "appearanceSectionMainScreen": "Pantalla principal",
+  "appearanceNone": "Ninguno",
+  "appearanceThemeTitle": "Tema",
+  "appearanceThemeSystem": "Sistema",
+  "appearanceThemeLight": "Claro",
+  "appearanceThemeDark": "Oscuro",
+  "appearanceLanguageTitle": "Idioma",
+  "languageFollowSystem": "Seguir el sistema",
+  "languageEn": "Inglés",
+  "languageEs": "Español",
+  "languageFr": "Francés",
+  "languageDe": "Alemán",
+  "languagePt": "Portugués",
+  "languageIt": "Italiano",
+  "languageRu": "Ruso",
+  "languageJa": "Japonés",
+  "languageKo": "Coreano",
+  "languageZh": "Chino simplificado",
+  "languageAr": "Árabe",
+  "languageHi": "Hindi",
+  "appearanceListModeTitle": "Modo de lista",
+  "listModeGrid": "Cuadrícula",
+  "listModeList": "Lista",
+  "appearanceGridSize": "Tamaño de cuadrícula: {percent}%",
+  "appearanceQuickFilters": "Mostrar filtros rápidos",
+  "appearanceReadingProgress": "Mostrar progreso de lectura",
+  "appearanceBadges": "Insignias en las listas",
+  "appearanceDetails": "Detalles",
+  "appearanceCollapseDescription": "Contraer descripción larga",
+  "appearancePagesThumbnails": "Mostrar miniaturas de páginas",
+  "appearanceDefaultTabTitle": "Pestaña predeterminada",
+  "appearanceSearchSuggestionsTitle": "Sugerencias de búsqueda",
+  "appearanceMainSectionsTitle": "Secciones de la pantalla principal",
+  "appearanceMainSectionsSubtitle": "Categorías para mostrar en la pantalla principal",
+  "appearanceFloatingContinue": "Mostrar el botón flotante Continuar",
+  "appearanceNavLabels": "Mostrar etiquetas en la barra de navegación",
+  "appearanceFloatingNav": "Barra de navegación flotante",
+  "appearancePinNav": "Fijar la interfaz de navegación",
+  "appearancePinNavSubtitle": "No ocultar la barra de navegación ni la búsqueda al hacer scroll",
+  "appearanceExitConfirmation": "Confirmación de salida",
+  "appearanceExitConfirmationSubtitle": "Presiona Atrás dos veces para salir de la app",
+  "appearanceRecentShortcuts": "Mostrar accesos directos de manga reciente",
+  "appearanceHideNsfwShortcuts": "Ocultar NSFW de los accesos directos",
+  "appearancePrivacy": "Privacidad",
+  "appearanceProtectApp": "Proteger la app",
+  "appearanceProtectAppSubtitle": "Requiere autenticación para abrir Yomou",
+  "appearanceScreenshotPolicyTitle": "Política de capturas de pantalla",
+  "screenshotPolicyAllow": "Permitir",
+  "screenshotPolicyBlock": "Bloquear",
+  "suggestionHistory": "Historial",
+  "suggestionTrending": "Tendencias",
+  "suggestionNew": "Nuevo",
+  "suggestionPopular": "Popular",
+  "defaultTabLastUsed": "Usado recientemente",
+  "defaultTabHistory": "Historial",
+  "defaultTabFavorites": "Favoritos",
+  "defaultTabSuggestions": "Sugerencias",
+  "defaultTabExplore": "Explorar",
+  "defaultTabUpdates": "Novedades",
+  "favoritesSearchHint": "Buscar favoritos",
+  "favoritesCouldNotLoad": "No se pudieron cargar los favoritos",
+  "favoritesNoMatch": "Ningún favorito coincide con tu búsqueda",
+  "favoritesEmpty": "Aún no hay favoritos",
+  "favoritesEmptySubtitle": "Toca el corazón de cualquier manga para añadirlo aquí.",
+  "bookmarksTitle": "Marcadores",
+  "deleteBookmarkTitle": "¿Eliminar marcador?",
+  "bookmarkPage": "Página {page}",
+  "bookmarkItem": "\"{title}\" • página {page}",
+  "bookmarksEmpty": "Aún no hay marcadores",
+  "bookmarksEmptySubtitle": "Marca páginas mientras lees para guardarlas aquí",
+  "deleteBookmarkTooltip": "Eliminar marcador",
+  "removeDownloadTitle": "¿Quitar descarga?",
+  "removeDownloadContent": "\"{title}\" se eliminará de tu dispositivo.",
+  "downloadsEmpty": "Aún no hay capítulos descargados",
+  "downloadsEmptySubtitle": "Descarga capítulos en el lector para leer sin conexión",
+  "chapterNum": "Capítulo {number}",
+  "downloadsPagesDate": "{pages} páginas • {date}",
+  "removeDownloadTooltip": "Quitar descarga",
+  "exploreLocalStorage": "Almacenamiento local",
+  "exploreRandom": "Aleatorio",
+  "exploreManage": "Gestionar",
+  "exploreMore": "Más",
+  "manageSources": "Gestionar fuentes",
+  "incognitoMode": "Modo incógnito",
+  "noRandomRightNow": "No hay manga disponible para Aleatorio en este momento",
+  "couldNotFindRandom": "No se pudo encontrar un manga aleatorio",
+  "historyClearTitle": "Borrar historial",
+  "historyClearLastHours": "Últimas 2 horas",
+  "historyClearToday": "Hoy",
+  "historyClearNotFavorites": "Fuera de favoritos",
+  "historyClearAll": "Borrar todo el historial",
+  "historyClear": "Borrar",
+  "historyUpdated": "Historial actualizado",
+  "historyListMode": "Modo de lista",
+  "historyCompactMode": "Compacto",
+  "historyDetailsMode": "Detalles",
+  "historyGridSize": "Tamaño de cuadrícula",
+  "historyGridSizeColumns": "{columns} columnas",
+  "@historyGridSizeColumns": {
+    "placeholders": {
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "historySortingOrder": "Orden de clasificación",
+  "historySortAdded": "Añadidas",
+  "historySortOldest": "Más antiguas",
+  "historySortProgress": "Progreso",
+  "historySortUnread": "Sin leer",
+  "historySortName": "Nombre",
+  "historySortNameReversed": "Nombre invertido",
+  "historySortNewChapters": "Capítulos nuevos",
+  "historySortLastRead": "Leídas recientemente",
+  "historySortLongAgo": "Leídas hace mucho",
+  "historySortUpdated": "Actualizadas",
+  "historyGroup": "Agrupar",
+  "historyListOptions": "Opciones de lista",
+  "historyStatistics": "Estadísticas",
+  "historyOnDevice": "En el dispositivo",
+  "historyNewChapters": "Capítulos nuevos",
+  "historyCompleted": "Completadas",
+  "historyEmptyTitle": "No se encontró historial de lectura",
+  "historyEmptySubtitle": "El manga que leas aparecerá aquí.",
+  "historyGroupToday": "Hoy",
+  "historyGroupRest": "Resto",
+  "historyLastReadChapter": "Última lectura: Capítulo {chapter}",
+  "@historyLastReadChapter": {
+    "placeholders": {
+      "chapter": {}
+    }
+  },
+  "historyChapterShort": "Cap. {chapter}",
+  "@historyChapterShort": {
+    "placeholders": {
+      "chapter": {}
+    }
+  },
+  "searchEverywhereBusy": "Buscando \"{tag}\" en todas partes...",
+  "@searchEverywhereBusy": {
+    "placeholders": {
+      "tag": {}
+    }
+  },
+  "searchOnSource": "Buscar en {source}",
+  "@searchOnSource": {
+    "placeholders": {
+      "source": {}
+    }
+  },
+  "searchEverywhere": "Buscar en todas partes",
+  "sourceNotSupported": "Esta fuente no es compatible desde aquí.",
+  "chapterStatusReadDownloaded": "Leído • Descargado",
+  "chapterStatusRead": "Leído",
+  "chapterStatusDownloaded": "Descargado",
+  "downloadedChaptersCount": "Descargados {count} capítulo(s)",
+  "@downloadedChaptersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deletedSelectedDownloads": "Descargas seleccionadas eliminadas",
+  "pagesHintStartReading": "Empieza a leer para ver las páginas",
+  "pagesUnavailable": "No hay páginas disponibles",
+  "mangaDetailBookmarkItem": "{title} • Página {page}",
+  "@mangaDetailBookmarkItem": {
+    "placeholders": {
+      "title": {},
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "noNote": "Sin nota",
+  "selectRange": "Seleccionar rango",
+  "toggleRead": "Alternar leído",
+  "detailDownload": "Descargar",
+  "favorited": "En favoritos",
+  "favorite": "Favorito",
+  "chapterOfTotal": "Capítulo {current} de {total}",
+  "@chapterOfTotal": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "chaptersCount": "{total} capítulos",
+  "@chaptersCount": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "detailSource": "Fuente",
+  "detailAuthor": "Autor",
+  "detailYear": "Año",
+  "detailState": "Estado",
+  "detailChapters": "Capítulos",
+  "detailProgress": "Progreso",
+  "mockSource": "Fuente simulada",
+  "unknown": "Desconocido",
+  "noDescription": "No hay descripción disponible.",
+  "description": "Descripción",
+  "relatedManga": "Manga relacionado",
+  "showAll": "Ver todo",
+  "continueAction": "Continuar",
+  "readAction": "Leer",
+  "chapterDateToday": "Hoy",
+  "chapterDateYesterday": "Ayer",
+  "chapterDaysAgo": "hace {days} días",
+  "@chapterDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "mangaDetailBookmarksEmpty": "Puedes crear marcadores mientras lees manga.",
+  "colorCorrection": "Corrección de color",
+  "filterBrightness": "Brillo",
+  "filterContrast": "Contraste",
+  "filterSepia": "Sepia",
+  "reset": "Restablecer",
+  "done": "Hecho",
+  "readerPageSavedTo": "Página guardada en {path}",
+  "@readerPageSavedTo": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "readerFailedToSavePage": "No se pudo guardar la página",
+  "readerCurrentChapter": "Capítulo actual",
+  "readerCancelDownload": "Cancelar descarga",
+  "readerDownloadChapter": "Descargar capítulo",
+  "readerPagesLoading": "Cargando páginas...",
+  "readerFailedToLoadBookmarks": "No se pudieron cargar los marcadores",
+  "readerBookmarksHint": "Marca páginas mientras lees para guardarlas aquí",
+  "readerNoDownloads": "Aún no hay capítulos descargados",
+  "readerRemoveBookmarkTitle": "¿Quitar marcador?",
+  "readerBookmarkLine": "{title} • Página {page}",
+  "@readerBookmarkLine": {
+    "placeholders": {
+      "title": {},
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "readerChapterNotFound": "No se encontró el capítulo",
+  "readerSavePage": "Guardar página",
+  "readerRemoveBookmark": "Quitar marcador",
+  "readerAddBookmark": "Añadir marcador",
+  "readerSectionReadingMode": "Modo de lectura",
+  "readerSectionOptions": "Opciones",
+  "readerTwoPagesLandscape": "Dos páginas en horizontal",
+  "readerExperimental": "Experimental",
+  "readerRotateScreen": "Rotar pantalla",
+  "readerLandscapeOrientation": "Orientación horizontal",
+  "readerRotateToLandscape": "Rotar a horizontal",
+  "readerAutoScroll": "Desplazamiento automático",
+  "readerContinuousScroll": "Desplazamiento vertical continuo",
+  "readerSectionTools": "Herramientas",
+  "readerBrightnessContrastSepia": "Brillo, contraste, sepia",
+  "readerAppPreferences": "Preferencias de la app",
+  "readerModeStandard": "Estándar",
+  "readerModeRTL": "D-a-I",
+  "readerModeVertical": "Vertical",
+  "readerModeWebtoon": "Webtoon",
+  "readerRememberedNote": "La configuración elegida se recordará para este manga.",
+  "readerFailedLoadChapterPages": "No se pudieron cargar las páginas del capítulo",
+  "readerFailedDownloadChapter": "No se pudo descargar el capítulo",
+  "readerDownloadedChapter": "Descargado {title}",
+  "@readerDownloadedChapter": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "readerRemoveDownloadTitle": "¿Quitar descarga?",
+  "readerThisChapter": "Este capítulo",
+  "readerSavedFromChapter": "Guardado desde {title}",
+  "@readerSavedFromChapter": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "readerBookmarkRemovedNice": "Marcador quitado — {title} • Página {page}",
+  "@readerBookmarkRemovedNice": {
+    "placeholders": {
+      "title": {},
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "readerBookmarked": "Marcado {title} • Página {page}",
+  "@readerBookmarked": {
+    "placeholders": {
+      "title": {},
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "readerChapterShort": "Cap. {chapter}",
+  "@readerChapterShort": {
+    "placeholders": {
+      "chapter": {}
+    }
+  },
+  "readerFailedLoadPage": "No se pudo cargar la página",
+  "readerLoadingNextChapter": "Cargando el siguiente capítulo...",
+  "readerReachedLatestChapter": "¡Has llegado al último capítulo!",
+  "readerPreviousChapter": "Capítulo anterior",
+  "readerNextChapter": "Capítulo siguiente",
+  "readerDownloadedChapterDate": "{count} páginas • descargado {date}",
+  "@readerDownloadedChapterDate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {}
+    }
+  },
+  "readerMoreSheetTitle": "Más",
+  "searchSources": "Buscar fuentes...",
+  "switchedToSource": "Cambiado a {source}",
+  "@switchedToSource": {
+    "placeholders": {
+      "source": {}
+    }
+  },
+  "toTop": "Subir arriba",
+  "pin": "Fijar",
+  "createShortcut": "Crear acceso directo",
+  "disableNsfw": "Desactivar NSFW",
+  "searchCatalog": "Buscar en el catálogo...",
+  "noMangaFound": "No se encontró manga",
+  "noResultsFound": "No se encontraron resultados",
+  "tryDifferentSearch": "Prueba con otra búsqueda.",
+  "searchHintAny": "Introduce el título o el género del manga",
+  "searchEllipsis": "Buscar...",
+  "searchThisSource": "Buscar en esta fuente...",
+  "randomMangaTooltip": "Manga aleatorio",
+  "feedNoNewUpdates": "Aún no hay actualizaciones nuevas",
+  "suggestionsNoResults": "No se encontraron sugerencias",
+  "clearSearchHistory": "Borrar historial de búsqueda",
+  "failedToSearch": "Error al buscar",
+  "refreshResults": "Actualizar resultados",
+  "clearSearchQuery": "Borrar consulta de búsqueda",
+  "filterUpdated": "Actualizado",
+  "failedToLoadManga": "No se pudo cargar el manga",
+  "hideFailedSources": "Ocultar fuentes con errores",
+  "showFailedSources": "Mostrar fuentes con errores",
+  "showAllCount": "Ver todo ({count})",
+  "@showAllCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sourceFailed": "La fuente falló",
+  "contentNotFoundRemoved": "Contenido no encontrado o eliminado",
+  "feedUpdatesHint": "El manga que lees se mostrará aquí cuando se publiquen nuevos capítulos.",
+  "failedToLoadUpdates": "No se pudieron cargar las actualizaciones",
+  "failedToLoadSuggestions": "No se pudieron cargar las sugerencias",
+  "checking": "Comprobando",
+  "refresh": "Actualizar",
+  "updatesTitle": "Actualizaciones",
+  "showMore": "Ver más",
+  "showLess": "Ver menos",
+  "mangaEdit": "Editar",
+  "findSimilar": "Buscar similares",
+  "alternatives": "Alternativas",
+  "openInBrowser": "Abrir en el navegador web",
+  "urlUnavailable": "La dirección web de este manga no está disponible.",
+  "replaceSource": "Reemplazar fuente",
+  "shortcutCreated": "Acceso directo de inicio creado",
+  "editMangaTitle": "Título",
+  "editMangaCover": "Portada",
+  "editMangaTags": "Etiquetas",
+  "save": "Guardar",
+  "metadataSaved": "Metadatos del manga actualizados",
+  "replaceSourceDone": "Reenlazado a {source}",
+  "noSourceToReplace": "No hay ninguna fuente disponible para cambiar",
+  "saveManga": "Guardar manga",
+  "chapters": "capítulos",
+  "downloadWholeManga": "Manga completo ({count} capítulos)",
+  "downloadFirstChapters": "Primeros {count} capítulos",
+  "downloadNextUnread": "Próximos {count} capítulos sin leer",
+  "downloadHint": "Puedes seleccionar capítulos para descargar manteniendo pulsado un elemento en la lista de capítulos.",
+  "startDownload": "Iniciar descarga",
+  "startDownloadQueueHint": "Desactívalo para poner las descargas en cola en lugar de iniciarlas de inmediato.",
+  "moreOptions": "Más opciones",
+  "destinationDirectory": "Directorio de destino",
+  "preferredFormat": "Formato de descarga preferido",
+  "download": "Descargar",
+  "downloadsQueued": "Descargas en cola",
+  "downloadNotReady": "Los capítulos aún se están cargando. Inténtalo de nuevo en un momento.",
+  "formatAutomatic": "Automático",
+  "formatCbz": "CBZ",
+  "formatImages": "Imágenes",
+  "destInternalStorage": "Almacenamiento interno compartido",
+  "destAppFiles": "Archivos externos de la app",
+  "destCacheFolder": "Caché"
+}

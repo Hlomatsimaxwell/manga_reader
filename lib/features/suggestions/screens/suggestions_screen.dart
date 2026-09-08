@@ -7,6 +7,7 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
   const SuggestionsScreen({super.key});
@@ -65,7 +66,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 60),
                   child: Center(
                     child: Text(
-                      'Failed to load suggestions',
+                      AppLocalizations.of(context).failedToLoadSuggestions,
                       style: TextStyle(
                         color:
                             Theme.of(context).brightness == Brightness.dark
@@ -107,7 +108,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         },
         decoration: InputDecoration(
           icon: Icon(Icons.search, color: iconColor, size: 22),
-          hintText: 'Search manga',
+          hintText: AppLocalizations.of(context).searchManga,
           hintStyle: TextStyle(color: hintColor, fontSize: 16),
           border: InputBorder.none,
           suffixIcon: _searchQuery.isNotEmpty
@@ -209,8 +210,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     if (items.isEmpty) {
       return EmptyState(
         icon: Icons.lightbulb_outline,
-        title: 'No suggestions found',
-        subtitle: 'Try a different search query.',
+        title: AppLocalizations.of(context).suggestionsNoResults,
+        subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
     }
 

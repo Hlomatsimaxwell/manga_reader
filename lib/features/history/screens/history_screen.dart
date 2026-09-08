@@ -12,6 +12,7 @@ import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class ProgressBadge extends StatelessWidget {
   final int progress;
@@ -148,7 +149,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         lastReadAt.year == now.year &&
         lastReadAt.month == now.month &&
         lastReadAt.day == now.day;
-    return isToday ? 'Today' : 'Rest';
+    return isToday
+        ? AppLocalizations.of(context).historyGroupToday
+        : AppLocalizations.of(context).historyGroupRest;
   }
 
   void _navigateToDetail(
@@ -231,7 +234,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Clear history',
+                    AppLocalizations.of(context).historyClearTitle,
                     style: TextStyle(
                       color: fg,
                       fontSize: 22,
@@ -240,28 +243,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildRadioOption(
-                    title: 'Last 2 hours',
+                    title: AppLocalizations.of(context).historyClearLastHours,
                     value: 0,
                     groupValue: selectedOption,
                     onChanged: (val) =>
                         setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
-                    title: 'Today',
+                    title: AppLocalizations.of(context).historyClearToday,
                     value: 1,
                     groupValue: selectedOption,
                     onChanged: (val) =>
                         setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
-                    title: 'Not in favorites',
+                    title: AppLocalizations.of(context).historyClearNotFavorites,
                     value: 2,
                     groupValue: selectedOption,
                     onChanged: (val) =>
                         setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
-                    title: 'Clear all history',
+                    title: AppLocalizations.of(context).historyClearAll,
                     value: 3,
                     groupValue: selectedOption,
                     onChanged: (val) =>
@@ -274,7 +277,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    'Cancel',
+                    AppLocalizations.of(context).cancel,
                     style: TextStyle(
                       color: dark ? Colors.white : const Color(0xFF49454F),
                       fontSize: 15,
@@ -288,11 +291,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     Navigator.pop(context);
                     _clearHistory(selectedOption);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('History updated')),
+                      SnackBar(content: Text(AppLocalizations.of(context).historyUpdated)),
                     );
                   },
                   child: Text(
-                    'Clear',
+                    AppLocalizations.of(context).historyClear,
                     style: TextStyle(
                       color: dark ? Colors.white : const Color(0xFF49454F),
                       fontSize: 15,
@@ -365,7 +368,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'List mode',
+                    AppLocalizations.of(context).historyListMode,
                     style: TextStyle(
                       color: dark ? Colors.white70 : const Color(0xFF49454F),
                       fontSize: 14,
@@ -419,7 +422,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Grid size',
+                        AppLocalizations.of(context).historyGridSize,
                         style: TextStyle(
                           color: dark ? Colors.white70 : const Color(0xFF49454F),
                           fontSize: 14,
@@ -427,7 +430,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ),
                       ),
                       Text(
-                        '${_gridSize.toInt()} Columns',
+                        AppLocalizations.of(context).historyGridSizeColumns(_gridSize.toInt()),
                         style: TextStyle(
                           color: dark ? Colors.white54 : Colors.black54,
                           fontSize: 12,
@@ -481,7 +484,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Sorting order',
+                    AppLocalizations.of(context).historySortingOrder,
                     style: TextStyle(
                       color: dark ? Colors.white70 : const Color(0xFF49454F),
                       fontSize: 14,
@@ -527,7 +530,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         items: _sortOptions.map((value) {
                           return DropdownMenuItem<String>(
                             value: value,
-                            child: Text(value),
+                            child: Text(_sortLabel(context, value)),
                           );
                         }).toList(),
                         onChanged: (newValue) {
@@ -556,7 +559,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Group',
+                            AppLocalizations.of(context).historyGroup,
                             style: TextStyle(
                               color:
                                   dark ? Colors.white : const Color(0xFF1C1B1F),
@@ -595,6 +598,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
+  String _modeLabel(BuildContext context, String mode) {
+    final l = AppLocalizations.of(context);
+    return switch (mode) {
+      'Compact' => l.historyCompactMode,
+      'Details' => l.historyDetailsMode,
+      _ => l.listModeGrid,
+    };
+  }
+
+  String _sortLabel(BuildContext context, String value) {
+    final l = AppLocalizations.of(context);
+    return switch (value) {
+      'Added' => l.historySortAdded,
+      'Oldest' => l.historySortOldest,
+      'Progress' => l.historySortProgress,
+      'Unread' => l.historySortUnread,
+      'Name' => l.historySortName,
+      'Name reversed' => l.historySortNameReversed,
+      'New chapters' => l.historySortNewChapters,
+      'Long time ago read' => l.historySortLongAgo,
+      'Updated' => l.historySortUpdated,
+      _ => l.historySortLastRead,
+    };
+  }
+
   Widget _buildSegmentTab(
     String mode,
     IconData icon,
@@ -624,7 +652,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               Icon(icon, color: fg, size: 20),
               const SizedBox(height: 2),
               Text(
-                mode,
+                _modeLabel(context, mode),
                 style: TextStyle(
                   color: fg,
                   fontSize: 13,
@@ -670,7 +698,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
-              'Clear history',
+              AppLocalizations.of(context).historyClearTitle,
               style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
@@ -684,7 +712,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
-              'List options',
+              AppLocalizations.of(context).historyListOptions,
               style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
@@ -694,7 +722,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
-              'Statistics',
+              AppLocalizations.of(context).historyStatistics,
               style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
@@ -711,7 +739,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Incognito mode',
+                    AppLocalizations.of(context).incognitoMode,
                     style: TextStyle(color: menuFg, fontSize: 16),
                   ),
                   Checkbox(
@@ -752,7 +780,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
-              'Settings',
+              AppLocalizations.of(context).settings,
               style: TextStyle(color: menuFg, fontSize: 16),
             ),
           ),
@@ -842,10 +870,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               _buildFilterChips(),
               const SizedBox(height: 16),
               if (filteredList.isEmpty)
-                const EmptyState(
+                EmptyState(
                   icon: Icons.history,
-                  title: 'No reading history found',
-                  subtitle: 'Manga you read will appear here.',
+                  title: AppLocalizations.of(context).historyEmptyTitle,
+                  subtitle: AppLocalizations.of(context).historyEmptySubtitle,
                 )
               else if (_isGrouped)
                 ...groupedHistory.entries.map((entry) {
@@ -914,7 +942,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Search manga',
+                        AppLocalizations.of(context).searchManga,
                         style: TextStyle(color: hintColor, fontSize: 16),
                       ),
                     ),
@@ -944,10 +972,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Widget _buildFilterChips() {
     final filters = [
-      {'icon': Icons.sd_card_outlined, 'label': 'On device'},
-      {'icon': Icons.history_toggle_off, 'label': 'New chapters'},
-      {'icon': Icons.done_all, 'label': 'Completed'},
+      {'icon': Icons.sd_card_outlined, 'labelKey': 'onDevice'},
+      {'icon': Icons.history_toggle_off, 'labelKey': 'newChapters'},
+      {'icon': Icons.done_all, 'labelKey': 'completed'},
     ];
+
+    final l = AppLocalizations.of(context);
+    final labels = [l.historyOnDevice, l.historyNewChapters, l.historyCompleted];
 
     final dark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
@@ -994,7 +1025,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    filter['label'] as String,
+                    labels[index],
                     style: TextStyle(
                       color: fg,
                       fontSize: 13,
@@ -1302,7 +1333,7 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Last read: Chapter ${widget.item['lastReadChapter']}',
+                      AppLocalizations.of(context).historyLastReadChapter(widget.item['lastReadChapter']),
                       style: TextStyle(
                         color: dark ? Colors.white70 : const Color(0xFF49454F),
                         fontSize: 13,
@@ -1377,7 +1408,7 @@ class _CompactHistoryCardState extends State<CompactHistoryCard> {
         ),
       ),
       subtitle: Text(
-        'Ch. ${widget.item['lastReadChapter']}',
+        AppLocalizations.of(context).historyChapterShort(widget.item['lastReadChapter']),
         style: TextStyle(
           color: dark ? Colors.white54 : const Color(0xFF49454F),
           fontSize: 12,

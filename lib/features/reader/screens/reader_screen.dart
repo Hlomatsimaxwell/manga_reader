@@ -19,6 +19,7 @@ import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 import '../services/chapter_downloader.dart';
 
 // Reading modes (Kotatsu-style).
@@ -360,13 +361,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           final dark = Theme.of(context).brightness == Brightness.dark;
+          final l = AppLocalizations.of(context);
           return AlertDialog(
             backgroundColor: dark ? const Color(0xFF1C1C1E) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
             title: Text(
-              'Color correction',
+              l.colorCorrection,
               style: TextStyle(
                 color: dark
                     ? Colors.white
@@ -378,17 +380,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildFilterSlider(
-                  'Brightness',
+                  l.filterBrightness,
                   _brightness,
                   (v) => setDialogState(() => _brightness = v),
                 ),
                 _buildFilterSlider(
-                  'Contrast',
+                  l.filterContrast,
                   _contrast,
                   (v) => setDialogState(() => _contrast = v),
                 ),
                 _buildFilterSlider(
-                  'Sepia',
+                  l.filterSepia,
                   _sepia,
                   (v) => setDialogState(() => _sepia = v),
                 ),
@@ -406,7 +408,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   _saveColorCorrection();
                 },
                 child: Text(
-                  'Reset',
+                  l.reset,
                   style: TextStyle(
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
                     fontSize: 14,
@@ -420,7 +422,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   Navigator.pop(context);
                 },
                 child: Text(
-                  'Done',
+                  l.done,
                   style: TextStyle(
                     color: dark
                         ? Colors.white
@@ -505,7 +507,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Page saved to ${file.path}'),
+            content: Text(
+              AppLocalizations.of(context).readerPageSavedTo(file.path),
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -514,7 +518,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to save page')));
+        ).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).readerFailedToSavePage,
+          ),
+        ),
+      );
       }
     }
   }
@@ -710,7 +720,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
           const Spacer(),
           IconButton(
-            tooltip: 'Current chapter',
+            tooltip: AppLocalizations.of(context).readerCurrentChapter,
             icon: Icon(
               Icons.my_location,
               color: dark ? Colors.white54 : Colors.black54,
@@ -787,7 +797,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 Expanded(
                   child: Text(
                     chapter.title.isEmpty
-                        ? 'Chapter ${chapter.chapterNumber}'
+                        ? AppLocalizations.of(context)
+                              .chapterNum(chapter.chapterNumber)
                         : chapter.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -807,7 +818,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               ],
             ),
             subtitle: Text(
-              _chapterSubtitle(chapter),
+              _chapterSubtitle(
+                chapter,
+                AppLocalizations.of(context),
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -849,7 +863,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               color: dark ? Colors.white54 : Colors.black54,
               size: 18,
             ),
-            tooltip: 'Cancel download',
+            tooltip: AppLocalizations.of(context).readerCancelDownload,
             onPressed: active.cancel,
           ),
         ],
@@ -857,7 +871,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     }
     final downloaded = _downloadedChapters.contains(chapter.id);
     return IconButton(
-      tooltip: downloaded ? 'Remove download' : 'Download chapter',
+      tooltip: downloaded
+          ? AppLocalizations.of(context).removeDownloadTooltip
+          : AppLocalizations.of(context).readerDownloadChapter,
       icon: Icon(
         downloaded ? Icons.cloud_done : Icons.download_for_offline_outlined,
         color: downloaded ? _activeGreen : (dark ? Colors.white38 : Colors.black38),
@@ -876,7 +892,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       final dark = Theme.of(context).brightness == Brightness.dark;
       return Center(
         child: Text(
-          'Pages loading...',
+          AppLocalizations.of(context).readerPagesLoading,
           style: TextStyle(
             color: dark ? Colors.white54 : Colors.black54,
             fontSize: 14,
@@ -924,7 +940,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         if (snapshot.hasError) {
           return Center(
             child: Text(
-              'Failed to load bookmarks',
+              AppLocalizations.of(context).readerFailedToLoadBookmarks,
               style: TextStyle(
                 color: dark ? Colors.white54 : Colors.black54,
                 fontSize: 14,
@@ -934,10 +950,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         }
         final bookmarks = snapshot.data ?? const [];
         if (bookmarks.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
             icon: Icons.bookmark_outline,
-            title: 'No bookmarks yet',
-            subtitle: 'Bookmark pages while reading to save them here',
+            title: AppLocalizations.of(context).bookmarksEmpty,
+            subtitle: AppLocalizations.of(context).readerBookmarksHint,
           );
         }
 
@@ -967,7 +983,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                     child: Text(
-                      'Chapter $chapterNum',
+                      AppLocalizations.of(context).chapterNum(chapterNum),
                       style: TextStyle(
                         color: dark
                             ? Colors.white
@@ -1025,7 +1041,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         if (rows.isEmpty) {
           return Center(
             child: Text(
-              'No downloaded chapters yet',
+              AppLocalizations.of(context).readerNoDownloads,
               style: TextStyle(
                 color: dark ? Colors.white54 : Colors.black54,
                 fontSize: 14,
@@ -1054,7 +1070,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               ),
               title: Text(
                 title.isEmpty
-                    ? 'Chapter ${_formatChapterNumber(chapterNumber)}'
+                    ? AppLocalizations.of(context)
+                          .chapterNum(_formatChapterNumber(chapterNumber))
                     : title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1064,7 +1081,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 ),
               ),
               subtitle: Text(
-                '$pageCount pages • downloaded ${_formatChapterDate(downloadedAt)}',
+                AppLocalizations.of(context).readerDownloadedChapterDate(
+                  pageCount,
+                  _formatChapterDate(downloadedAt, AppLocalizations.of(context)),
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1078,7 +1098,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   color: dark ? Colors.white38 : Colors.black38,
                   size: 20,
                 ),
-                tooltip: 'Remove download',
+                tooltip: AppLocalizations.of(context).removeDownloadTooltip,
                 onPressed: () => _confirmRemoveDownload(chapterId, title),
               ),
               onTap: () {
@@ -1206,10 +1226,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       context: context,
       builder: (context) {
         final dark = Theme.of(context).brightness == Brightness.dark;
+        final l = AppLocalizations.of(context);
         return AlertDialog(
           backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
           title: Text(
-            'Remove bookmark?',
+            l.readerRemoveBookmarkTitle,
             style: TextStyle(
               color: dark
                   ? Colors.white
@@ -1217,7 +1238,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             ),
           ),
           content: Text(
-            'Chapter $chapterTitle • Page ${pageIndex + 1}',
+            l.readerBookmarkLine(chapterTitle, pageIndex + 1),
             style: TextStyle(
               color: dark ? Colors.white70 : const Color(0xFF49454F),
               fontSize: 14,
@@ -1227,7 +1248,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: Text(
-                'Cancel',
+                l.cancel,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF49454F),
                 ),
@@ -1235,7 +1256,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+              child: Text(
+                l.remove,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
 ],
         );
@@ -1265,36 +1289,42 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     } else {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Chapter not found')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).readerChapterNotFound,
+          ),
+        ),
+      );
     }
   }
 
-  String _chapterSubtitle(Chapter chapter) {
+  String _chapterSubtitle(Chapter chapter, AppLocalizations l) {
     final num = chapter.chapterNumber.isNotEmpty
         ? '#${chapter.chapterNumber}'
         : '';
-    final date = _formatChapterDate(chapter.releaseDate);
+    final date = _formatChapterDate(chapter.releaseDate, l);
     final group = chapter.scanlator.isNotEmpty ? chapter.scanlator : '';
     return [num, date, group].where((p) => p.isNotEmpty).join(' • ');
   }
 
-  String _formatChapterDate(String? raw) {
+  String _formatChapterDate(String? raw, AppLocalizations l) {
     if (raw == null || raw.isEmpty) return '';
     final dt = DateTime.tryParse(raw);
     if (dt == null) return raw;
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    final months = [
+      l.jan,
+      l.feb,
+      l.mar,
+      l.apr,
+      l.may,
+      l.jun,
+      l.jul,
+      l.aug,
+      l.sep,
+      l.oct,
+      l.nov,
+      l.dec,
     ];
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
@@ -1309,6 +1339,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final dark = Theme.of(context).brightness == Brightness.dark;
+            final l = AppLocalizations.of(context);
             return SafeArea(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
@@ -1324,7 +1355,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'More',
+                              l.readerMoreSheetTitle,
                               style: TextStyle(
                                 color: dark
                                     ? Colors.white
@@ -1365,7 +1396,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                           Expanded(
                             child: _buildQuickActionTile(
                               icon: Icons.download,
-                              label: 'Save page',
+                              label: l.readerSavePage,
                               onTap: _saveCurrentPage,
                             ),
                           ),
@@ -1376,8 +1407,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   ? Icons.bookmark
                                   : Icons.bookmark_outline,
                               label: _isCurrentPageBookmarked
-                                  ? 'Remove bookmark'
-                                  : 'Add bookmark',
+                                  ? l.readerRemoveBookmark
+                                  : l.readerAddBookmark,
                               accent: _isCurrentPageBookmarked,
                               onTap: () async {
                                 await _toggleBookmark();
@@ -1389,14 +1420,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       ),
                       const SizedBox(height: 22),
 
-                      _buildSectionHeader('Reading mode'),
+                      _buildSectionHeader(l.readerSectionReadingMode),
                       const SizedBox(height: 10),
                       _buildReadModeSelector(
                         afterChange: () => setSheetState(() {}),
                       ),
                       const SizedBox(height: 22),
 
-                      _buildSectionHeader('Options'),
+                      _buildSectionHeader(l.readerSectionOptions),
                       const SizedBox(height: 10),
                       _buildSettingsCard(
                         children: [
@@ -1411,8 +1442,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             inactiveThumbColor:
                                 dark ? Colors.white54 : Colors.black54,
                             dense: true,
-                            title: _tileText('Two pages on landscape'),
-                            subtitle: _tileSubtext('Experimental'),
+                            title: _tileText(l.readerTwoPagesLandscape),
+                            subtitle: _tileSubtext(l.readerExperimental),
                             value: _useTwoPagesLayout,
                             onChanged: (value) {
                               _toggleTwoPages(value);
@@ -1431,11 +1462,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             inactiveThumbColor:
                                 dark ? Colors.white54 : Colors.black54,
                             dense: true,
-                            title: _tileText('Rotate screen'),
+                            title: _tileText(l.readerRotateScreen),
                             subtitle: _tileSubtext(
                               _rotateScreen
-                                  ? 'Landscape orientation'
-                                  : 'Rotate to landscape',
+                                  ? l.readerLandscapeOrientation
+                                  : l.readerRotateToLandscape,
                             ),
                             value: _rotateScreen,
                             onChanged: (value) {
@@ -1455,10 +1486,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             inactiveThumbColor:
                                 dark ? Colors.white54 : Colors.black54,
                             dense: true,
-                            title: _tileText('Automatic scroll'),
-                            subtitle: _tileSubtext(
-                              'Continuous vertical scroll',
-                            ),
+                            title: _tileText(l.readerAutoScroll),
+                            subtitle: _tileSubtext(l.readerContinuousScroll),
                             value: _autoScroll,
                             onChanged: (value) {
                               _toggleAutoScroll(value);
@@ -1469,22 +1498,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       ),
                       const SizedBox(height: 22),
 
-                      _buildSectionHeader('Tools'),
+                      _buildSectionHeader(l.readerSectionTools),
                       const SizedBox(height: 10),
                       _buildSettingsCard(
                         children: [
                           _iconTile(
                             icon: Icons.palette_outlined,
-                            title: 'Color correction',
-                            subtitle: 'Brightness, contrast, sepia',
+                            title: l.colorCorrection,
+                            subtitle: l.readerBrightnessContrastSepia,
                             chevron: true,
                             onTap: _showColorCorrectionDialog,
                           ),
                           _cardDivider(),
                           _iconTile(
                             icon: Icons.settings_outlined,
-                            title: 'Settings',
-                            subtitle: 'App preferences',
+                            title: l.settings,
+                            subtitle: l.readerAppPreferences,
                             chevron: true,
                             onTap: () {
                               Navigator.pop(context);
@@ -1562,12 +1591,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   Widget _buildReadModeSelector({VoidCallback? afterChange}) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     const modes = [
-      (ReadingMode.standard, Icons.menu_book, 'Standard'),
-      (ReadingMode.rightToLeft, Icons.import_contacts, 'R-to-L'),
-      (ReadingMode.vertical, Icons.phone_android, 'Vertical'),
-      (ReadingMode.webtoon, Icons.view_stream, 'Webtoon'),
+      (ReadingMode.standard, Icons.menu_book, ''),
+      (ReadingMode.rightToLeft, Icons.import_contacts, ''),
+      (ReadingMode.vertical, Icons.phone_android, ''),
+      (ReadingMode.webtoon, Icons.view_stream, ''),
     ];
+    final labels = <ReadingMode, String>{
+      ReadingMode.standard: l.readerModeStandard,
+      ReadingMode.rightToLeft: l.readerModeRTL,
+      ReadingMode.vertical: l.readerModeVertical,
+      ReadingMode.webtoon: l.readerModeWebtoon,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1635,7 +1671,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        mode.$3,
+                        labels[mode.$1] ?? mode.$1.name,
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
@@ -1661,7 +1697,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         ),
         const SizedBox(height: 10),
         Text(
-          'The chosen configuration will be remembered for this manga.',
+          AppLocalizations.of(context).readerRememberedNote,
           style: TextStyle(
             color: dark ? Colors.white38 : Colors.black38,
             fontSize: 11,
@@ -1966,7 +2002,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load chapter pages')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).readerFailedLoadChapterPages,
+            ),
+          ),
         );
       }
       return;
@@ -1998,7 +2038,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       _refreshTray();
       if (!task.cancelled) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to download chapter')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).readerFailedDownloadChapter,
+            ),
+          ),
         );
       }
       return;
@@ -2034,7 +2078,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Downloaded ${chapter.title}'),
+        content: Text(
+          AppLocalizations.of(context).readerDownloadedChapter(chapter.title),
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -2045,10 +2091,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       context: context,
       builder: (context) {
         final dark = Theme.of(context).brightness == Brightness.dark;
+        final l = AppLocalizations.of(context);
         return AlertDialog(
           backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
           title: Text(
-            'Remove download?',
+            l.readerRemoveDownloadTitle,
             style: TextStyle(
               color: dark
                   ? Colors.white
@@ -2056,7 +2103,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             ),
           ),
           content: Text(
-            title.isEmpty ? 'This chapter' : title,
+            title.isEmpty ? l.readerThisChapter : title,
             style: TextStyle(
               color: dark ? Colors.white70 : const Color(0xFF49454F),
               fontSize: 14,
@@ -2066,7 +2113,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: Text(
-                'Cancel',
+                l.cancel,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF49454F),
                 ),
@@ -2074,7 +2121,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+              child: Text(
+                l.remove,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -2142,7 +2192,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     final chapter = widget.allChapters[_currentChapterIndex];
     final pageUrl = _pages[pageIndex];
-    final note = 'Saved from ${chapter.title}';
+    final note = AppLocalizations.of(
+      context,
+    ).readerSavedFromChapter(chapter.title);
 
     final existing = await DatabaseHelper.instance.findBookmarkId(
       mangaId: widget.mangaId,
@@ -2158,7 +2210,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Bookmark removed — ${chapter.title} • Page ${pageIndex + 1}',
+              AppLocalizations.of(context).readerBookmarkRemovedNice(
+                chapter.title,
+                pageIndex + 1,
+              ),
             ),
             duration: const Duration(seconds: 2),
           ),
@@ -2181,7 +2236,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Bookmarked ${chapter.title} • Page ${pageIndex + 1}'),
+          content: Text(
+            AppLocalizations.of(context).readerBookmarked(
+              chapter.title,
+              pageIndex + 1,
+            ),
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -2323,7 +2383,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Ch. $chLabel',
+                              AppLocalizations.of(context)
+                                  .readerChapterShort(chLabel),
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,
@@ -2358,7 +2419,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        tooltip: 'Previous chapter',
+                        tooltip: AppLocalizations.of(
+                          context,
+                        ).readerPreviousChapter,
                         icon: const Icon(
                           Icons.skip_previous,
                           color: Colors.white,
@@ -2378,7 +2441,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Next chapter',
+                        tooltip: AppLocalizations.of(
+                          context,
+                        ).readerNextChapter,
                         icon: const Icon(
                           Icons.skip_next,
                           color: Colors.white,
@@ -2393,7 +2458,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       const SizedBox(width: 4),
                       Container(width: 1, height: 26, color: Colors.white24),
                       IconButton(
-                        tooltip: 'Chapters',
+                        tooltip: AppLocalizations.of(context).detailChapters,
                         icon: const Icon(
                           Icons.format_list_bulleted,
                           color: Colors.white,
@@ -2402,7 +2467,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         onPressed: _showChapterList,
                       ),
                       IconButton(
-                        tooltip: 'Settings',
+                        tooltip: AppLocalizations.of(context).settings,
                         icon: const Icon(
                           Icons.more_vert,
                           color: Colors.white,
@@ -2504,14 +2569,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return Container(
       height: 200,
       color: const Color(0xFF1E1E20),
-      child: const Column(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.broken_image, color: Colors.white54, size: 32),
-          SizedBox(height: 8),
+          const Icon(Icons.broken_image, color: Colors.white54, size: 32),
+          const SizedBox(height: 8),
           Text(
-            'Failed to load page',
-            style: TextStyle(color: Colors.white54, fontSize: 12),
+            AppLocalizations.of(context).readerFailedLoadPage,
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),
@@ -2524,19 +2589,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       padding: const EdgeInsets.symmetric(vertical: 32),
       alignment: Alignment.center,
       child: _hasMoreChapters
-          ? const Column(
+          ? Column(
               children: [
-                CircularProgressIndicator(color: Colors.white),
-                SizedBox(height: 12),
+                const CircularProgressIndicator(color: Colors.white),
+                const SizedBox(height: 12),
                 Text(
-                  'Loading next chapter...',
-                  style: TextStyle(color: Colors.white70),
+                  AppLocalizations.of(context).readerLoadingNextChapter,
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ],
             )
-          : const Text(
-              'You have reached the latest chapter!',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+          : Text(
+              AppLocalizations.of(context).readerReachedLatestChapter,
+              style: const TextStyle(color: Colors.white54, fontSize: 14),
             ),
     );
   }

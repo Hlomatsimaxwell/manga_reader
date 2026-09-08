@@ -7,6 +7,7 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class MangaGridScreen extends StatefulWidget {
   final String sourceName;
@@ -131,7 +132,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                 cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
                 onChanged: (val) => setState(() => _searchQuery = val),
                 decoration: InputDecoration(
-                  hintText: 'Search catalog...',
+                  hintText: AppLocalizations.of(context).searchCatalog,
                   hintStyle: TextStyle(
                     color: dark ? Colors.white54 : Colors.black54,
                   ),
@@ -209,7 +210,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Updated',
+                          AppLocalizations.of(context).filterUpdated,
                           style: TextStyle(
                             color: dark ? Colors.white : scheme.onSurface,
                             fontSize: 14,
@@ -240,7 +241,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                     child: Column(
                       children: [
                         Text(
-                          'Failed to load manga',
+                          AppLocalizations.of(context).failedToLoadManga,
                           style: TextStyle(
                             color: dark
                                 ? Colors.white70
@@ -261,7 +262,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                         OutlinedButton.icon(
                           onPressed: _loadManga,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
+                          label: Text(AppLocalizations.of(context).retry),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: dark
                                 ? Colors.white
@@ -358,10 +359,10 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
 
   Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.menu_book,
-        title: 'No manga found',
-        subtitle: 'Try a different search query.',
+        title: AppLocalizations.of(context).noMangaFound,
+        subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
     }
 

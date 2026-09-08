@@ -5,6 +5,7 @@ import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// Every bookmarked page across all manga, most recent first.
 class BookmarksScreen extends ConsumerStatefulWidget {
@@ -48,10 +49,11 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
       context: context,
       builder: (context) {
         final dark = Theme.of(context).brightness == Brightness.dark;
+        final l = AppLocalizations.of(context);
         return AlertDialog(
           backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
           title: Text(
-            'Delete bookmark?',
+            l.deleteBookmarkTitle,
             style: TextStyle(
               color: dark
                   ? Colors.white
@@ -61,8 +63,8 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
           ),
           content: Text(
             title.isEmpty
-                ? 'Page ${pageIndex + 1}'
-                : '"$title" • page ${pageIndex + 1}',
+                ? l.bookmarkPage(pageIndex + 1)
+                : l.bookmarkItem(title, pageIndex + 1),
             style: TextStyle(
               color: dark ? Colors.white70 : const Color(0xFF49454F),
               fontSize: 14,
@@ -72,7 +74,7 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: Text(
-                'Cancel',
+                l.cancel,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF49454F),
                 ),
@@ -80,9 +82,9 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.redAccent),
+              child: Text(
+                l.delete,
+                style: const TextStyle(color: Colors.redAccent),
               ),
             ),
           ],
@@ -98,12 +100,13 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: Text(
-          'Bookmarks',
+          l.bookmarksTitle,
           style: TextStyle(
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
             fontWeight: FontWeight.bold,
@@ -121,8 +124,8 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
           : _rows.isEmpty
           ? EmptyState(
               icon: Icons.bookmark_outline,
-              title: 'No bookmarks yet',
-              subtitle: 'Bookmark pages while reading to save them here',
+              title: l.bookmarksEmpty,
+              subtitle: l.bookmarksEmptySubtitle,
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -147,6 +150,7 @@ class _BookmarkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final onSurface = Theme.of(context).colorScheme.onSurface;
+    final l = AppLocalizations.of(context);
     final mangaId = row['mangaId'] as String? ?? '';
     final mangaTitle = row['mangaTitle'] as String? ?? mangaId;
     final mangaCover = row['mangaCover'] as String? ?? '';
@@ -244,8 +248,8 @@ class _BookmarkTile extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     chapterTitle.isEmpty
-                        ? 'Page ${pageIndex + 1}'
-                        : '$chapterTitle • page ${pageIndex + 1}',
+                        ? l.bookmarkPage(pageIndex + 1)
+                        : l.bookmarkItem(chapterTitle, pageIndex + 1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -255,7 +259,7 @@ class _BookmarkTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    _fmtDate(createdAt),
+                    _fmtDate(createdAt, l),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -272,7 +276,7 @@ class _BookmarkTile extends StatelessWidget {
                 color: dark ? Colors.white38 : Colors.black38,
                 size: 20,
               ),
-              tooltip: 'Delete bookmark',
+              tooltip: l.deleteBookmarkTooltip,
               onPressed: () => onDelete(row),
             ),
           ],
@@ -281,24 +285,24 @@ class _BookmarkTile extends StatelessWidget {
     );
   }
 
-  String _fmtDate(String iso) {
+  String _fmtDate(String iso, AppLocalizations l) {
     final dt = DateTime.tryParse(iso);
     if (dt == null) return '';
     final local = dt.toLocal();
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    final months = [
+      l.jan,
+      l.feb,
+      l.mar,
+      l.apr,
+      l.may,
+      l.jun,
+      l.jul,
+      l.aug,
+      l.sep,
+      l.oct,
+      l.nov,
+      l.dec,
     ];
-    return '${months[local.month - 1]} ${local.day}, ${local.year}';
+    return l.dateLong(months[local.month - 1], local.day, local.year);
   }
 }

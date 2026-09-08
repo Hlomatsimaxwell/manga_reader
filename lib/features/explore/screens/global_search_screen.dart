@@ -12,6 +12,7 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
   const GlobalSearchScreen({super.key});
@@ -138,7 +139,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           onChanged: _onQueryChanged,
           onSubmitted: (value) => _addQueryToHistoryAndSearch(value),
           decoration: InputDecoration(
-            hintText: 'Enter manga title or genre',
+            hintText: AppLocalizations.of(context).searchHintAny,
             hintStyle: TextStyle(
               color: dark ? Colors.white54 : Colors.black54,
               fontSize: 15,
@@ -168,10 +169,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                 _addQueryToHistoryAndSearch(_searchController.text),
           ),
           IosMenuButton<String>(
-            items: const [
+            items: [
               IosMenuItem(
                 value: 'clear_history',
-                label: 'Clear search history',
+                label: AppLocalizations.of(context).clearSearchHistory,
                 icon: Icons.delete_outline_rounded,
               ),
             ],
@@ -262,7 +263,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionLabel('Trending'),
+                    _buildSectionLabel(AppLocalizations.of(context).suggestionTrending),
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 180,
@@ -468,10 +469,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
     return resultsAsync.when(
       data: (results) {
         if (results.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
             icon: Icons.search_off,
-            title: 'No results found',
-            subtitle: 'Try a different search query.',
+            title: AppLocalizations.of(context).noResultsFound,
+            subtitle: AppLocalizations.of(context).tryDifferentSearch,
             verticalPadding: 24,
           );
         }
@@ -564,7 +565,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'Failed to search',
+          AppLocalizations.of(context).failedToSearch,
           style: TextStyle(
             color: dark ? Colors.white54 : Colors.black54,
             fontSize: 14,

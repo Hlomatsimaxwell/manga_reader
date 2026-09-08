@@ -12,6 +12,7 @@ import 'package:yomou/features/source_management/screens/manga_grid_screen.dart'
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -27,17 +28,27 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final List<Map<String, dynamic>> _quickButtons = [
     {
       'icon': Icons.sd_card_outlined,
-      'label': 'Local storage',
+      'labelKey': 'storage',
       'type': 'downloads',
     },
-    {'icon': Icons.bookmark_outline, 'label': 'Bookmarks', 'type': 'bookmarks'},
-    {'icon': Icons.casino_outlined, 'label': 'Random', 'type': 'random'},
+    {'icon': Icons.bookmark_outline, 'labelKey': 'bookmarks', 'type': 'bookmarks'},
+    {'icon': Icons.casino_outlined, 'labelKey': 'random', 'type': 'random'},
     {
       'icon': Icons.download_outlined,
-      'label': 'Downloads',
+      'labelKey': 'downloads',
       'type': 'downloads',
     },
   ];
+
+  String _quickLabel(String key) {
+    final l = AppLocalizations.of(context);
+    return switch (key) {
+      'storage' => l.exploreLocalStorage,
+      'bookmarks' => l.bookmarksTitle,
+      'random' => l.exploreRandom,
+      _ => l.downloads,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +68,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               _buildQuickButtonsGrid(),
               const SizedBox(height: 24),
               _buildSectionHeader(
-                'Manga sources',
-                actionLabel: 'Manage',
+                AppLocalizations.of(context).mangaSources,
+                actionLabel: AppLocalizations.of(context).exploreManage,
                 onMorePressed: () {
                   Navigator.push(
                     context,
@@ -113,7 +124,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Search manga',
+                        AppLocalizations.of(context).searchManga,
                         style: TextStyle(
                           color:
                               dark ? Colors.white54 : Colors.black54,
@@ -132,19 +143,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   children: [
                     IosMenuRow(
                       icon: Icons.tune_rounded,
-                      label: 'Manage sources',
+                      label: AppLocalizations.of(context).manageSources,
                       onTap: () => Navigator.pop(context, 'manage'),
                     ),
                     const IosMenuDivider(),
                     MenuToggleRow(
-                      label: 'Incognito mode',
+                      label: AppLocalizations.of(context).incognitoMode,
                       value: _incognitoMode,
                       onChanged: (v) => setState(() => _incognitoMode = v),
                     ),
                     const IosMenuDivider(),
                     IosMenuRow(
                       icon: Icons.settings_rounded,
-                      label: 'Settings',
+                      label: AppLocalizations.of(context).settings,
                       onTap: () => Navigator.pop(context, 'settings'),
                     ),
                   ],
@@ -231,7 +242,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        btn['label'] as String,
+                        _quickLabel(btn['labelKey'] as String),
                         style: TextStyle(
                           color: fgColor,
                           fontSize: 14,
@@ -284,9 +295,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       if (pool.isEmpty || !mounted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No manga available for Random right now'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).noRandomRightNow),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -309,9 +320,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not find a random manga'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).couldNotFindRandom),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -322,10 +333,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildSectionHeader(
     String title, {
-    String actionLabel = 'More',
+    String? actionLabel,
     required VoidCallback onMorePressed,
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -352,7 +364,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            child: Text(actionLabel),
+            child: Text(actionLabel ?? l.exploreMore),
           ),
         ],
       ),

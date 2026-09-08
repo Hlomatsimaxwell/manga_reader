@@ -8,6 +8,7 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class SourceSearchResultsScreen extends StatefulWidget {
   final MangaSource source;
@@ -263,7 +264,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                 textInputAction: TextInputAction.search,
                 onSubmitted: _submitSearchFromAppBar,
                 decoration: InputDecoration(
-                  hintText: 'Search this source...',
+                  hintText: AppLocalizations.of(context).searchThisSource,
                   hintStyle: TextStyle(
                     color: dark ? Colors.white54 : Colors.black54,
                     fontSize: 16,
@@ -297,7 +298,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               onPressed: _toggleSearch,
             ),
             IconButton(
-              tooltip: 'Random manga',
+              tooltip: AppLocalizations.of(context).randomMangaTooltip,
               icon: Icon(
                 Icons.casino_outlined,
                 color: dark ? Colors.white : const Color(0xFF1C1B1F),
@@ -305,15 +306,15 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               onPressed: _openRandomManga,
             ),
             IosMenuButton<String>(
-              items: const [
+              items: [
                 IosMenuItem(
                   value: 'refresh',
-                  label: 'Refresh results',
+                  label: AppLocalizations.of(context).refreshResults,
                   icon: Icons.refresh_rounded,
                 ),
                 IosMenuItem(
                   value: 'clear_query',
-                  label: 'Clear search query',
+                  label: AppLocalizations.of(context).clearSearchQuery,
                   icon: Icons.close_rounded,
                 ),
               ],
@@ -541,7 +542,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             OutlinedButton.icon(
               onPressed: _runSearch,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(AppLocalizations.of(context).retry),
               style: OutlinedButton.styleFrom(
                 foregroundColor: dark
                     ? Colors.white
@@ -557,10 +558,10 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
     }
 
     if (_mangaList.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.search_off,
-        title: 'No manga found',
-        subtitle: 'Try a different search query.',
+        title: AppLocalizations.of(context).noMangaFound,
+        subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
     }
 

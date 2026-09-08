@@ -17,6 +17,7 @@ import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:remixicon/remixicon.dart';
 
 void main() async {
@@ -38,6 +39,7 @@ class YomouApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeNotifierProvider);
+    final language = ref.watch(appearanceSettingsProvider).language;
 
     return MaterialApp(
       title: 'Yomou',
@@ -45,6 +47,9 @@ class YomouApp extends ConsumerWidget {
       themeMode: theme.mode,
       theme: theme.lightTheme,
       darkTheme: theme.darkTheme,
+      locale: language == 'system' ? null : Locale(language),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: const HomeScreen(),
     );
   }
@@ -96,10 +101,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           return;
         }
         _lastBackPress = now;
+        final l = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Press back again to exit'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(l.pressBackToExit),
+            duration: const Duration(seconds: 2),
           ),
         );
       },
@@ -115,12 +121,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Positioned.fill(
                 child: IndexedStack(index: _currentIndex, children: _screens),
               ),
-              // Continue Reading FAB (History tab only, opt-in). Sits above the
-              // bar: 12px past the bar's top edge. Cross-fades/scales away on
-              // every other tab or when scrolling down (unless pinned).
+              // Continue Reading FAB (History tab only, opt-in). Docked 12px above the
+              // pill's top-right corner. Cross-fades/scales away on every other
+              // tab or when scrolling down (unless pinned).
               Positioned(
-                right: 16,
-                bottom: bottomBarClearance(context),
+                right: 20,
+                bottom: bottomBarTopEdge(context) + 12,
                 child: AnimatedSlide(
                   offset: Offset(0, _navHiddenOnScroll ? 1.5 : 0),
                   duration: const Duration(milliseconds: 220),
@@ -192,37 +198,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ) {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: kBottomBarSideMargin,
-          right: kBottomBarSideMargin,
-          bottom:
-              kBottomBarBottomMargin + MediaQuery.paddingOf(context).bottom,
-        ),
-        child: Container(
-          height: kBottomBarHeight,
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1C1C1E)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF2C2C30)
-                  : Colors.black12,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha:
-                      Theme.of(context).brightness == Brightness.dark ? 0.08 : 0.12,
-                ),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: kBottomBarSideMargin,
+            right: kBottomBarSideMargin,
+            bottom: kBottomBarBottomMargin,
           ),
-          child: _buildNavRow(updatesCount, accent, settings),
+          child: Container(
+            height: kBottomBarHeight,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1C1C1E)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2C2C30)
+                    : Colors.black12,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha:
+                        Theme.of(context).brightness == Brightness.dark ? 0.08 : 0.12,
+                  ),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: _buildNavRow(updatesCount, accent, settings),
+          ),
         ),
       ),
     );
@@ -285,8 +295,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: Text(
                 '$badgeCount',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: ThemeData.estimateBrightnessForColor(accent) ==
+                          Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
                   fontSize: 9,
                   fontWeight: FontWeight.bold,
                 ),
@@ -297,13 +310,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  static const List<String> _navLabels = [
-    'History',
-    'Favorites',
-    'Suggestions',
-    'Explore',
-    'Updates',
-  ];
+  String _navLabel(BuildContext context, int index) {
+    final l = AppLocalizations.of(context);
+    return switch (index) {
+      0 => l.history,
+      1 => l.favorites,
+      2 => l.suggestions,
+      3 => l.explore,
+      _ => l.updates,
+    };
+  }
 
   // Icon + label slot (friend's iOS-style bar, Remix icons). Every tab shows
   // icon + small label; the active tab swaps to the fill glyph, tints with the
@@ -369,7 +385,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      _navLabels[index],
+                      _navLabel(context, index),
                       softWrap: false,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -421,9 +437,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     strokeWidth: 2.5,
                   ),
                 )
-              : const Icon(
+              : Icon(
                   Icons.auto_stories_rounded,
-                  color: Colors.white,
+                  color: ThemeData.estimateBrightnessForColor(accent) ==
+                          Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
                   size: 30,
                 ),
         ),
@@ -439,10 +458,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final rows = await DatabaseHelper.instance.getHistory();
       if (rows.isEmpty) {
         if (mounted) {
+          final l = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No reading history yet'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l.noReadingHistoryYet),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -464,10 +484,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           : ref.read(currentSourceProvider);
       if (source == null) {
         if (mounted) {
+          final l = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No source available'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l.noSourceAvailable),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -481,10 +502,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
       if (chapters.isEmpty) {
         if (mounted) {
+          final l = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No chapters available'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l.noChaptersAvailable),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -518,9 +540,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } catch (e) {
       debugPrint('Continue reading error: $e');
       if (mounted) {
+        final l = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to continue reading: $e'),
+            content: Text(l.failedToContinueReading(e)),
             duration: const Duration(seconds: 2),
           ),
         );

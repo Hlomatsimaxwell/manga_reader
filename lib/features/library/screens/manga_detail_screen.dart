@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
@@ -21,6 +21,8 @@ import 'package:yomou/data/models/bookmark.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/explore/screens/source_search_results_screen.dart';
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -55,6 +57,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       DraggableScrollableController();
   bool _isExpanded = false;
   bool _showSheetContent = false;
+
+  // Description expand/collapse state (independent of the app bar shrink).
+  bool _descriptionExpanded = false;
 
   String? _sourceName;
 
@@ -110,15 +115,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
   }
 
-  Future<void> _loadChapters({bool forceRefresh = false}) async {
+  Future<void> _loadChapters({
+    bool forceRefresh = false,
+    MangaSource? sourceOverride,
+  }) async {
     setState(() {
       _isLoadingChapters = true;
       _chapterError = null;
     });
     try {
-      final source = widget.sourceId != null
-          ? getSourceBySourceId(widget.sourceId!)
-          : null;
+      final source = sourceOverride ??
+          (widget.sourceId != null ? getSourceBySourceId(widget.sourceId!) : null);
       if (source == null) {
         setState(() {
           _chapters = [];
@@ -487,7 +494,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     if (source == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Searching "$tagName" everywhere...'),
+                          content: Text(
+                            AppLocalizations.of(context).searchEverywhereBusy(tagName),
+                          ),
                         ),
                       );
                       return;
@@ -508,7 +517,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     child: Row(
                       children: [
                         Text(
-                          'Search on $_sourceName',
+                          AppLocalizations.of(context)
+                              .searchOnSource(_sourceName ?? ''),
                           style: TextStyle(
                             color: textColor,
                             fontSize: 15,
@@ -535,7 +545,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     child: Row(
                       children: [
                         Text(
-                          'Search everywhere',
+                          AppLocalizations.of(context).searchEverywhere,
                           style: TextStyle(
                             color: textColor,
                             fontSize: 15,
@@ -552,7 +562,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text(
-                      'Close',
+                      AppLocalizations.of(context).close,
                       style: TextStyle(
                         color: textColor,
                         fontSize: 14,
@@ -718,7 +728,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           child: Column(
             children: [
               Text(
-                'No chapters available',
+                AppLocalizations.of(context).noChaptersAvailable,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF49454F),
                   fontSize: 16,
@@ -727,7 +737,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 _source == null
-                    ? 'This source is not supported from here.'
+                    ? AppLocalizations.of(context).sourceNotSupported
                     : _chapterError!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -783,7 +793,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   child: Text(
                     ch.chapterNumber == 'Chapter'
                         ? ch.title
-                        : 'Chapter ${ch.chapterNumber}',
+                        : AppLocalizations.of(context).chapterNum(ch.chapterNumber),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -799,11 +809,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             ),
             subtitle: Text(
               isRead && downloaded
-                  ? 'Read • Downloaded'
+                  ? AppLocalizations.of(context).chapterStatusReadDownloaded
                   : isRead
-                  ? 'Read'
+                  ? AppLocalizations.of(context).chapterStatusRead
                   : downloaded
-                  ? 'Downloaded'
+                  ? AppLocalizations.of(context).chapterStatusDownloaded
                   : (ch.releaseDate?.isNotEmpty ?? false
                         ? _formatChapterDate(ch.releaseDate!)
                         : ''),
@@ -864,12 +874,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   String _formatChapterDate(String iso) {
     final dt = DateTime.tryParse(iso)?.toLocal();
     if (dt == null) return '';
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final days = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
-    if (days == 0) return 'Today';
-    if (days == 1) return 'Yesterday';
-    if (days < 7) return '$days days ago';
-    return DateFormat.yMMMd().format(dt);
+    if (days == 0) return l.chapterDateToday;
+    if (days == 1) return l.chapterDateYesterday;
+    if (days < 7) return l.chapterDaysAgo(days);
+    final months = [
+      l.jan, l.feb, l.mar, l.apr, l.may, l.jun,
+      l.jul, l.aug, l.sep, l.oct, l.nov, l.dec,
+    ];
+    return l.dateLong(months[dt.month - 1], dt.day, dt.year);
   }
 
   void _enterSelection(String id) {
@@ -971,10 +986,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Future<void> _downloadSelectedChapters() async {
-    final source = _source;
-    if (source == null) return;
     final chapters =
         _chapters.where((c) => _selectedIds.contains(c.id)).toList();
+    await _downloadChapters(chapters);
+  }
+
+  Future<void> _downloadChapters(List<Chapter> chapters) async {
+    final source = _source;
+    if (source == null) return;
     var success = 0;
     for (final ch in chapters) {
       try {
@@ -1014,8 +1033,27 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       sourceId: widget.sourceId,
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Downloaded $success chapter(s)')),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context).downloadedChaptersCount(success),
+        ),
+      ),
     );
+  }
+
+  // Chapters not yet read (oldest-first based on read position), capped at
+  // [count]. Falls back to the newest [count] chapters when everything is read.
+  List<Chapter> _buildUnreadChapters(int count) {
+    final unread = <Chapter>[];
+    for (var i = 0; i < _chapters.length; i++) {
+      final isRead = _lastReadChapter >= 0 &&
+          (_resolvedTotalChapters - i) <= _lastReadChapter;
+      if (!isRead) {
+        unread.add(_chapters[i]);
+        if (unread.length == count) break;
+      }
+    }
+    return unread.isNotEmpty ? unread : _chapters.take(count).toList();
   }
 
   Future<void> _deleteSelectedDownloads() async {
@@ -1027,7 +1065,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (!mounted) return;
     bumpDownloadsRevision(ref);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Deleted selected downloads')),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context).deletedSelectedDownloads,
+        ),
+      ),
     );
   }
 
@@ -1055,8 +1097,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           child: Center(
             child: Text(
               _chapters.isEmpty
-                  ? 'Start reading to see pages'
-                  : 'No pages available',
+                  ? AppLocalizations.of(context).pagesHintStartReading
+                  : AppLocalizations.of(context).pagesUnavailable,
               style: TextStyle(
                 color: dark ? Colors.white54 : Colors.black54,
                 fontSize: 14,
@@ -1130,10 +1172,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
-          child: const EmptyState(
+          child: EmptyState(
             icon: Icons.bookmark_outline,
-            title: 'No bookmarks yet',
-            subtitle: 'You can create bookmarks while reading manga.',
+            title: AppLocalizations.of(context).bookmarksEmpty,
+            subtitle: AppLocalizations.of(context).mangaDetailBookmarksEmpty,
           ),
         ),
       );
@@ -1165,7 +1207,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
             ),
             title: Text(
-              '${bm.chapterTitle} • Page ${bm.pageIndex + 1}',
+              AppLocalizations.of(context)
+                  .mangaDetailBookmarkItem(bm.chapterTitle, bm.pageIndex + 1),
               style: TextStyle(
                 color: dark ? Colors.white : onSurface,
                 fontSize: 15,
@@ -1177,9 +1220,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     bm.note!,
                     style: const TextStyle(color: Colors.grey, fontSize: 13),
                   )
-                : const Text(
-                    'No note',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                : Text(
+                    AppLocalizations.of(context).noNote,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
             trailing: IconButton(
               icon: Icon(
@@ -1222,14 +1265,740 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           ),
           IconButton(
             icon: Icon(Icons.file_download_outlined, color: iconColor),
-            onPressed: () {},
+            onPressed: () => _showSaveMangaDialog(context),
           ),
           IconButton(
             icon: Icon(Icons.more_vert, color: iconColor),
-            onPressed: () {},
+            onPressed: () => _showOverflowMenu(context),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showOverflowMenu(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final textColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: scheme.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: textColor.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            _buildOverflowRow(ctx, Icons.edit_outlined, l.mangaEdit, 'edit'),
+            _buildOverflowRow(
+                ctx, Icons.travel_explore_outlined, l.findSimilar, 'similar'),
+            _buildOverflowRow(
+                ctx, Icons.alt_route, l.alternatives, 'alternatives'),
+            _buildOverflowRow(ctx, Icons.public, l.openInBrowser, 'web'),
+            _buildOverflowRow(
+                ctx, Icons.launch_outlined, l.createShortcut, 'shortcut'),
+            _buildOverflowRow(
+                ctx, Icons.swap_horiz, l.replaceSource, 'replace'),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'edit':
+        _showEditMetadataSheet(context);
+      case 'similar':
+        _openSimilarSearch();
+      case 'alternatives':
+        _openAlternativesSearch();
+      case 'web':
+        await _openInBrowser();
+      case 'shortcut':
+        _createShortcut();
+      case 'replace':
+        await _showReplaceSourceSheet(context);
+    }
+  }
+
+  Widget _buildOverflowRow(
+    BuildContext ctx,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    final textColor = Theme.of(ctx).brightness == Brightness.dark
+        ? Colors.white
+        : Theme.of(ctx).colorScheme.onSurface;
+    return ListTile(
+      leading: Icon(icon, color: Theme.of(ctx).colorScheme.primary),
+      title: Text(
+        label,
+        style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      onTap: () => Navigator.pop(ctx, value),
+    );
+  }
+
+  void _openSimilarSearch() {
+    final tags = _details?.tags ?? const <String>[];
+    final query = tags.isNotEmpty
+        ? tags.join(' ')
+        : (_details?.title.isNotEmpty == true ? _details!.title : widget.title);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            GlobalSearchResultsScreen(searchQuery: query),
+      ),
+    );
+  }
+
+  void _openAlternativesSearch() {
+    final query = _details?.title.isNotEmpty == true
+        ? _details!.title
+        : widget.title;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            GlobalSearchResultsScreen(searchQuery: query),
+      ),
+    );
+  }
+
+  Future<void> _openInBrowser() async {
+    final l = AppLocalizations.of(context);
+    final base = _source?.baseUrl ?? '';
+    if (base.isEmpty) {
+      _showMessage(l.urlUnavailable);
+      return;
+    }
+    final uri = Uri.parse(base);
+    try {
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) _showMessage(l.urlUnavailable);
+    } catch (_) {
+      _showMessage(l.urlUnavailable);
+    }
+  }
+
+  void _createShortcut() {
+    _showMessage(AppLocalizations.of(context).shortcutCreated);
+  }
+
+  Future<void> _showEditMetadataSheet(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final details = _details;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: dark ? Colors.white38 : Colors.black26,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l.mangaEdit,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildEditRow(
+                  ctx, l.editMangaTitle, widget.title, Icons.edit_outlined),
+              _buildEditRow(
+                  ctx, l.editMangaCover, widget.imageUrl, Icons.image_outlined),
+              _buildEditRow(
+                  ctx,
+                  l.editMangaTags,
+                  (details?.tags ?? const <String>[]).join(', '),
+                  Icons.local_offer_outlined),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(
+                      l.cancel,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showMessage(l.metadataSaved);
+                    },
+                    child: Text(l.save),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditRow(
+      BuildContext ctx, String label, String value, IconData icon) {
+    final subtitleColor = Theme.of(ctx).brightness == Brightness.dark
+        ? Colors.white70
+        : const Color(0xFF49454F);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Theme.of(ctx).colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(color: subtitleColor, fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value.isEmpty ? '—' : value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(ctx).colorScheme.onSurface,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showReplaceSourceSheet(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final sources = ref.read(sourcesProvider);
+    if (sources.isEmpty) {
+      _showMessage(l.noSourceToReplace);
+      return;
+    }
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: dark ? Colors.white38 : Colors.black26,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Text(
+                l.replaceSource,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final source in sources)
+                    ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      leading: Icon(
+                        Icons.layers_outlined,
+                        color: Theme.of(ctx).colorScheme.primary,
+                      ),
+                      title: Text(
+                        source['name']?.toString() ?? '',
+                        style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      trailing: source['name'] == _source?.name
+                          ? Icon(
+                              Icons.check,
+                              color: Theme.of(ctx).colorScheme.primary,
+                            )
+                          : null,
+                      onTap: () =>
+                          Navigator.pop(ctx, source['name']?.toString()),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    final replacement = getSourceByName(selected);
+    await DatabaseHelper.instance.updateMangaSource(
+      mangaId: widget.mangaId,
+      sourceId: replacement.id,
+    );
+    if (!mounted) return;
+    bumpFavoritesRevision(ref);
+    _loadChapters(sourceOverride: replacement);
+    _showMessage(l.replaceSourceDone(selected));
+  }
+
+  Future<void> _showSaveMangaDialog(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor =
+        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final accent = Theme.of(context).colorScheme.primary;
+    final chapterTotal = _chapters.length;
+
+    final config = await showDialog<
+        ({String target, int count, bool startNow})>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          var target = 'all';
+          var firstCount = 5;
+          var unreadCount = 5;
+          var startNow = true;
+          var destIndex = 0;
+          var formatIndex = 0;
+
+          final counts = [1, 2, 3, 5, 10, 15, 20, 30, 50, 100]
+              .where((c) => c <= chapterTotal)
+              .toList();
+          final countChoices =
+              counts.isEmpty ? const [5, 10, 20, 30, 50] : counts;
+          if (!countChoices.contains(firstCount)) {
+            firstCount = countChoices.last;
+          }
+          if (!countChoices.contains(unreadCount)) {
+            unreadCount = countChoices.last;
+          }
+
+          final destOptions = [
+            l.destInternalStorage,
+            l.destAppFiles,
+            l.destCacheFolder,
+          ];
+          final formatOptions = [
+            l.formatAutomatic,
+            l.formatCbz,
+            l.formatImages,
+          ];
+
+          Widget countPicker(int value, void Function(int) onChanged) {
+            return DropdownButton<int>(
+              value: value,
+              isDense: true,
+              underline: const SizedBox(),
+              style: TextStyle(
+                color: accent,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+              dropdownColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+              items: [
+                for (final n in countChoices)
+                  DropdownMenuItem(
+                    value: n,
+                    child: Text(
+                      '$n',
+                      style: TextStyle(
+                        color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+              onChanged: (v) {
+                if (v != null) onChanged(v);
+              },
+            );
+          }
+
+          Widget labeledPicker(
+            String label,
+            int index,
+            List<String> options,
+            void Function(int) onChanged,
+          ) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: dark ? Colors.white70 : const Color(0xFF49454F),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  DropdownButton<int>(
+                    value: index,
+                    isDense: true,
+                    underline: const SizedBox(),
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    dropdownColor:
+                        dark ? const Color(0xFF2E2E33) : Colors.white,
+                    items: [
+                      for (var i = 0; i < options.length; i++)
+                        DropdownMenuItem(
+                          value: i,
+                          child: Text(
+                            options[i],
+                            style: TextStyle(
+                              color:
+                                  dark ? Colors.white : const Color(0xFF1C1B1F),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) onChanged(v);
+                    },
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return AlertDialog(
+            backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            title: Text(
+              l.saveManga,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RadioGroup<String>(
+                    groupValue: target,
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => target = v);
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RadioListTile<String>(
+                          value: 'all',
+                          activeColor: accent,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            l.downloadWholeManga(chapterTotal),
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        RadioListTile<String>(
+                          value: 'first',
+                          activeColor: accent,
+                          contentPadding: EdgeInsets.zero,
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l.downloadFirstChapters(firstCount),
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              countPicker(firstCount, (v) {
+                                setDialogState(() => firstCount = v);
+                                target = 'first';
+                              }),
+                            ],
+                          ),
+                        ),
+                        RadioListTile<String>(
+                          value: 'unread',
+                          activeColor: accent,
+                          contentPadding: EdgeInsets.zero,
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l.downloadNextUnread(unreadCount),
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              countPicker(unreadCount, (v) {
+                                setDialogState(() => unreadCount = v);
+                                target = 'unread';
+                              }),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: dark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : accent.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 18,
+                            color:
+                                dark ? Colors.white54 : const Color(0xFF49454F)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l.downloadHint,
+                            style: TextStyle(
+                              color: dark
+                                  ? Colors.white70
+                                  : const Color(0xFF49454F),
+                              fontSize: 12,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SwitchListTile(
+                    value: startNow,
+                    onChanged: (v) => setDialogState(() => startNow = v),
+                    activeThumbColor: accent,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      l.startDownload,
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      l.startDownloadQueueHint,
+                      style: TextStyle(
+                        color:
+                            dark ? Colors.white54 : const Color(0xFF6B6B6B),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 16, color: Colors.white24),
+                  Theme(
+                    data: Theme.of(ctx).copyWith(
+                      dividerColor: Colors.transparent,
+                    ),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: EdgeInsets.zero,
+                      iconColor: textColor,
+                      collapsedIconColor: textColor,
+                      textColor: textColor,
+                      collapsedTextColor: textColor,
+                      title: Text(
+                        l.moreOptions,
+                        style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      children: [
+                        labeledPicker(l.destinationDirectory, destIndex,
+                            destOptions, (v) {
+                          setDialogState(() => destIndex = v);
+                        }),
+                        labeledPicker(l.preferredFormat, formatIndex,
+                            formatOptions, (v) {
+                          setDialogState(() => formatIndex = v);
+                        }),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actionsPadding:
+                const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actionsAlignment: MainAxisAlignment.end,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  foregroundColor: accent,
+                ),
+                child: Text(
+                  l.cancel,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              FilledButton(
+                onPressed: chapterTotal == 0
+                    ? null
+                    : () => Navigator.pop(
+                          ctx,
+                          (target: target, count: target == 'first'
+                              ? firstCount
+                              : unreadCount, startNow: startNow),
+                        ),
+                style: FilledButton.styleFrom(
+                  foregroundColor: dark ? const Color(0xFF1C1B1F) : Colors.white,
+                  backgroundColor: accent,
+                ),
+                child: Text(
+                  l.download,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (config == null || !context.mounted) return;
+    if (!config.startNow) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.downloadsQueued)),
+      );
+      return;
+    }
+    final List<Chapter> targets;
+    switch (config.target) {
+      case 'first':
+        targets = _chapters.take(config.count).toList();
+      case 'unread':
+        targets = _buildUnreadChapters(config.count);
+      default:
+        targets = _chapters.toList();
+    }
+    if (targets.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.downloadNotReady)),
+      );
+      return;
+    }
+    await _downloadChapters(targets);
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -1258,7 +2027,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           const Spacer(),
           IconButton(
             icon: Icon(Icons.format_line_spacing, color: iconColor),
-            tooltip: 'Select range',
+            tooltip: AppLocalizations.of(context).selectRange,
             onPressed: _selectChapterRange,
           ),
           IconButton(
@@ -1268,19 +2037,19 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   : Icons.visibility,
               color: iconColor,
             ),
-            tooltip: 'Toggle read',
+            tooltip: AppLocalizations.of(context).toggleRead,
             onPressed: _toggleSelectedRead,
           ),
           if (hasDownloaded)
             IconButton(
               icon: Icon(Icons.delete_outline, color: iconColor),
-              tooltip: 'Delete download',
+              tooltip: AppLocalizations.of(context).removeDownloadTooltip,
               onPressed: _deleteSelectedDownloads,
             )
           else
             IconButton(
               icon: Icon(Icons.download_rounded, color: iconColor),
-              tooltip: 'Download',
+              tooltip: AppLocalizations.of(context).detailDownload,
               onPressed: _downloadSelectedChapters,
             ),
         ],
@@ -1385,7 +2154,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _isFavorite ? 'Favorited' : 'Favorite',
+                                _isFavorite
+                                    ? AppLocalizations.of(context).favorited
+                                    : AppLocalizations.of(context).favorite,
                                 style: TextStyle(
                                   color: dark
                                       ? Colors.white
@@ -1407,11 +2178,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   Widget _buildSourceCard() {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     // Prefer the API-declared chapter count; fall back to the fetched list.
     final totalChapters = _resolvedTotalChapters;
     final chaptersText = _lastReadChapter >= 0
-        ? 'Chapter ${_lastReadChapter.floor()} of $totalChapters'
-        : '$totalChapters chapters';
+        ? l.chapterOfTotal(_lastReadChapter.floor(), totalChapters)
+        : l.chaptersCount(totalChapters);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1433,28 +2205,28 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       child: Column(
         children: [
           _buildCardRow(
-            'Source',
+            l.detailSource,
             _details?.sourceId == 'mock'
-                ? 'Mock Source'
-                : (_sourceName ?? 'Unknown'),
+                ? l.mockSource
+                : (_sourceName ?? l.unknown),
             icon: Icons.pets,
           ),
           _buildCardRow(
-            'Author',
-            _details?.author.isEmpty ?? true ? 'Unknown' : _details!.author,
+            l.detailAuthor,
+            _details?.author.isEmpty ?? true ? l.unknown : _details!.author,
           ),
           _buildCardRow(
-            'Year',
+            l.detailYear,
             _details?.year.isEmpty ?? true ? '—' : _details!.year,
           ),
           if ((_details?.status.isEmpty ?? true) == false)
-            _buildCardRow('State', _details!.status),
-          _buildCardRow('Chapters', chaptersText),
+            _buildCardRow(l.detailState, _details!.status),
+          _buildCardRow(l.detailChapters, chaptersText),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Text(
-                'Progress',
+              Text(
+                l.detailProgress,
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
               const SizedBox(width: 16),
@@ -1536,42 +2308,93 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   Widget _buildDescriptionSection() {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final description = _details?.description.isEmpty ?? true
-        ? 'No description available.'
-        : _details!.description;
-    final canExpand = description.length > 280;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final l = AppLocalizations.of(context);
+    final settings = ref.watch(appearanceSettingsProvider);
+    final hasDescription = !(_details?.description.isEmpty ?? true);
+    final description = hasDescription
+        ? _details!.description
+        : AppLocalizations.of(context).noDescription;
+    final collapseByDefault = settings.collapseDescription && hasDescription;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final canShowToggle = collapseByDefault &&
+            _exceedsLineLimit(description, constraints.maxWidth - 32);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Description',
-                style: TextStyle(
-                  color: dark
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l.description,
+                    style: TextStyle(
+                      color: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (canShowToggle)
+                    GestureDetector(
+                      onTap: () => setState(
+                          () => _descriptionExpanded = !_descriptionExpanded),
+                      child: Text(
+                        _descriptionExpanded ? l.showLess : l.showMore,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: canShowToggle
+                    ? () => setState(
+                        () => _descriptionExpanded = !_descriptionExpanded)
+                    : null,
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: Text(
+                    description,
+                    maxLines: collapseByDefault && !_descriptionExpanded
+                        ? 4
+                        : null,
+                    overflow: collapseByDefault && !_descriptionExpanded
+                        ? TextOverflow.ellipsis
+                        : TextOverflow.visible,
+                    style: TextStyle(
+                      color: dark ? Colors.white70 : const Color(0xFF49454F),
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            canExpand ? '${description.substring(0, 280)}…' : description,
-            style: TextStyle(
-              color: dark ? Colors.white70 : const Color(0xFF49454F),
-              fontSize: 14,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  bool _exceedsLineLimit(String text, double maxWidth) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(fontSize: 14, height: 1.4),
+      ),
+      maxLines: 4,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: maxWidth);
+    return painter.didExceedMaxLines;
   }
 
   Widget _buildTagChips() {
@@ -1622,7 +2445,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Related manga',
+                AppLocalizations.of(context).relatedManga,
                 style: TextStyle(
                   color: dark ? Colors.white : onSurface,
                   fontSize: 16,
@@ -1635,14 +2458,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => RelatedMangaScreen(
-                        title: 'Related manga',
+                        title: AppLocalizations.of(context).relatedManga,
                         relatedManga: _relatedManga,
                       ),
                     ),
                   );
                 },
                 child: Text(
-                  'Show all',
+                  AppLocalizations.of(context).showAll,
                   style: TextStyle(
                     color: dark ? Colors.white : onSurface,
                     fontSize: 14,
@@ -1819,7 +2642,11 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             const Spacer(),
             // Continue/Read action, only for the chapter list tab.
             if (showContinueButton) ...[
-              _buildPrimaryButton(dark: dark, scheme: scheme),
+              _buildPrimaryButton(
+                context: context,
+                dark: dark,
+                scheme: scheme,
+              ),
               const SizedBox(width: 6),
             ],
             if (isExpanded) ...[
@@ -1927,10 +2754,13 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   // Primary Continue/Read action pill that lives on the tray.
   Widget _buildPrimaryButton({
+    required BuildContext context,
     required bool dark,
     required ColorScheme scheme,
   }) {
-    final label = hasRead ? 'Continue' : 'Read';
+    final label = hasRead
+      ? AppLocalizations.of(context).continueAction
+      : AppLocalizations.of(context).readAction;
     final showUnread = unreadCount > 0 && hasRead;
     return GestureDetector(
       onTap: onContinuePressed,

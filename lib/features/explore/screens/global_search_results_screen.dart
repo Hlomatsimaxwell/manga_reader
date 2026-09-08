@@ -7,6 +7,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/explore/providers/search_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/explore/screens/source_search_results_screen.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 
@@ -112,7 +113,7 @@ class _GlobalSearchResultsScreenState
           textInputAction: TextInputAction.search,
           onSubmitted: (value) => _submitSearch(),
           decoration: InputDecoration(
-            hintText: 'Search...',
+            hintText: AppLocalizations.of(context).searchEllipsis,
             hintStyle: TextStyle(
               color: dark ? Colors.white54 : Colors.black54,
               fontSize: 16,
@@ -133,8 +134,8 @@ class _GlobalSearchResultsScreenState
         actions: [
           IconButton(
             tooltip: _showFailedSources
-                ? 'Hide failed sources'
-                : 'Show failed sources',
+                ? AppLocalizations.of(context).hideFailedSources
+                : AppLocalizations.of(context).showFailedSources,
             icon: Icon(
               _showFailedSources ? Icons.public : Icons.public_off,
               color: _showFailedSources
@@ -165,7 +166,7 @@ class _GlobalSearchResultsScreenState
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Failed to search',
+                AppLocalizations.of(context).failedToSearch,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF49454F),
                   fontSize: 16,
@@ -199,10 +200,10 @@ class _GlobalSearchResultsScreenState
         : results.where((r) => r.hasResults && !r.hasError).toList();
 
     if (visible.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.search_off,
-        title: 'No results found',
-        subtitle: 'Try a different search query.',
+        title: AppLocalizations.of(context).noResultsFound,
+        subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
     }
 
@@ -251,7 +252,9 @@ class _GlobalSearchResultsScreenState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Show all (${result.manga.length})',
+                        AppLocalizations.of(context).showAllCount(
+                          result.manga.length,
+                        ),
                         style: TextStyle(
                           color:
                               dark ? Colors.white70 : const Color(0xFF49454F),
@@ -388,8 +391,9 @@ class _GlobalSearchResultsScreenState
             Expanded(
               child: Text(
                 result.hasError
-                    ? (result.errorMessage ?? 'Source failed')
-                    : 'Content not found or removed',
+                    ? (result.errorMessage ??
+                          AppLocalizations.of(context).sourceFailed)
+                    : AppLocalizations.of(context).contentNotFoundRemoved,
                 style: TextStyle(
                   color: dark ? Colors.white54 : Colors.black54,
                   fontSize: 13,

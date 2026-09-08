@@ -334,6 +334,20 @@ class DatabaseHelper {
     }
   }
 
+  // Re-binds a stored manga entry to a different source extension.
+  Future<void> updateMangaSource({
+    required String mangaId,
+    required String sourceId,
+  }) async {
+    final db = await instance.database;
+    await db.update(
+      'manga',
+      {'sourceId': sourceId},
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+    );
+  }
+
   // Returns all favorited manga.
   Future<List<Map<String, dynamic>>> getFavorites() async {
     final db = await instance.database;

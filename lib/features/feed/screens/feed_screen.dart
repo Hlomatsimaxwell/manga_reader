@@ -7,6 +7,7 @@ import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -51,11 +52,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               updatesAsync.when(
                 data: (updates) {
                   if (updates.isEmpty) {
-                    return const EmptyState(
+                    return EmptyState(
                       icon: Icons.rss_feed,
-                      title: 'No new updates yet',
-                      subtitle:
-                          'Manga you read will show here when new chapters are released.',
+                      title: AppLocalizations.of(context).feedNoNewUpdates,
+                      subtitle: AppLocalizations.of(context).feedUpdatesHint,
                     );
                   }
                   return Column(
@@ -79,7 +79,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 60),
                   child: Center(
                     child: Text(
-                      'Failed to load updates',
+                      AppLocalizations.of(context).failedToLoadUpdates,
                       style: TextStyle(
                         color:
                             Theme.of(context).brightness == Brightness.dark
@@ -123,7 +123,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Search manga',
+                  AppLocalizations.of(context).searchManga,
                   style: TextStyle(color: hintColor, fontSize: 16),
                 ),
               ),
@@ -143,7 +143,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Updates',
+            AppLocalizations.of(context).updatesTitle,
             style: TextStyle(
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
               fontSize: 16,
@@ -173,7 +173,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   ),
                 const SizedBox(width: 4),
                 Text(
-                  _refreshing ? 'Checking' : 'Refresh',
+                  _refreshing
+                      ? AppLocalizations.of(context).checking
+                      : AppLocalizations.of(context).refresh,
                   style: TextStyle(
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
                     fontSize: 13,

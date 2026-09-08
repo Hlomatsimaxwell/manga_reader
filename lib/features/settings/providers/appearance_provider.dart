@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Named color schemes matching Kotatsu's preset themes.
-enum AppColorScheme { totoro, dynamic, expressive, miku }
+enum AppColorScheme { totoro, dynamic, expressive, miku, monochrome }
 
 /// Palettes for each named scheme: (accent, accentLight, accentDark, surface).
 class SchemePalette {
@@ -52,6 +52,13 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
     accentDark: Color(0xFF1BA25A),
     surface: Color(0xFF1A3326),
     secondary: Color(0xFF8AF4B0),
+  ),
+  AppColorScheme.monochrome: SchemePalette(
+    accent: Color(0xFF000000),
+    accentLight: Color(0xFF666666),
+    accentDark: Colors.white,
+    surface: Color(0xFF000000),
+    secondary: Color(0xFF666666),
   ),
 };
 
@@ -398,10 +405,29 @@ final appearanceSettingsProvider =
     StateNotifierProvider<AppearanceSettingsNotifier, AppearanceSettings>(
         (ref) => AppearanceSettingsNotifier());
 
+/// Resolves whether the app is effectively showing dark mode, honoring the
+/// chosen [ThemeMode] and falling back to system brightness for "system".
+bool _effectiveDark(AppearanceSettings settings) {
+  switch (settings.themeMode) {
+    case ThemeMode.dark:
+      return true;
+    case ThemeMode.light:
+      return false;
+    case ThemeMode.system:
+      return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+          Brightness.dark;
+  }
+}
+
 /// Derived accent color for the app based on the active [appearanceSettingsProvider].
 final accentProvider = Provider<Color>((ref) {
-  final schemeName = ref.watch(appearanceSettingsProvider).colorScheme;
-  return paletteForScheme(schemeName).accent;
+  final settings = ref.watch(appearanceSettingsProvider);
+  final palette = paletteForScheme(settings.colorScheme);
+  if (settings.colorScheme.toLowerCase() == 'monochrome') {
+    // Monochrome pills/FAB render crisp white or black, never tinted.
+    return _effectiveDark(settings) ? Colors.white : Colors.black;
+  }
+  return palette.accent;
 });
 
 final accentLightProvider = Provider<Color>((ref) {
@@ -511,30 +537,64 @@ ThemeData _baseTheme(bool dark) {
   );
 }
 
+/// Pure black/white Material 3 scheme for the Monochrome preset.
+ColorScheme monochromeScheme(Brightness brightness) {
+  if (brightness == Brightness.dark) {
+    return const ColorScheme.dark(
+      primary: Color(0xFFFFFFFF),
+      onPrimary: Color(0xFF000000),
+      primaryContainer: Color(0xFF2A2A2A),
+      onPrimaryContainer: Color(0xFFFFFFFF),
+      surface: Color(0xFF000000),
+      onSurface: Color(0xFFFFFFFF),
+      secondary: Color(0xFFCCCCCC),
+    );
+  }
+  return const ColorScheme.light(
+    primary: Color(0xFF000000),
+    onPrimary: Color(0xFFFFFFFF),
+    primaryContainer: Color(0xFFE0E0E0),
+    onPrimaryContainer: Color(0xFF000000),
+    surface: Color(0xFFFFFFFF),
+    onSurface: Color(0xFF000000),
+    secondary: Color(0xFF444444),
+  );
+}
+
 /// Creates the final ThemeData for a given brightness. Dark mode always uses
 /// pure black (#000000) scaffold and surfaces.
 ThemeData _applyBrightness(
   ThemeData base,
   Color seed,
   Color? secondary,
-  Brightness brightness,
-) {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: seed,
-    brightness: brightness,
-  );
-  final colorScheme = secondary != null
-      ? scheme.copyWith(secondary: secondary)
-      : scheme;
+  Brightness brightness, {
+  ColorScheme? customScheme,
+}) {
+  final scheme = customScheme ??
+      ColorScheme.fromSeed(
+        seedColor: seed,
+        brightness: brightness,
+      );
+  final colorScheme = customScheme != null
+      ? scheme
+      : (secondary != null
+          ? scheme.copyWith(secondary: secondary)
+          : scheme);
 
   final dark = brightness == Brightness.dark;
+
+  // Monochrome surfaces are pure black (AMOLED) in dark mode; other schemes
+  // lift off the black scaffold with a near-black card color.
+  final isMonochrome = customScheme != null;
   final scaffoldBg = dark
       ? Colors.black
       : const Color(0xFFF8F9FA);
 
   // Dark surfaces are all near-black for OLED displays; light cards are pure
   // white so they lift off the soft off-white scaffold.
-  final surfaceColor = dark ? const Color(0xFF121212) : Colors.white;
+  final surfaceColor = dark
+      ? (isMonochrome ? Colors.black : const Color(0xFF121212))
+      : Colors.white;
 
   // High-contrast text roles for the light theme.
   final textTheme = dark
@@ -563,8 +623,21 @@ final themeNotifierProvider = Provider<ThemeDataBundle>((ref) {
   final seed = themeSeedFor(settings.colorScheme);
   final secondary = themeSecondaryFor(settings.colorScheme);
   final base = _baseTheme(false);
-  final light = _applyBrightness(base, seed, secondary, Brightness.light);
-  final dark = _applyBrightness(_baseTheme(true), seed, secondary, Brightness.dark);
+  final isMonochrome = settings.colorScheme.toLowerCase() == 'monochrome';
+  final light = _applyBrightness(
+    base,
+    seed,
+    secondary,
+    Brightness.light,
+    customScheme: isMonochrome ? monochromeScheme(Brightness.light) : null,
+  );
+  final dark = _applyBrightness(
+    _baseTheme(true),
+    seed,
+    secondary,
+    Brightness.dark,
+    customScheme: isMonochrome ? monochromeScheme(Brightness.dark) : null,
+  );
   return ThemeDataBundle(
     lightTheme: light,
     darkTheme: dark,

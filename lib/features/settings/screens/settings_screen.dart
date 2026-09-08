@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -8,6 +9,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final appBarContentColor = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -18,7 +20,7 @@ class SettingsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Settings',
+          l.settings,
           style: TextStyle(
             color: appBarContentColor,
             fontSize: 22,
@@ -38,8 +40,8 @@ class SettingsScreen extends StatelessWidget {
           _buildSettingTile(
             context: context,
             icon: Icons.palette_outlined,
-            title: 'Appearance',
-            subtitle: 'Theme, List mode, Language',
+            title: l.settingsAppearance,
+            subtitle: l.settingsAppearanceSubtitle,
             onTap: () {
               Navigator.push(
                 context,
@@ -52,57 +54,57 @@ class SettingsScreen extends StatelessWidget {
           _buildSettingTile(
             context: context,
             icon: Icons.collections_bookmark_outlined,
-            title: 'Manga sources',
-            subtitle: '1033 of 931 on',
+            title: l.settingsMangaSources,
+            subtitle: l.settingsMangaSourcesSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
             icon: Icons.menu_book_outlined,
-            title: 'Reader settings',
-            subtitle: 'Read mode, Scale mode, Switch pages',
+            title: l.settingsReader,
+            subtitle: l.settingsReaderSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
             icon: Icons.pie_chart_outline_rounded,
-            title: 'Storage and network',
-            subtitle: 'Storage usage, Proxy, Content preloading',
+            title: l.settingsStorage,
+            subtitle: l.settingsStorageSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
             icon: Icons.file_download_outlined,
-            title: 'Downloads',
-            subtitle: 'Downloads folder, Download only via Wi-Fi',
+            title: l.settingsDownloads,
+            subtitle: l.settingsDownloadsSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
             icon: Icons.rss_feed_rounded,
-            title: 'Check for new chapters',
-            subtitle: 'Look for updates, Notifications settings',
+            title: l.settingsNewChapters,
+            subtitle: l.settingsNewChaptersSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
             icon: Icons.extension_outlined,
-            title: 'Services',
-            subtitle: 'Suggestions, Synchronization, Tracking',
+            title: l.settingsServices,
+            subtitle: l.settingsServicesSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
             icon: Icons.history_rounded,
-            title: 'Backup and restore',
-            subtitle: 'Create or restore a backup, Periodic backups',
+            title: l.settingsBackup,
+            subtitle: l.settingsBackupSubtitle,
             onTap: () {},
           ),
           _buildSettingTile(
             context: context,
             icon: Icons.info_outline_rounded,
-            title: 'About',
-            subtitle: 'Version 9.8.1',
+            title: l.settingsAbout,
+            subtitle: l.settingsAboutSubtitle,
             onTap: () {},
           ),
         ],
