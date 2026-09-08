@@ -115,11 +115,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
   }
 
-  // Chapters are guaranteed to be ordered newest-first (barring tie-breaks),
-  // matching the newest-at-top convention across main screens.
+  // Chapters are sorted oldest-first so the first chapter is at the top of
+  // the tray and the latest chapter is reached by scrolling down.
   List<Chapter> _sortChaptersNewestFirst(List<Chapter> chapters) {
     final sorted = [...chapters];
-    sorted.sort((a, b) => (_chapterNum(b) - _chapterNum(a)).toInt());
+    sorted.sort((a, b) => (_chapterNum(a) - _chapterNum(b)).toInt());
     return sorted;
   }
 
@@ -438,12 +438,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Fresh manga (no progress) opens the very first (oldest) chapter.
   int get _resumeChapterIndex {
     if (_chapters.isEmpty) return 0;
-    if (_lastReadChapter <= 0) return _chapters.length - 1;
+    if (_lastReadChapter <= 0) return 0;
 
-    // Chapters are ordered newest-first, so position = (total - index).
-    final total = _resolvedTotalChapters;
+    // Chapters are ordered oldest-first, so the resume chapter index is the
+    // last-read chapter's 0-based position (read "10 chapters" -> index 9).
     final lastReadInt = _lastReadChapter.round();
-    final byPosition = total - lastReadInt;
+    final byPosition = lastReadInt - 1;
     if (byPosition >= 0 && byPosition < _chapters.length) {
       return byPosition;
     }
@@ -671,7 +671,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             showContinueButton:
                                 _activeTab == 0 && _chapters.isNotEmpty,
                             hasRead: _lastReadChapter >= 0,
+                            isSelectionMode: _selectionMode,
+                            selectedCount: _selectedIds.length,
                             onContinuePressed: _openReader,
+                            onExitSelection: _exitSelection,
+                            onSelectRange: _selectChapterRange,
+                            onToggleSelectedRead: _toggleSelectedRead,
+                            isAllSelectedRead: _isAllSelectedRead,
+                            hasDownloaded: _isSelectedDownloaded,
+                            onRemoveDownloads: _deleteSelectedDownloads,
+                            onDownload: _downloadSelectedChapters,
                             onBarTap: () {
                               final current = _sheetController.size;
                               if (current < 0.2) {
@@ -773,7 +782,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           final ch = _chapters[index];
           final isRead =
               _lastReadChapter >= 0 &&
-              (_resolvedTotalChapters - index) <= _lastReadChapter;
+              (index + 1) <= _lastReadChapter;
           final isCurrent = index == _currentDisplayIndex;
           final downloaded = downloadedChapterIds.contains(ch.id);
           final isSelected = _selectedIds.contains(ch.id);
@@ -880,7 +889,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // position from the DB when available; no icon when nothing has been read.
   int get _currentDisplayIndex {
     if (_lastReadChapter <= 0) return -1;
-    final index = _resolvedTotalChapters - _lastReadChapter.round();
+    // Chapters are ordered oldest-first; the "current" chapter is the last
+    // one read (read "10 chapters" -> index 9).
+    final index = _lastReadChapter.round() - 1;
     return (index >= 0 && index < _chapters.length) ? index : -1;
   }
 
@@ -907,6 +918,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       _selectionMode = true;
       _selectedIds.add(id);
     });
+    // Jump the tray to full height so the selection actions stay visible.
+    _animateSheetTo(1.0);
   }
 
   void _toggleSelection(String id) {
@@ -953,7 +966,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       if (!_selectedIds.contains(_chapters[i].id)) continue;
       final isRead =
           _lastReadChapter >= 0 &&
-          (_resolvedTotalChapters - i) <= _lastReadChapter;
+          (i + 1) <= _lastReadChapter;
       if (!isRead) return false;
     }
     return true;
@@ -978,7 +991,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (selectedIndices.isEmpty) return;
 
     final targetChapterNumbers = selectedIndices
-        .map((i) => _resolvedTotalChapters - i)
+        .map((i) => i + 1)
         .toList();
     final double newThreshold = _isAllSelectedRead
         // Mark unread: drop threshold below the lowest (oldest) selected.
@@ -1062,7 +1075,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final unread = <Chapter>[];
     for (var i = 0; i < _chapters.length; i++) {
       final isRead = _lastReadChapter >= 0 &&
-          (_resolvedTotalChapters - i) <= _lastReadChapter;
+          (i + 1) <= _lastReadChapter;
       if (!isRead) {
         unread.add(_chapters[i]);
         if (unread.length == count) break;
@@ -1258,9 +1271,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Widget _buildTopAppBar(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
-    if (_selectedIds.isNotEmpty) {
-      return _buildContextualAppBar(context);
-    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -2017,61 +2027,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  // Contextual app bar shown while chapters are selected in the chapter list.
-  Widget _buildContextualAppBar(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
-    final hasDownloaded = _isSelectedDownloaded;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.close, color: iconColor),
-            onPressed: _exitSelection,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${_selectedIds.length}',
-            style: TextStyle(
-              color: iconColor,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            icon: Icon(Icons.format_line_spacing, color: iconColor),
-            tooltip: AppLocalizations.of(context).selectRange,
-            onPressed: _selectChapterRange,
-          ),
-          IconButton(
-            icon: Icon(
-              _isAllSelectedRead
-                  ? Icons.visibility_off
-                  : Icons.visibility,
-              color: iconColor,
-            ),
-            tooltip: AppLocalizations.of(context).toggleRead,
-            onPressed: _toggleSelectedRead,
-          ),
-          if (hasDownloaded)
-            IconButton(
-              icon: Icon(Icons.delete_outline, color: iconColor),
-              tooltip: AppLocalizations.of(context).removeDownloadTooltip,
-              onPressed: _deleteSelectedDownloads,
-            )
-          else
-            IconButton(
-              icon: Icon(Icons.download_rounded, color: iconColor),
-              tooltip: AppLocalizations.of(context).detailDownload,
-              onPressed: _downloadSelectedChapters,
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildHeaderSection() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
@@ -2577,6 +2532,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 }
 
+
 class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool isExpanded;
   final int activeTab;
@@ -2584,9 +2540,18 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final int unreadCount;
   final bool showContinueButton;
   final bool hasRead;
+  final bool isSelectionMode;
+  final int selectedCount;
   final VoidCallback onContinuePressed;
   final VoidCallback onBarTap;
   final ValueChanged<int> onTabSelected;
+  final VoidCallback onExitSelection;
+  final VoidCallback onSelectRange;
+  final VoidCallback onToggleSelectedRead;
+  final bool isAllSelectedRead;
+  final bool hasDownloaded;
+  final VoidCallback onRemoveDownloads;
+  final VoidCallback onDownload;
 
   _SheetHeaderDelegate({
     required this.isExpanded,
@@ -2595,9 +2560,18 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.unreadCount = 0,
     this.showContinueButton = false,
     this.hasRead = false,
+    this.isSelectionMode = false,
+    this.selectedCount = 0,
     required this.onContinuePressed,
     required this.onBarTap,
     required this.onTabSelected,
+    required this.onExitSelection,
+    required this.onSelectRange,
+    required this.onToggleSelectedRead,
+    this.isAllSelectedRead = false,
+    this.hasDownloaded = false,
+    required this.onRemoveDownloads,
+    required this.onDownload,
   });
 
   @override
@@ -2610,7 +2584,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onBarTap,
+      onTap: isSelectionMode ? null : onBarTap,
       child: Container(
         decoration: BoxDecoration(
           color: dark ? const Color(0xFF1E1E20) : Colors.white,
@@ -2624,68 +2598,146 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           top: isExpanded ? topPadding : 0,
         ),
         alignment: Alignment.center,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Chapter list tab (shows unread count when there are unread chapters).
-            _buildTabIcon(
-              Icons.format_list_bulleted,
-              activeTab == 0,
-              dark: dark,
-              scheme: scheme,
-              onTap: () => onTabSelected(0),
-              badge: unreadCount > 0 ? _badge(unreadCount) : null,
-            ),
-            const SizedBox(width: 2),
-            _buildTabIcon(
-              Icons.grid_view_rounded,
-              activeTab == 1,
-              dark: dark,
-              scheme: scheme,
-              onTap: () => onTabSelected(1),
-            ),
-            const SizedBox(width: 2),
-            _buildTabIcon(
-              activeTab == 2
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              activeTab == 2,
-              dark: dark,
-              scheme: scheme,
-              onTap: () => onTabSelected(2),
-            ),
-            const Spacer(),
-            // Continue/Read action, only for the chapter list tab.
-            if (showContinueButton) ...[
-              _buildPrimaryButton(
-                context: context,
-                dark: dark,
-                scheme: scheme,
-              ),
-              const SizedBox(width: 6),
-            ],
-            if (isExpanded) ...[
-              _buildTabIcon(
-                Icons.search_rounded,
-                false,
-                dark: dark,
-                scheme: scheme,
-                onTap: () {},
-              ),
-              const SizedBox(width: 2),
-              _buildTabIcon(
-                Icons.more_vert_rounded,
-                false,
-                dark: dark,
-                scheme: scheme,
-                onTap: () {},
-              ),
-            ] else ...[
-              _buildExpandButton(dark: dark, scheme: scheme),
-            ],
-          ],
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: isSelectionMode
+              ? _buildSelectionHeader(
+                  context,
+                  dark: dark,
+                  scheme: scheme,
+                )
+              : _buildDefaultHeader(
+                  context,
+                  dark: dark,
+                  scheme: scheme,
+                ),
         ),
       ),
+    );
+  }
+
+  // Default tray: tab icons, primary Continue/Read pill, and tray controls.
+  Widget _buildDefaultHeader(
+    BuildContext context, {
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
+    return Row(
+      key: const ValueKey('defaultTrayHeader'),
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Chapter list tab (shows unread count when there are unread chapters).
+        _buildTabIcon(
+          Icons.format_list_bulleted,
+          activeTab == 0,
+          dark: dark,
+          scheme: scheme,
+          onTap: () => onTabSelected(0),
+          badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
+        ),
+        const SizedBox(width: 2),
+        _buildTabIcon(
+          Icons.grid_view_rounded,
+          activeTab == 1,
+          dark: dark,
+          scheme: scheme,
+          onTap: () => onTabSelected(1),
+        ),
+        const SizedBox(width: 2),
+        _buildTabIcon(
+          activeTab == 2
+              ? Icons.bookmark_rounded
+              : Icons.bookmark_border_rounded,
+          activeTab == 2,
+          dark: dark,
+          scheme: scheme,
+          onTap: () => onTabSelected(2),
+        ),
+        const Spacer(),
+        // Fullscreen: Continue pill and chevron are replaced by the
+        // search and overflow menu icons in the tray's trailing corner.
+        if (isExpanded) ...[
+          _buildTabIcon(
+            Icons.search_rounded,
+            false,
+            dark: dark,
+            scheme: scheme,
+            onTap: () {},
+          ),
+          const SizedBox(width: 2),
+          _buildTabIcon(
+            Icons.swap_vert,
+            false,
+            dark: dark,
+            scheme: scheme,
+            onTap: () {},
+          ),
+        ] else ...[
+          // Continue/Read action, only for the chapter list tab.
+          if (showContinueButton) ...[
+            _buildPrimaryButton(
+              context: context,
+              dark: dark,
+              scheme: scheme,
+            ),
+            const SizedBox(width: 6),
+          ],
+          _buildExpandButton(dark: dark, scheme: scheme),
+        ],
+      ],
+    );
+  }
+
+  // Selection mode header: close, count, range, mark-read and download.
+  Widget _buildSelectionHeader(
+    BuildContext context, {
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
+    final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
+    return Row(
+      key: const ValueKey('selectionTrayHeader'),
+      children: [
+        IconButton(
+          icon: Icon(Icons.close, color: iconColor),
+          onPressed: onExitSelection,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$selectedCount',
+          style: TextStyle(
+            color: iconColor,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const Spacer(),
+        IconButton(
+          icon: Icon(Icons.format_line_spacing, color: iconColor),
+          tooltip: AppLocalizations.of(context).selectRange,
+          onPressed: onSelectRange,
+        ),
+        IconButton(
+          icon: Icon(
+            isAllSelectedRead ? Icons.visibility_off : Icons.visibility,
+            color: iconColor,
+          ),
+          tooltip: AppLocalizations.of(context).toggleRead,
+          onPressed: onToggleSelectedRead,
+        ),
+        if (hasDownloaded)
+          IconButton(
+            icon: Icon(Icons.delete_outline, color: iconColor),
+            tooltip: AppLocalizations.of(context).removeDownloadTooltip,
+            onPressed: onRemoveDownloads,
+          )
+        else
+          IconButton(
+            icon: Icon(Icons.download_rounded, color: iconColor),
+            tooltip: AppLocalizations.of(context).detailDownload,
+            onPressed: onDownload,
+          ),
+      ],
     );
   }
 
@@ -2700,31 +2752,35 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: active
-              ? (dark ? const Color(0xFF2C2C2E) : Colors.black12)
-              : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Icon(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: active
+                  ? (dark ? const Color(0xFF2C2C2E) : Colors.black12)
+                  : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
               icon,
-              color: active ? (dark ? Colors.white : scheme.onSurface) : Colors.grey,
+              color: active
+                  ? (dark ? Colors.white : scheme.onSurface)
+                  : Colors.grey,
               size: 18,
             ),
-            if (badge != null) Positioned(top: -3, right: -3, child: badge),
-          ],
-        ),
+          ),
+          // Badge sits on the button's top-right corner, clear of the icon.
+          if (badge != null)
+            Positioned(top: -5, right: -5, child: badge),
+        ],
       ),
     );
   }
 
-  // Compact unread-count badge in the app's red accent.
-  Widget _badge(int count) {
+  // Compact unread-count badge that hugs the icon's top-right corner.
+  Widget _buildBadge(int count) {
     return Container(
       padding: const EdgeInsets.all(3),
       constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
@@ -2773,16 +2829,14 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required bool dark,
     required ColorScheme scheme,
   }) {
-    final label = hasRead
-      ? AppLocalizations.of(context).continueAction
-      : AppLocalizations.of(context).readAction;
+    final label = AppLocalizations.of(context).continueAction;
     final showUnread = unreadCount > 0 && hasRead;
     return GestureDetector(
       onTap: onContinuePressed,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
-          color: dark ? const Color(0xFF2C2C2E) : scheme.primary,
+          color: scheme.primary,
           borderRadius: BorderRadius.circular(14),
           border: dark ? Border.all(color: Colors.white12, width: 1) : null,
         ),
@@ -2791,8 +2845,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: scheme.onPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
@@ -2827,6 +2881,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.topPadding != topPadding ||
         oldDelegate.unreadCount != unreadCount ||
         oldDelegate.showContinueButton != showContinueButton ||
-        oldDelegate.hasRead != hasRead;
+        oldDelegate.hasRead != hasRead ||
+        oldDelegate.isSelectionMode != isSelectionMode ||
+        oldDelegate.selectedCount != selectedCount ||
+        oldDelegate.isAllSelectedRead != isAllSelectedRead ||
+        oldDelegate.hasDownloaded != hasDownloaded;
   }
 }
