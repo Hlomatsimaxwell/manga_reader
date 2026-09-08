@@ -115,6 +115,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
   }
 
+  // Chapters are guaranteed to be ordered newest-first (barring tie-breaks),
+  // matching the newest-at-top convention across main screens.
+  List<Chapter> _sortChaptersNewestFirst(List<Chapter> chapters) {
+    final sorted = [...chapters];
+    sorted.sort((a, b) => (_chapterNum(b) - _chapterNum(a)).toInt());
+    return sorted;
+  }
+
+  double _chapterNum(Chapter ch) {
+    final num = RegExp(r'(\d+(\.\d+)?)')
+        .firstMatch(ch.chapterNumber)
+        ?.group(1);
+    return num != null ? double.tryParse(num) ?? 0 : 0;
+  }
+
   Future<void> _loadChapters({
     bool forceRefresh = false,
     MangaSource? sourceOverride,
@@ -143,7 +158,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         setState(() {
           _source = source;
           _sourceName = source.name;
-          _chapters = chapters;
+          _chapters = _sortChaptersNewestFirst(chapters);
           _isLoadingChapters = false;
         });
       }

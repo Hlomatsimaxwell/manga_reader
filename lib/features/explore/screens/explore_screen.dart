@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/library/screens/bookmarks_screen.dart';
 import 'package:yomou/features/library/screens/downloads_screen.dart';
@@ -90,105 +91,65 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildSearchBar() {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GlobalSearchScreen(),
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  color: Colors.transparent,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color:
-                            dark ? Colors.white70 : Colors.black54,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        AppLocalizations.of(context).searchManga,
-                        style: TextStyle(
-                          color:
-                              dark ? Colors.white54 : Colors.black54,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+    return YomouSearchBar.tappable(
+      hintText: AppLocalizations.of(context).searchManga,
+      trailing: AppSheetPress(
+        onTap: () async {
+          final action = await showIosMenuPanel<String>(
+            context,
+            children: [
+              IosMenuRow(
+                icon: Icons.tune_rounded,
+                label: AppLocalizations.of(context).manageSources,
+                onTap: () => Navigator.pop(context, 'manage'),
               ),
-            ),
-            AppSheetPress(
-              onTap: () async {
-                final action = await showIosMenuPanel<String>(
-                  context,
-                  children: [
-                    IosMenuRow(
-                      icon: Icons.tune_rounded,
-                      label: AppLocalizations.of(context).manageSources,
-                      onTap: () => Navigator.pop(context, 'manage'),
-                    ),
-                    const IosMenuDivider(),
-                    MenuToggleRow(
-                      label: AppLocalizations.of(context).incognitoMode,
-                      value: _incognitoMode,
-                      onChanged: (v) => setState(() => _incognitoMode = v),
-                    ),
-                    const IosMenuDivider(),
-                    IosMenuRow(
-                      icon: Icons.settings_rounded,
-                      label: AppLocalizations.of(context).settings,
-                      onTap: () => Navigator.pop(context, 'settings'),
-                    ),
-                  ],
-                );
-                if (action == 'manage') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ManageSourcesScreen(),
-                    ),
-                  );
-                } else if (action == 'settings') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
-                    ),
-                  );
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  Icons.more_vert_rounded,
-                  color: dark ? Colors.white70 : Colors.black54,
-                  size: 22,
-                ),
+              const IosMenuDivider(),
+              MenuToggleRow(
+                label: AppLocalizations.of(context).incognitoMode,
+                value: _incognitoMode,
+                onChanged: (v) => setState(() => _incognitoMode = v),
               ),
-            ),
-            const SizedBox(width: 6),
-          ],
+              const IosMenuDivider(),
+              IosMenuRow(
+                icon: Icons.settings_rounded,
+                label: AppLocalizations.of(context).settings,
+                onTap: () => Navigator.pop(context, 'settings'),
+              ),
+            ],
+          );
+          if (action == 'manage') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ManageSourcesScreen(),
+              ),
+            );
+          } else if (action == 'settings') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SettingsScreen(),
+              ),
+            );
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            Icons.more_vert_rounded,
+            color: dark ? Colors.white70 : Colors.black54,
+            size: 22,
+          ),
         ),
       ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const GlobalSearchScreen(),
+          ),
+        );
+      },
     );
   }
 

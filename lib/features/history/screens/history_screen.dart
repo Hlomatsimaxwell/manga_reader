@@ -13,6 +13,7 @@ import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/core/widgets/search_bar.dart';
 
 class ProgressBadge extends StatelessWidget {
   final int progress;
@@ -914,58 +915,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget _buildSearchBar() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark ? Colors.white70 : Colors.black54;
-    final hintColor = dark ? Colors.white54 : Colors.black54;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GlobalSearchScreen(),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.only(left: 16, top: 14, bottom: 14),
-                color: Colors.transparent,
-                child: Row(
-                  children: [
-                    Icon(Icons.search, color: iconColor, size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context).searchManga,
-                        style: TextStyle(color: hintColor, fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    return YomouSearchBar.tappable(
+      hintText: AppLocalizations.of(context).searchManga,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const GlobalSearchScreen(),
           ),
-          GestureDetector(
-            onTapDown: (TapDownDetails details) {
-              _showOverflowMenu(context, details.globalPosition);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              color: Colors.transparent,
-              child: Icon(
-                Icons.more_vert,
-                color: iconColor,
-                size: 22,
-              ),
-            ),
+        );
+      },
+      trailing: GestureDetector(
+        onTapDown: (TapDownDetails details) {
+          _showOverflowMenu(context, details.globalPosition);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            Icons.more_vert,
+            color: iconColor,
+            size: 22,
           ),
-        ],
+        ),
       ),
     );
   }

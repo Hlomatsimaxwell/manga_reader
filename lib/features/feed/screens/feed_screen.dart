@@ -8,6 +8,7 @@ import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/core/widgets/search_bar.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -100,38 +101,22 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   Widget _buildSearchBar(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = dark ? Colors.white70 : Colors.black54;
-    final hintColor = dark ? Colors.white54 : Colors.black54;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const GlobalSearchScreen()),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(Icons.search, color: iconColor, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context).searchManga,
-                  style: TextStyle(color: hintColor, fontSize: 16),
-                ),
-              ),
-              Icon(Icons.more_vert, color: iconColor, size: 22),
-            ],
-          ),
+    return YomouSearchBar.tappable(
+      hintText: AppLocalizations.of(context).searchManga,
+      trailing: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          Icons.more_vert,
+          color: dark ? Colors.white70 : Colors.black54,
+          size: 22,
         ),
       ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const GlobalSearchScreen()),
+        );
+      },
     );
   }
 

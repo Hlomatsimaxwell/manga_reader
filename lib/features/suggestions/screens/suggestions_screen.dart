@@ -8,6 +8,7 @@ import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/core/widgets/search_bar.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
   const SuggestionsScreen({super.key});
@@ -87,45 +88,27 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
 
   Widget _buildSearchBar() {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final fieldColor = dark ? Colors.white : const Color(0xFF1C1B1F);
-    final iconColor = dark ? Colors.white70 : Colors.black54;
-    final hintColor = dark ? Colors.white54 : Colors.black54;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: TextField(
-        controller: _searchController,
-        style: TextStyle(color: fieldColor, fontSize: 16),
-        cursorColor: fieldColor,
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value;
-          });
-        },
-        decoration: InputDecoration(
-          icon: Icon(Icons.search, color: iconColor, size: 22),
-          hintText: AppLocalizations.of(context).searchManga,
-          hintStyle: TextStyle(color: hintColor, fontSize: 16),
-          border: InputBorder.none,
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(
-                    Icons.clear,
-                    color: iconColor,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                )
-              : Icon(Icons.more_vert, color: iconColor, size: 22),
+    return YomouSearchBar.text(
+      hintText: AppLocalizations.of(context).searchManga,
+      controller: _searchController,
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value;
+        });
+      },
+      clearVisible: _searchQuery.isNotEmpty,
+      onClear: () {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+        });
+      },
+      trailing: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          Icons.more_vert,
+          color: dark ? Colors.white70 : Colors.black54,
+          size: 22,
         ),
       ),
     );
