@@ -32,6 +32,7 @@ List<Map<String, dynamic>> mapHistoryRows(
       'progress': progress,
       'newChapters': newChapters,
       'hasDownloadedChapters': downloadedMangaIds.contains(row['mangaId']),
+      'isFavorite': (row['isFavorite'] as int? ?? 0) == 1,
     };
   }).toList();
 }

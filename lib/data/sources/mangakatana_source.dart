@@ -1,9 +1,9 @@
-import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
+import 'source_network.dart';
 
 /// MangaKatana (https://mangakatana.com) source.
 ///
@@ -13,7 +13,7 @@ import '../models/manga_details.dart';
 /// page image URLs are embedded as a JS array (`thzq`/`ytaw`) of tokenized
 /// `i1.mangakatana.com/token/...` URLs inside the chapter page, so no extra
 /// request is needed to get pages.
-class MangakatanaSource implements MangaSource {
+class MangakatanaSource extends DioSource implements MangaSource {
   @override
   String get id => 'mangakatana';
 
@@ -22,6 +22,7 @@ class MangakatanaSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://mangakatana.com';
+  @override
   String get iconUrl => 'https://mangakatana.com/favicon.ico';
 
   @override
@@ -36,13 +37,8 @@ class MangakatanaSource implements MangaSource {
     'Referer': 'https://mangakatana.com/',
   };
 
-  final http.Client _client = http.Client();
-
-  Future<String> _get(String url) async {
-    final response = await _client.get(Uri.parse(url), headers: headers);
-    if (response.statusCode != 200) return '';
-    return response.body;
-  }
+  @override
+  String get networkSourceId => id;
 
   // --- Shared card grid parser (search / directory / genre pages) ---
 
@@ -78,7 +74,7 @@ class MangakatanaSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
-      final html = await _get(
+      final html = await grabText(
         '$baseUrl/?search=${Uri.encodeQueryComponent(query)}',
       );
       return _parseMangaGrid(html);
@@ -96,7 +92,7 @@ class MangakatanaSource implements MangaSource {
       if (tags.isEmpty) return [];
       final slug = _genreSlug(tags.first);
       if (slug.isEmpty) return [];
-      final html = await _get('$baseUrl/genre/$slug/page/$page');
+      final html = await grabText('$baseUrl/genre/$slug/page/$page');
       return _parseMangaGrid(html);
     } catch (_) {
       return [];
@@ -106,7 +102,7 @@ class MangakatanaSource implements MangaSource {
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
-      final html = await _get('$baseUrl/manga/page/$page');
+      final html = await grabText('$baseUrl/manga/page/$page');
       return _parseMangaGrid(html);
     } catch (_) {
       return [];
@@ -116,7 +112,7 @@ class MangakatanaSource implements MangaSource {
   @override
   Future<List<String>> getAvailableTags() async {
     try {
-      final html = await _get('$baseUrl/genres');
+      final html = await grabText('$baseUrl/genres');
       if (html.isEmpty) return [];
       final document = parser.parse(html);
       final anchors = document.querySelectorAll('ul.sub-menu.genres li a');
@@ -140,7 +136,7 @@ class MangakatanaSource implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
-      final html = await _get('$baseUrl/$mangaId');
+      final html = await grabText('$baseUrl/$mangaId');
       if (html.isEmpty) return null;
       final document = parser.parse(html);
 
@@ -214,7 +210,7 @@ class MangakatanaSource implements MangaSource {
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     try {
-      final html = await _get('$baseUrl/$mangaId');
+      final html = await grabText('$baseUrl/$mangaId');
       if (html.isEmpty || !html.contains('class="chapters"')) return [];
 
       final document = parser.parse(html);
@@ -261,7 +257,7 @@ class MangakatanaSource implements MangaSource {
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
     try {
-      final html = await _get('$baseUrl/$chapterId');
+      final html = await grabText('$baseUrl/$chapterId');
       if (html.isEmpty) return [];
 
       final arrays = <List<String>>[];

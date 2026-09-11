@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
@@ -11,6 +11,7 @@ import 'package:yomou/features/explore/screens/source_search_results_screen.dart
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 
 class GlobalSearchResultsScreen extends ConsumerStatefulWidget {
   final String searchQuery;
@@ -316,7 +317,7 @@ class _GlobalSearchResultsScreenState
                                 ? null
                                 : Border.all(color: Colors.black12),
                           ),
-                          child: CachedNetworkImage(
+                          child: CachedMangaImage(
                             imageUrl: item.coverUrl,
                             height: 140,
                             width: 100,
@@ -338,6 +339,11 @@ class _GlobalSearchResultsScreenState
                         ),
                       ),
                       DownloadedMangaBadge(
+                        mangaId: item.id,
+                        size: 20,
+                        iconSize: 12,
+                      ),
+                      FavoriteBadge(
                         mangaId: item.id,
                         size: 20,
                         iconSize: 12,

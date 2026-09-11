@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:remixicon/remixicon.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -74,6 +74,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // The source's authoritative chapter count (-1 until loaded).
   int _realTotalChapters = -1;
 
+  // Total size of downloaded pages on disk (bytes).
+  int _downloadSize = 0;
+
+  // Per-chapter download progress: {chapterId: (done, total)}.
+  final Map<String, ({int done, int total})> _downloadingChapters = {};
+
   // Real related manga loaded from the source (excluding the current one).
   List<Manga> _relatedManga = [];
 
@@ -88,7 +94,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Captures the DraggableScrollableSheet's scroll controller so we can
   // programmatically scroll the chapter list to the oldest chapter.
   ScrollController? _sheetContentController;
+  bool _trayScrollListening = false;
+  bool _trayAtBottom = false;
   bool _isLoadingBookmarks = true;
+
+  // Tray shows chapters oldest-first; toggling this shows newest-first.
+  bool _reverseOrder = false;
 
   // Pages grid: page URLs for the preview chapter.
   List<String> _previewPages = [];
@@ -183,6 +194,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       }
       _loadRelatedManga(source);
       _loadTotalChapters(source);
+      _loadDownloadSize();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -203,6 +215,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     } catch (e) {
       _realTotalChapters = -1;
     }
+  }
+
+  Future<void> _loadDownloadSize() async {
+    final size = await ChapterDownloader.getDownloadSize(widget.mangaId);
+    if (mounted) setState(() => _downloadSize = size);
   }
 
   // Load the real saved reading progress for this manga from the database.
@@ -383,6 +400,46 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       // Retry on the next frame once the list is laid out.
       WidgetsBinding.instance.addPostFrameCallback((_) => animate());
     }
+  }
+
+  // True when the tray list is scrolled to its last chapter.
+  bool get _trayCanScroll =>
+      _sheetContentController?.hasClients == true &&
+      _sheetContentController!.position.maxScrollExtent > 40;
+
+  // Track whether the tray list has scrolled to its last chapter.
+  void _onTrayContentScroll() {
+    final sc = _sheetContentController;
+    if (sc == null || !sc.hasClients) return;
+    final pos = sc.position;
+    final atBottom =
+        pos.maxScrollExtent <= 0 ||
+        pos.pixels >= pos.maxScrollExtent - 400;
+    if (atBottom != _trayAtBottom) {
+      setState(() => _trayAtBottom = atBottom);
+    }
+  }
+
+  // Jump the full-screen tray list to its very top (chapter 1).
+  void _jumpTrayToTop() {
+    final sc = _sheetContentController;
+    if (sc == null || !sc.hasClients) return;
+    sc.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  // Jump the full-screen tray list to its last loaded chapter.
+  void _jumpTrayToBottom() {
+    final sc = _sheetContentController;
+    if (sc == null || !sc.hasClients) return;
+    sc.animateTo(
+      sc.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   // Collapse the sheet back to its small bar.
@@ -590,6 +647,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ],
             ),
           ),
+
         );
       },
     );
@@ -640,6 +698,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               snapSizes: const [0.08, 0.5, 1.0],
               builder: (context, scrollController) {
                 _sheetContentController = scrollController;
+                if (!_trayScrollListening) {
+                  _trayScrollListening = true;
+                  scrollController.addListener(_onTrayContentScroll);
+                }
                 final dark = Theme.of(context).brightness == Brightness.dark;
                 return Container(
                   decoration: BoxDecoration(
@@ -674,9 +736,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             hasRead: _lastReadChapter >= 0,
                             isSelectionMode: _selectionMode,
                             selectedCount: _selectedIds.length,
+                            isAllSelected: _selectedIds.length == _chapters.length &&
+                                _chapters.isNotEmpty,
+                            hasSelectionGap: _hasSelectionGap,
                             onContinuePressed: _openReader,
                             onExitSelection: _exitSelection,
                             onSelectRange: _selectChapterRange,
+                            onSelectAll: _selectAllChapters,
+                            onDeselectAll: _deselectAllChapters,
                             onToggleSelectedRead: _toggleSelectedRead,
                             isAllSelectedRead: _isAllSelectedRead,
                             hasDownloaded: _isSelectedDownloaded,
@@ -687,10 +754,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                               if (current < 0.2) {
                                 _animateSheetTo(0.5);
                                 _scrollToResumeChapter();
-                              } else if (current >= 0.4 && current <= 0.6) {
+                              } else if (current > 0.6) {
+                                // Fullscreen: collapse back to the half state.
+                                _animateSheetTo(0.5);
+                              } else {
                                 _animateSheetTo(0.08);
                               }
                             },
+                            reverseOrder: _reverseOrder,
+                            onToggleOrder: () =>
+                                setState(() => _reverseOrder = !_reverseOrder),
                             onTabSelected: (index) {
                               setState(() => _activeTab = index);
                               if (_sheetController.size < 0.2) {
@@ -706,9 +779,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             _buildPagesGridSliver()
                           else
                             _buildBookmarksSliver(),
-                          const SliverToBoxAdapter(
-                            child: SizedBox(height: 24),
-                          ),
                         ],
                       ],
                     ),
@@ -717,6 +787,26 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               },
             ),
           ),
+
+          // Floating jump button shown on top of the tray when it is full screen.
+          if (_showSheetContent && _trayCanScroll && !_selectionMode)
+            Positioned(
+              right: 14,
+              bottom: 90,
+              child: IgnorePointer(
+                ignoring: !_isExpanded,
+                child: AnimatedOpacity(
+                  opacity: _isExpanded ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: _TrayJumpButton(
+                    atBottom: _trayAtBottom,
+                    onTap:
+                        _trayAtBottom ? _jumpTrayToTop : _jumpTrayToBottom,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -780,11 +870,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
-          final ch = _chapters[index];
+          final originalIndex =
+              _reverseOrder ? _chapters.length - 1 - index : index;
+          final ch = _chapters[originalIndex];
           final isRead =
               _lastReadChapter >= 0 &&
-              (index + 1) <= _lastReadChapter;
-          final isCurrent = index == _currentDisplayIndex;
+              (originalIndex + 1) <= _lastReadChapter;
+          final isCurrent = originalIndex == _currentDisplayIndex;
           final downloaded = downloadedChapterIds.contains(ch.id);
           final isSelected = _selectedIds.contains(ch.id);
 
@@ -833,15 +925,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ],
             ),
             subtitle: Text(
-              isRead && downloaded
-                  ? AppLocalizations.of(context).chapterStatusReadDownloaded
-                  : isRead
-                  ? AppLocalizations.of(context).chapterStatusRead
-                  : downloaded
-                  ? AppLocalizations.of(context).chapterStatusDownloaded
-                  : (ch.releaseDate?.isNotEmpty ?? false
-                        ? _formatChapterDate(ch.releaseDate!)
-                        : ''),
+              () {
+                final metadata = _chapterMetadataSubtitle(ch);
+                if (metadata.isNotEmpty) return metadata;
+                final l = AppLocalizations.of(context);
+                if (isRead && downloaded) {
+                  return l.chapterStatusReadDownloaded;
+                }
+                if (isRead) return l.chapterStatusRead;
+                if (downloaded) return l.chapterStatusDownloaded;
+                return '';
+              }(),
               style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
             trailing: Row(
@@ -864,7 +958,27 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         : Theme.of(context).colorScheme.primary,
                     size: 18,
                   )
-                else if (isRead)
+                else if (_downloadingChapters.containsKey(ch.id))
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        value: _downloadingChapters[ch.id]!.total > 0
+                            ? (_downloadingChapters[ch.id]!.done /
+                                    _downloadingChapters[ch.id]!.total)
+                                .clamp(0.0, 1.0)
+                            : null,
+                        strokeWidth: 2.5,
+                        color: dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                        backgroundColor: dark ? Colors.white24 : Colors.black12,
+                      ),
+                    ),
+                  )
+                else if (!_selectionMode && isRead)
                   Icon(
                     RemixIcons.checkbox_circle_line,
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
@@ -876,7 +990,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               if (_selectionMode) {
                 _toggleSelection(ch.id);
               } else {
-                _openReader(chapterIndex: index);
+                _openReader(chapterIndex: originalIndex);
               }
             },
             onLongPress: () => _enterSelection(ch.id),
@@ -899,7 +1013,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Formats an ISO chapter date as relative text for recent entries and a
   // human-readable date (e.g. "Aug 22, 2026") for older ones.
   String _formatChapterDate(String iso) {
-    final dt = DateTime.tryParse(iso)?.toLocal();
+    final dt =
+        DateTime.tryParse(iso)?.toLocal() ?? _parseRawChapterDate(iso);
     if (dt == null) return '';
     final l = AppLocalizations.of(context);
     final now = DateTime.now();
@@ -912,6 +1027,67 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       l.jul, l.aug, l.sep, l.oct, l.nov, l.dec,
     ];
     return l.dateLong(months[dt.month - 1], dt.day, dt.year);
+  }
+
+  // Some sources return a human-readable string ("Sep 10, 2026") or the
+  // MangaKatana style ("Sep-05-2026") instead of ISO 8601.
+  DateTime? _parseRawChapterDate(String raw) {
+    final s = raw.trim();
+    const months = {
+      'jan': 1,
+      'feb': 2,
+      'mar': 3,
+      'apr': 4,
+      'may': 5,
+      'jun': 6,
+      'jul': 7,
+      'aug': 8,
+      'sep': 9,
+      'oct': 10,
+      'nov': 11,
+      'dec': 12,
+    };
+
+    DateTime? from(int? mo, int? day, int? year) {
+      if (mo == null || day == null || year == null) return null;
+      return DateTime(year, mo, day);
+    }
+
+    // "Sep 10, 2026" / "Sep 10,2026" / "Sep 10 2026"
+    for (final m in RegExp(
+      r'^([A-Za-z]{3})[.]?[ ](\d{1,2}),?[ ](\d{4})$',
+    ).allMatches(s)) {
+      final d = from(
+        months[m.group(1)!.toLowerCase()],
+        int.tryParse(m.group(2)!),
+        int.tryParse(m.group(3)!),
+      );
+      if (d != null) return d;
+    }
+
+    // "Sep-05-2026"
+    for (final m in RegExp(r'^([A-Za-z]{3})-(\d{1,2})-(\d{4})$').allMatches(s)) {
+      final d = from(
+        months[m.group(1)!.toLowerCase()],
+        int.tryParse(m.group(2)!),
+        int.tryParse(m.group(3)!),
+      );
+      if (d != null) return d;
+    }
+    return null;
+  }
+
+  // Secondary line on each chapter tile: "#2 · Aug 27, 2026" style metadata.
+  String _chapterMetadataSubtitle(Chapter ch) {
+    final number = ch.chapterNumber.trim();
+    final date = (ch.releaseDate?.isNotEmpty ?? false)
+        ? _formatChapterDate(ch.releaseDate!)
+        : '';
+    final parts = <String>[
+      if (number.isNotEmpty && number != 'Chapter') '#$number',
+      if (date.isNotEmpty) date,
+    ];
+    return parts.join(' · ');
   }
 
   void _enterSelection(String id) {
@@ -960,6 +1136,39 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
   }
 
+  // True when there are non-selected chapters between the extremes of the
+  // current selection (i.e. a range fill would actually select something).
+  bool get _hasSelectionGap {
+    if (_selectedIds.length < 2) return false;
+    final indices = <int>[
+      for (var i = 0; i < _chapters.length; i++)
+        if (_selectedIds.contains(_chapters[i].id)) i,
+    ];
+    if (indices.length < 2) return false;
+    final minIndex = indices.reduce((a, b) => a < b ? a : b);
+    final maxIndex = indices.reduce((a, b) => a > b ? a : b);
+    return (maxIndex - minIndex + 1) > indices.length;
+  }
+
+  // Selects every chapter in the list.
+  void _selectAllChapters() {
+    if (_chapters.isEmpty) return;
+    setState(() {
+      _selectionMode = true;
+      _selectedIds
+        ..clear()
+        ..addAll(_chapters.map((c) => c.id));
+    });
+  }
+
+  // Clears the selection and exits selection mode.
+  void _deselectAllChapters() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
   // True when every selected chapter is in the "read" range.
   bool get _isAllSelectedRead {
     if (_selectedIds.isEmpty) return false;
@@ -980,7 +1189,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     return _selectedIds.any(downloadedIds.contains);
   }
 
-  void _toggleSelectedRead() {
+void _toggleSelectedRead() {
     // Batch read/unread toggle — flips the last-read threshold so all
     // selected chapters fall on the opposite side. Newest chapter = highest
     // number; a chapter index i is read when it maps to a chapter number
@@ -997,7 +1206,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final double newThreshold = _isAllSelectedRead
         // Mark unread: drop threshold below the lowest (oldest) selected.
         ? (targetChapterNumbers.reduce((a, b) => a < b ? a : b) - 1).toDouble()
-        // Mark read: raise threshold to cover the highest (newest) selected.
+        // Mark read: raise threshold to cover the highest (oldest) selected.
         : targetChapterNumbers.reduce((a, b) => a > b ? a : b).toDouble();
 
     setState(() {
@@ -1012,11 +1221,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       lastReadChapter: newThreshold,
       lastTrayTotalChapters: _resolvedTotalChapters,
     );
+    _exitSelection();
   }
 
   Future<void> _downloadSelectedChapters() async {
     final chapters =
         _chapters.where((c) => _selectedIds.contains(c.id)).toList();
+    _exitSelection();
     await _downloadChapters(chapters);
   }
 
@@ -1026,13 +1237,29 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     var success = 0;
     for (final ch in chapters) {
       try {
+        setState(() {
+          _downloadingChapters[ch.id] = const (done: 0, total: 0);
+        });
         final pages = await source.getPageUrls(ch.id);
-        if (pages.isEmpty) continue;
+        if (pages.isEmpty) {
+          setState(() => _downloadingChapters.remove(ch.id));
+          continue;
+        }
+        setState(() {
+          _downloadingChapters[ch.id] = (done: 0, total: pages.length);
+        });
         final saved = await ChapterDownloader.downloadChapter(
           mangaId: widget.mangaId,
           chapterId: ch.id,
           pages: pages,
           headers: source.headers,
+          onProgress: (done, total) {
+            if (mounted) {
+              setState(() {
+                _downloadingChapters[ch.id] = (done: done, total: total);
+              });
+            }
+          },
         );
         if (saved == null || saved.isEmpty) continue;
         final dir = await ChapterDownloader.chapterDir(
@@ -1051,6 +1278,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         success++;
       } catch (_) {
         // skip failed chapter, continue with the rest
+      }
+      if (mounted) {
+        setState(() => _downloadingChapters.remove(ch.id));
       }
     }
     if (!mounted) return;
@@ -1086,8 +1316,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Future<void> _deleteSelectedDownloads() async {
+    final selected = _selectedIds.toList();
+    _exitSelection();
     for (final ch in _chapters) {
-      if (!_selectedIds.contains(ch.id)) continue;
+      if (!selected.contains(ch.id)) continue;
       await ChapterDownloader.removeChapterFiles(widget.mangaId, ch.id);
       await DatabaseHelper.instance.removeDownload(widget.mangaId, ch.id);
     }
@@ -1150,7 +1382,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         delegate: SliverChildBuilderDelegate((context, index) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
+            child: CachedMangaImage(
               imageUrl: _previewPages[index],
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
@@ -1219,7 +1451,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             contentPadding: const EdgeInsets.symmetric(vertical: 4),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
+              child: CachedMangaImage(
                 imageUrl: bm.pageUrl,
                 width: 48,
                 height: 64,
@@ -2044,7 +2276,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
+                  child: CachedMangaImage(
                     imageUrl: widget.imageUrl,
                     width: 125,
                     height: 175,
@@ -2193,6 +2425,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           if ((_details?.status.isEmpty ?? true) == false)
             _buildCardRow(l.detailState, _details!.status),
           _buildCardRow(l.detailChapters, chaptersText),
+          if (_downloadSize > 0)
+            _buildCardRow(l.detailOnDevice, _formatBytes(_downloadSize)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -2233,6 +2467,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         ],
       ),
     );
+  }
+
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   // Small favicon tile (20×20) for the source row, matching the explore
@@ -2548,7 +2791,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
+                    child: CachedMangaImage(
                       imageUrl: manga.coverUrl,
                       height: 120,
                       width: 100,
@@ -2588,6 +2831,27 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 }
 
 
+class _SheetDragHandle extends StatelessWidget {
+  const _SheetDragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Center(
+      child: Container(
+        width: 32,
+        height: 4,
+        decoration: BoxDecoration(
+          color: dark
+              ? Colors.white.withValues(alpha: 0.35)
+              : Colors.black.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+}
+
 class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool isExpanded;
   final int activeTab;
@@ -2597,16 +2861,22 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool hasRead;
   final bool isSelectionMode;
   final int selectedCount;
+  final bool isAllSelected;
+  final bool hasSelectionGap;
   final VoidCallback onContinuePressed;
   final VoidCallback onBarTap;
   final ValueChanged<int> onTabSelected;
   final VoidCallback onExitSelection;
   final VoidCallback onSelectRange;
+  final VoidCallback onSelectAll;
+  final VoidCallback onDeselectAll;
   final VoidCallback onToggleSelectedRead;
   final bool isAllSelectedRead;
   final bool hasDownloaded;
   final VoidCallback onRemoveDownloads;
   final VoidCallback onDownload;
+  final bool reverseOrder;
+  final VoidCallback onToggleOrder;
 
   _SheetHeaderDelegate({
     required this.isExpanded,
@@ -2617,16 +2887,22 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.hasRead = false,
     this.isSelectionMode = false,
     this.selectedCount = 0,
+    this.isAllSelected = false,
+    this.hasSelectionGap = false,
     required this.onContinuePressed,
     required this.onBarTap,
     required this.onTabSelected,
     required this.onExitSelection,
     required this.onSelectRange,
+    required this.onSelectAll,
+    required this.onDeselectAll,
     required this.onToggleSelectedRead,
     this.isAllSelectedRead = false,
     this.hasDownloaded = false,
     required this.onRemoveDownloads,
     required this.onDownload,
+    this.reverseOrder = false,
+    required this.onToggleOrder,
   });
 
   @override
@@ -2650,22 +2926,30 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         padding: EdgeInsets.only(
           left: 10,
           right: 10,
-          top: isExpanded ? topPadding : 0,
+          top: isExpanded ? (topPadding + 6) : 6,
+          bottom: 6,
         ),
         alignment: Alignment.center,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: isSelectionMode
-              ? _buildSelectionHeader(
-                  context,
-                  dark: dark,
-                  scheme: scheme,
-                )
-              : _buildDefaultHeader(
-                  context,
-                  dark: dark,
-                  scheme: scheme,
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _SheetDragHandle(),
+            const SizedBox(height: 6),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: isSelectionMode
+                  ? _buildSelectionHeader(
+                      context,
+                      dark: dark,
+                      scheme: scheme,
+                    )
+                  : _buildDefaultHeader(
+                      context,
+                      dark: dark,
+                      scheme: scheme,
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -2722,10 +3006,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           const SizedBox(width: 2),
           _buildTabIcon(
             RemixIcons.arrow_up_down_line,
-            false,
+            reverseOrder,
             dark: dark,
             scheme: scheme,
-            onTap: () {},
+            onTap: onToggleOrder,
           ),
           const SizedBox(width: 6),
           _buildExpandButton(dark: dark, scheme: scheme),
@@ -2769,11 +3053,25 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           ),
         ),
         const Spacer(),
-        IconButton(
-          icon: Icon(RemixIcons.list_unordered, color: iconColor),
-          tooltip: AppLocalizations.of(context).selectRange,
-          onPressed: onSelectRange,
-        ),
+        if (isAllSelected)
+          IconButton(
+            icon: Icon(RemixIcons.checkbox_multiple_blank_line, color: iconColor),
+            tooltip: AppLocalizations.of(context).deselectAll,
+            onPressed: onDeselectAll,
+          )
+        else ...[
+          if (hasSelectionGap)
+            IconButton(
+              icon: Icon(RemixIcons.list_unordered, color: iconColor),
+              tooltip: AppLocalizations.of(context).selectRange,
+              onPressed: onSelectRange,
+            ),
+          IconButton(
+            icon: Icon(RemixIcons.checkbox_multiple_line, color: iconColor),
+            tooltip: AppLocalizations.of(context).selectAll,
+            onPressed: onSelectAll,
+          ),
+        ],
         IconButton(
           icon: Icon(
             isAllSelectedRead ? RemixIcons.eye_off_line : RemixIcons.eye_line,
@@ -2880,14 +3178,14 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  // Primary Continue/Read action pill that lives on the tray.
+  // Primary Read/Continue action pill that lives on the tray.
   Widget _buildPrimaryButton({
     required BuildContext context,
     required bool dark,
     required ColorScheme scheme,
   }) {
-    final label = AppLocalizations.of(context).continueAction;
-    final showUnread = unreadCount > 0 && hasRead;
+    final l = AppLocalizations.of(context);
+    final label = hasRead ? l.continueAction : l.readAction;
     return GestureDetector(
       onTap: onContinuePressed,
       child: Container(
@@ -2897,39 +3195,23 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           borderRadius: BorderRadius.circular(14),
           border: dark ? Border.all(color: Colors.white12, width: 1) : null,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: scheme.onPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (showUnread) ...[
-              const SizedBox(width: 6),
-              Text(
-                '• $unreadCount',
-                style: const TextStyle(
-                  color: Color(0xFFE57373),
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            color: scheme.onPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
   @override
-  double get maxExtent => 56 + (isExpanded ? topPadding : 0);
+  double get maxExtent => 72 + (isExpanded ? topPadding : 0);
 
   @override
-  double get minExtent => 56 + (isExpanded ? topPadding : 0);
+  double get minExtent => 72 + (isExpanded ? topPadding : 0);
 
   @override
   bool shouldRebuild(covariant _SheetHeaderDelegate oldDelegate) {
@@ -2942,6 +3224,38 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.isSelectionMode != isSelectionMode ||
         oldDelegate.selectedCount != selectedCount ||
         oldDelegate.isAllSelectedRead != isAllSelectedRead ||
-        oldDelegate.hasDownloaded != hasDownloaded;
+        oldDelegate.hasDownloaded != hasDownloaded ||
+        oldDelegate.reverseOrder != reverseOrder;
+  }
+}
+
+// Floating circular button shown on the right edge of the full-screen tray.
+class _TrayJumpButton extends StatelessWidget {
+  final bool atBottom;
+  final VoidCallback onTap;
+
+  const _TrayJumpButton({required this.atBottom, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    return Material(
+      color: dark ? const Color(0xF22A2A2C) : Colors.white,
+      shape: const CircleBorder(),
+      elevation: 4,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(11),
+          child: Icon(
+            atBottom ? RemixIcons.arrow_up_line : RemixIcons.arrow_down_line,
+            size: 22,
+            color: fg,
+          ),
+        ),
+      ),
+    );
   }
 }

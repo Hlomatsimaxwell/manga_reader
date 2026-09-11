@@ -92,25 +92,28 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               });
             },
           ),
-          AppSheetPress(
-            onTap: () {
-              showIosMenuPanel(
-                context,
-                children: [
-                  MenuToggleRow(
-                    label: AppLocalizations.of(context).disableNsfw,
-                    value: _disableNSFW,
-                    onChanged: (v) => setState(() => _disableNSFW = v),
-                  ),
-                ],
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Icon(
-                RemixIcons.more_2_line,
-                color: (dark ? Colors.white : const Color(0xFF1C1B1F))
-                    .withValues(alpha: 0.8),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: AppSheetPress(
+              onTap: () {
+                showIosMenuPanel(
+                  context,
+                  children: [
+                    MenuToggleRow(
+                      label: AppLocalizations.of(context).disableNsfw,
+                      value: _disableNSFW,
+                      onChanged: (v) => setState(() => _disableNSFW = v),
+                    ),
+                  ],
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                  RemixIcons.more_2_line,
+                  color: (dark ? Colors.white : const Color(0xFF1C1B1F))
+                      .withValues(alpha: 0.8),
+                ),
               ),
             ),
           ),

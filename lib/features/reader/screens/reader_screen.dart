@@ -62,6 +62,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _isLoadingNextChapter = false;
   bool _hasMoreChapters = true;
   bool _showControls = true;
+
+  // Chapter transition toast (Kotatsu-style chapter/page pill).
+  double _toastOpacity = 0;
+  int _toastShownChapter = -1;
+  Timer? _toastTimer;
+  Timer? _scrollStopTimer;
   bool _isSaving = false;
   bool _needsRestore = false;
   int? _pendingJumpPage;
@@ -97,6 +103,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final Set<String> _downloadedChapters = {};
   final Map<String, _ChapterDownloadTask> _activeDownloads = {};
 
+  // Chapter tray selection mode.
+  final Set<String> _selectedIds = {};
+  bool _selectionMode = false;
+  double _lastReadChapter = -1;
+
   // Per-page bookkeeping: pages belong to a chapter index, and each page may
   // have a local file path when its chapter has been downloaded.
   final List<int> _pagesChapters = [];
@@ -105,6 +116,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   // Refresh callback for the open chapter tray sheet.
   bool _trayOpen = false;
   VoidCallback? _trayRefresh;
+  final DraggableScrollableController _trayExtentController =
+      DraggableScrollableController();
 
   void _refreshTray() {
     if (_trayOpen) _trayRefresh?.call();
@@ -121,16 +134,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _needsRestore = widget.initialPageIndex > 0;
     _loadPrefs();
     _loadBookmarks();
+    _loadProgress();
     _loadDownloads().then((_) => _loadChapter(_currentChapterIndex));
 
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent - 800 &&
-          !_isLoadingNextChapter &&
-          _hasMoreChapters) {
-        _loadNextChapter();
-      }
-    });
+    _scrollController.addListener(_handleScrollTicker);
   }
 
   // --- PERSISTED READER SETTINGS ---
@@ -199,6 +206,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void dispose() {
     _scrollController.dispose();
     _pageController.dispose();
+    _trayExtentController.dispose();
+    _toastTimer?.cancel();
+    _scrollStopTimer?.cancel();
     _autoScrollTimer?.cancel();
     super.dispose();
   }
@@ -486,7 +496,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final url = _pages[pageIndex];
 
     try {
-      final headers = ref.read(currentSourceProvider).headers;
+      final readerSource = widget.sourceId != null ? getSourceBySourceId(widget.sourceId!) : null;
+      final headers =
+          readerSource?.headers ?? ref.read(currentSourceProvider).headers;
       final response = await http.get(Uri.parse(url), headers: headers);
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
@@ -578,6 +590,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       ),
       builder: (context) {
         return DraggableScrollableSheet(
+          controller: _trayExtentController,
           expand: false,
           initialChildSize: 0.7,
           minChildSize: 0.3,
@@ -642,6 +655,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     ).then((_) {
       _trayOpen = false;
       _trayRefresh = null;
+      _selectedIds.clear();
+      _selectionMode = false;
     });
   }
 
@@ -690,43 +705,111 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     VoidCallback scrollToCurrent,
   ) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final selectedCount = _selectedIds.length;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Row(
-        children: [
-          _buildViewToggle(
-            icon: RemixIcons.list_unordered,
-            selected: listView == 'list',
-            onTap: () => setSheetState(() => listView = 'list'),
-          ),
-          const SizedBox(width: 10),
-          _buildViewToggle(
-            icon: RemixIcons.grid_line,
-            selected: listView == 'grid',
-            onTap: () => setSheetState(() => listView = 'grid'),
-          ),
-          const SizedBox(width: 10),
-          _buildViewToggle(
-            icon: RemixIcons.bookmark_3_line,
-            selected: listView == 'bookmark',
-            onTap: () => setSheetState(() => listView = 'bookmark'),
-          ),
-          const SizedBox(width: 10),
-          _buildViewToggle(
-            icon: RemixIcons.download_cloud_line,
-            selected: listView == 'download',
-            onTap: () => setSheetState(() => listView = 'download'),
-          ),
-          const Spacer(),
-          IconButton(
-            tooltip: AppLocalizations.of(context).readerCurrentChapter,
-            icon: Icon(
-              RemixIcons.crosshair_line,
-              color: dark ? Colors.white54 : Colors.black54,
-            ),
-            onPressed: scrollToCurrent,
-          ),
-        ],
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: _selectionMode
+            ? Row(
+                key: const ValueKey('selectionTrayHeader'),
+                children: [
+                  IconButton(
+                    icon: Icon(RemixIcons.close_line, color: iconColor),
+                    onPressed: _exitSelection,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$selectedCount',
+                    style: TextStyle(
+                      color: iconColor,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_isAllSelectedInTray)
+                    IconButton(
+                      icon: Icon(RemixIcons.checkbox_multiple_blank_line, color: iconColor),
+                      tooltip: AppLocalizations.of(context).deselectAll,
+                      onPressed: _deselectAllChapters,
+                    )
+                  else ...[
+                    if (_hasSelectionGap)
+                      IconButton(
+                        icon: Icon(RemixIcons.list_unordered, color: iconColor),
+                        tooltip: AppLocalizations.of(context).selectRange,
+                        onPressed: _selectChapterRange,
+                      ),
+                    IconButton(
+                      icon: Icon(RemixIcons.checkbox_multiple_line, color: iconColor),
+                      tooltip: AppLocalizations.of(context).selectAll,
+                      onPressed: _selectAllChapters,
+                    ),
+                  ],
+                  IconButton(
+                    icon: Icon(
+                      _isAllSelectedRead
+                          ? RemixIcons.eye_off_line
+                          : RemixIcons.eye_line,
+                      color: iconColor,
+                    ),
+                    tooltip: AppLocalizations.of(context).toggleRead,
+                    onPressed: _toggleSelectedRead,
+                  ),
+                  if (_isSelectedDownloaded)
+                    IconButton(
+                      icon: Icon(RemixIcons.delete_bin_6_line, color: iconColor),
+                      tooltip: AppLocalizations.of(context).removeDownloadTooltip,
+                      onPressed: _deleteSelectedDownloads,
+                    )
+                  else
+                    IconButton(
+                      icon: Icon(RemixIcons.download_line, color: iconColor),
+                      tooltip: AppLocalizations.of(context).detailDownload,
+                      onPressed: _downloadSelectedChapters,
+                    ),
+                ],
+              )
+            : Row(
+                key: const ValueKey('viewToggleHeader'),
+                children: [
+                  _buildViewToggle(
+                    icon: RemixIcons.list_unordered,
+                    selected: listView == 'list',
+                    onTap: () => setSheetState(() => listView = 'list'),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildViewToggle(
+                    icon: RemixIcons.grid_line,
+                    selected: listView == 'grid',
+                    onTap: () => setSheetState(() => listView = 'grid'),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildViewToggle(
+                    icon: RemixIcons.bookmark_3_line,
+                    selected: listView == 'bookmark',
+                    onTap: () => setSheetState(() => listView = 'bookmark'),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildViewToggle(
+                    icon: RemixIcons.download_cloud_line,
+                    selected: listView == 'download',
+                    onTap: () => setSheetState(() => listView = 'download'),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: AppLocalizations.of(context).readerCurrentChapter,
+                    icon: Icon(
+                      RemixIcons.crosshair_line,
+                      color: dark ? Colors.white54 : Colors.black54,
+                    ),
+                    onPressed: scrollToCurrent,
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -775,63 +858,130 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         final dark = Theme.of(context).brightness == Brightness.dark;
         final chapter = widget.allChapters[index];
         final isCurrent = index == currentIndex;
-        return Container(
-          color: isCurrent
-              ? dark
-                    ? Colors.white10
-                    : Colors.black12
-              : Colors.transparent,
-          child: ListTile(
-            dense: true,
-            title: Row(
-              children: [
-                Icon(
-                  RemixIcons.play_fill,
-                  color: isCurrent
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.transparent,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    chapter.title.isEmpty
-                        ? AppLocalizations.of(
-                            context,
-                          ).chapterNum(chapter.chapterNumber)
-                        : chapter.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isCurrent
-                          ? dark
-                                ? Colors.white
-                                : Theme.of(context).colorScheme.onSurface
-                          : dark
-                          ? Colors.white70
-                          : const Color(0xFF49454F),
-                      fontSize: 14,
-                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.w400,
-                    ),
+        final isSelected = _selectedIds.contains(chapter.id);
+        final isRead = _lastReadChapter >= 0 && (index + 1) <= _lastReadChapter;
+        final downloaded = _downloadedChapters.contains(chapter.id);
+        final active = _activeDownloads[chapter.id];
+
+        return ListTile(
+          key: ValueKey(chapter.id),
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 2,
+          ),
+          shape: isSelected
+              ? RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: dark ? Colors.white : const Color(0xFF334155),
+                    width: 1.5,
+                  ),
+                )
+              : null,
+          tileColor: isSelected
+              ? (dark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0))
+              : isCurrent
+              ? (dark ? Colors.white10 : Colors.black12)
+              : null,
+          title: Row(
+            children: [
+              Icon(
+                RemixIcons.play_fill,
+                color: isCurrent
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.transparent,
+                size: 16,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  chapter.title.isEmpty
+                      ? AppLocalizations.of(
+                          context,
+                        ).chapterNum(chapter.chapterNumber)
+                      : chapter.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isRead && !isCurrent
+                        ? Colors.grey
+                        : isCurrent
+                        ? (dark
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurface)
+                        : (dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F)),
+                    fontSize: 14,
+                    fontWeight: isCurrent
+                        ? FontWeight.bold
+                        : FontWeight.w400,
                   ),
                 ),
-              ],
-            ),
-            subtitle: Text(
-              _chapterSubtitle(chapter, AppLocalizations.of(context)),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: dark ? Colors.white38 : Colors.black38,
-                fontSize: 11,
               ),
+            ],
+          ),
+          subtitle: Text(
+            _chapterSubtitle(chapter, AppLocalizations.of(context)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: dark ? Colors.white38 : Colors.black38,
+              fontSize: 11,
             ),
-            trailing: _buildChapterDownloadControl(chapter),
-            onTap: () {
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_selectionMode && downloaded)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Icon(
+                    RemixIcons.sd_card_line,
+                    color: dark ? Colors.white70 : const Color(0xFF49454F),
+                    size: 18,
+                  ),
+                ),
+              if (isSelected)
+                Icon(
+                  RemixIcons.checkbox_circle_fill,
+                  color: dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
+                  size: 18,
+                )
+              else if (active != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      value: active.total > 0
+                          ? (active.done / active.total).clamp(0.0, 1.0)
+                          : null,
+                      strokeWidth: 2.5,
+                      color: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                      backgroundColor: dark ? Colors.white24 : Colors.black12,
+                    ),
+                  ),
+                )
+              else if (!_selectionMode)
+                _buildChapterDownloadControl(chapter),
+            ],
+          ),
+          onTap: () {
+            if (_selectionMode) {
+              _toggleSelection(chapter.id);
+            } else {
               Navigator.pop(context);
               _changeChapterExplicitly(index);
-            },
-          ),
+            }
+          },
+          onLongPress: () => _enterSelection(chapter.id),
         );
       },
     );
@@ -1878,14 +2028,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           (_) => _jumpToPage(target),
         );
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _maybeShowToast();
+      });
     } catch (e) {
       debugPrint('Error loading chapter: $e');
     }
   }
 
   Future<void> _loadNextChapter() async {
-    final nextIndex = _currentChapterIndex - 1;
-    if (nextIndex < 0) {
+    final nextIndex = _currentChapterIndex + 1;
+    if (nextIndex >= widget.allChapters.length) {
       setState(() => _hasMoreChapters = false);
       return;
     }
@@ -1897,6 +2050,75 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     }
   }
 
+  // --- CHAPTER TRANSITION TOAST ---
+
+  void _handleScrollTicker() {
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 800 &&
+        !_isLoadingNextChapter &&
+        _hasMoreChapters) {
+      _loadNextChapter();
+    }
+    _maybeShowToast();
+    _scrollStopTimer?.cancel();
+    _scrollStopTimer = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted || _toastOpacity <= 0) return;
+      _scheduleToastDismiss(delay: const Duration(milliseconds: 1000));
+    });
+  }
+
+  void _maybeShowToast() {
+    if (_pages.isEmpty || _pagesChapters.isEmpty) return;
+    final ci = _pagesChapters[_currentPageIndex];
+    if (ci == _toastShownChapter ||
+        ci < 0 ||
+        ci >= widget.allChapters.length) {
+      return;
+    }
+    _toastShownChapter = ci;
+    _toastTimer?.cancel();
+    _setToastOpacity(1);
+    _scheduleToastDismiss();
+  }
+
+  void _setToastOpacity(double value) {
+    if (_toastOpacity == value) return;
+    setState(() => _toastOpacity = value);
+  }
+
+  void _scheduleToastDismiss({
+    Duration delay = const Duration(milliseconds: 4000),
+  }) {
+    _toastTimer?.cancel();
+    _toastTimer = Timer(delay, () {
+      if (mounted) _setToastOpacity(0);
+    });
+  }
+
+  Widget? _buildChapterToast() {
+    final chi = _toastShownChapter;
+    if (chi < 0 || chi >= widget.allChapters.length) return null;
+    final ch = widget.allChapters[chi];
+    final label = ch.chapterNumber == 'Chapter'
+        ? ch.title
+        : AppLocalizations.of(context).chapterNum(ch.chapterNumber);
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 110,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: _toastOpacity,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          child: Center(
+            child: _ChapterPageToast(label: label),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveCascadingReadProgress() async {
     if (_loadedChapterIndices.isEmpty || _isSaving) return;
     _isSaving = true;
@@ -1904,49 +2126,43 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final currentChapter = widget.allChapters[_currentChapterIndex];
     final currentIndex = _currentChapterIndex;
 
-    final position = widget.totalChapters > 0
-        ? (widget.totalChapters - currentIndex).toDouble()
-        : null;
-    final readValue = position;
-    final markChapterNum =
-        position ??
-        (() {
-          for (final s in [
-            currentChapter.chapterNumber,
-            currentChapter.title,
-          ]) {
-            final m = RegExp(r'(\d+(\.\d+)?)').firstMatch(s);
-            if (m != null) {
-              final n = double.tryParse(m.group(1)!);
-              if (n != null) return n;
-            }
-          }
-          return null;
-        })();
+    // `lastReadChapter` is a threshold counted from the oldest chapter:
+    // reading the chapter at index `i` means the first `i + 1` chapters are
+    // read. (Previously this was computed as `totalChapters - i`, which made
+    // reading the first chapter mark every chapter as read.)
+    final position = (currentIndex + 1).toDouble();
 
-    if (readValue != null && readValue >= 0) {
-      await DatabaseHelper.instance.markChapterAsRead(
-        widget.mangaId,
-        currentChapter.id,
-        markChapterNum!,
-      );
+    await DatabaseHelper.instance.markChapterAsRead(
+      widget.mangaId,
+      currentChapter.id,
+      position,
+    );
 
-      await DatabaseHelper.instance.saveMangaProgress(
-        mangaId: widget.mangaId,
-        title: widget.mangaTitle ?? 'Unknown',
-        coverUrl: widget.mangaCoverUrl,
-        sourceId: widget.sourceId,
-        totalChapters: widget.totalChapters,
-        lastReadChapter: readValue,
-        lastReadPage: _pages.isEmpty ? 0 : _currentPageIndex,
-      );
+    await DatabaseHelper.instance.saveMangaProgress(
+      mangaId: widget.mangaId,
+      title: widget.mangaTitle ?? 'Unknown',
+      coverUrl: widget.mangaCoverUrl,
+      sourceId: widget.sourceId,
+      totalChapters: widget.totalChapters,
+      lastReadChapter: position,
+      lastReadPage: _pages.isEmpty ? 0 : _currentPageIndex,
+    );
 
-      bumpHistoryRevision(ref);
-    }
+    bumpHistoryRevision(ref);
     _isSaving = false;
   }
 
   // --- CHAPTER DOWNLOADS ---
+
+  Future<void> _loadProgress() async {
+    final row = await DatabaseHelper.instance.getManga(widget.mangaId);
+    if (!mounted) return;
+    setState(() {
+      _lastReadChapter = row?['lastReadChapter'] is num
+          ? (row!['lastReadChapter'] as num).toDouble()
+          : -1;
+    });
+  }
 
   Future<void> _loadDownloads() async {
     final rows = await DatabaseHelper.instance.getDownloads(widget.mangaId);
@@ -1978,13 +2194,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _downloadChapter(chapter);
   }
 
-  Future<void> _downloadChapter(Chapter chapter) async {
+  Future<bool> _downloadChapter(Chapter chapter, {bool notify = true}) async {
     MangaSource? source;
     if (widget.sourceId != null) {
       source = getSourceBySourceId(widget.sourceId!);
     }
     source ??= ref.read(currentSourceProvider);
-    if (source == null) return;
+    if (source == null) return false;
     final src = source;
 
     final List<String> pages;
@@ -1995,7 +2211,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         fetch: () => src.getPageUrls(chapter.id),
       );
     } catch (e) {
-      if (mounted) {
+      if (notify && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -2004,9 +2220,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
         );
       }
-      return;
+      return false;
     }
-    if (!mounted) return;
+    if (!mounted) return false;
 
     final task = _ChapterDownloadTask()..total = pages.length;
     setState(() => _activeDownloads[chapter.id] = task);
@@ -2026,12 +2242,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         _refreshTray();
       },
     );
-    if (!mounted) return;
+    if (!mounted) return false;
 
     if (saved == null) {
       setState(() => _activeDownloads.remove(chapter.id));
       _refreshTray();
-      if (!task.cancelled) {
+      if (notify && !task.cancelled) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -2040,7 +2256,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
         );
       }
-      return;
+      return false;
     }
 
     final dir = await ChapterDownloader.chapterDir(widget.mangaId, chapter.id);
@@ -2059,7 +2275,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       coverUrl: widget.mangaCoverUrl,
       sourceId: widget.sourceId,
     );
-    if (!mounted) return;
+    if (!mounted) return false;
 
     setState(() {
       _activeDownloads.remove(chapter.id);
@@ -2071,14 +2287,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final index = widget.allChapters.indexWhere((c) => c.id == chapter.id);
     if (index != -1) _refreshLoadedChapterFiles(index);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).readerDownloadedChapter(chapter.title),
+    if (notify) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).readerDownloadedChapter(chapter.title),
+          ),
+          duration: const Duration(seconds: 2),
         ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    }
+    return true;
   }
 
   Future<void> _confirmRemoveDownload(String chapterId, String title) async {
@@ -2134,6 +2353,179 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     final index = widget.allChapters.indexWhere((c) => c.id == chapterId);
     if (index != -1) _refreshLoadedChapterFiles(index);
+  }
+
+  // --- CHAPTER TRAY SELECTION MODE ---
+
+  void _enterSelection(String id) {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds.add(id);
+    });
+    // Jump the tray to full height so the selection actions stay visible.
+    _trayExtentController.animateTo(
+      0.9,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+    _refreshTray();
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (!_selectedIds.add(id)) {
+        _selectedIds.remove(id);
+      }
+      if (_selectedIds.isEmpty) _selectionMode = false;
+    });
+    _refreshTray();
+  }
+
+  void _exitSelection() {
+    setState(() {
+      _selectedIds.clear();
+      _selectionMode = false;
+    });
+    _refreshTray();
+  }
+
+  // Adds every chapter between the min and max indices of the current
+  // selection, then keeps just that contiguous range selected.
+  void _selectChapterRange() {
+    final chapters = widget.allChapters;
+    if (chapters.isEmpty || _selectedIds.isEmpty) return;
+    final indices = <int>[
+      for (var i = 0; i < chapters.length; i++)
+        if (_selectedIds.contains(chapters[i].id)) i,
+    ];
+    final minIndex = indices.reduce((a, b) => a < b ? a : b);
+    final maxIndex = indices.reduce((a, b) => a > b ? a : b);
+    setState(() {
+      _selectedIds
+        ..clear()
+        ..addAll(chapters.sublist(minIndex, maxIndex + 1).map((c) => c.id));
+    });
+    _refreshTray();
+  }
+
+  // True when every chapter in the tray is selected.
+  bool get _isAllSelectedInTray =>
+      widget.allChapters.isNotEmpty &&
+      _selectedIds.length == widget.allChapters.length;
+
+  // True when there are non-selected chapters between the extremes of the
+  // current selection (i.e. a range fill would actually select something).
+  bool get _hasSelectionGap {
+    final chapters = widget.allChapters;
+    if (_selectedIds.length < 2 || chapters.isEmpty) return false;
+    final indices = <int>[
+      for (var i = 0; i < chapters.length; i++)
+        if (_selectedIds.contains(chapters[i].id)) i,
+    ];
+    if (indices.length < 2) return false;
+    final minIndex = indices.reduce((a, b) => a < b ? a : b);
+    final maxIndex = indices.reduce((a, b) => a > b ? a : b);
+    return (maxIndex - minIndex + 1) > indices.length;
+  }
+
+  // Selects every chapter in the tray.
+  void _selectAllChapters() {
+    final chapters = widget.allChapters;
+    if (chapters.isEmpty) return;
+    setState(() {
+      _selectionMode = true;
+      _selectedIds
+        ..clear()
+        ..addAll(chapters.map((c) => c.id));
+    });
+    _refreshTray();
+  }
+
+  // Clears the selection and exits selection mode.
+  void _deselectAllChapters() {
+    _exitSelection();
+  }
+
+  // True when every selected chapter is in the "read" range.
+  bool get _isAllSelectedRead {
+    if (_selectedIds.isEmpty) return false;
+    for (var i = 0; i < widget.allChapters.length; i++) {
+      if (!_selectedIds.contains(widget.allChapters[i].id)) continue;
+      final isRead = _lastReadChapter >= 0 && (i + 1) <= _lastReadChapter;
+      if (!isRead) return false;
+    }
+    return true;
+  }
+
+  bool get _isSelectedDownloaded {
+    return _selectedIds.any(_downloadedChapters.contains);
+  }
+
+  void _toggleSelectedRead() {
+    // Batch read/unread toggle — flips the last-read threshold so all
+    // selected chapters fall on the opposite side.
+    final selectedIndices = <int>[
+      for (var i = 0; i < widget.allChapters.length; i++)
+        if (_selectedIds.contains(widget.allChapters[i].id)) i,
+    ];
+    if (selectedIndices.isEmpty) return;
+
+    final targetChapterNumbers = selectedIndices.map((i) => i + 1).toList();
+    final double newThreshold = _isAllSelectedRead
+        ? (targetChapterNumbers.reduce((a, b) => a < b ? a : b) - 1).toDouble()
+        : targetChapterNumbers.reduce((a, b) => a > b ? a : b).toDouble();
+
+    setState(() => _lastReadChapter = newThreshold);
+    DatabaseHelper.instance.saveMangaProgress(
+      mangaId: widget.mangaId,
+      title: widget.mangaTitle ?? 'Unknown',
+      coverUrl: widget.mangaCoverUrl,
+      sourceId: widget.sourceId,
+      totalChapters: widget.totalChapters,
+      lastTrayTotalChapters: widget.totalChapters,
+      lastReadChapter: newThreshold,
+    );
+    _exitSelection();
+  }
+
+  Future<void> _downloadSelectedChapters() async {
+    final chapters =
+        widget.allChapters.where((c) => _selectedIds.contains(c.id)).toList();
+    _exitSelection();
+    var success = 0;
+    for (final ch in chapters) {
+      final ok = await _downloadChapter(ch, notify: false);
+      if (ok) success++;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).downloadedChaptersCount(success)),
+      ),
+    );
+  }
+
+  Future<void> _deleteSelectedDownloads() async {
+    final selected = _selectedIds.toList();
+    _exitSelection();
+    for (final ch in widget.allChapters) {
+      if (!selected.contains(ch.id)) continue;
+      await ChapterDownloader.removeChapterFiles(widget.mangaId, ch.id);
+      await DatabaseHelper.instance.removeDownload(widget.mangaId, ch.id);
+    }
+    if (!mounted) return;
+    setState(() {
+      for (final id in selected) {
+        _downloadedChapters.remove(id);
+      }
+    });
+    bumpDownloadsRevision(ref);
+    _refreshTray();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).deletedSelectedDownloads),
+      ),
+    );
   }
 
   // Point already-loaded pages of a chapter at their local files (or back at
@@ -2294,15 +2686,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final currentChapter = widget.allChapters[_currentChapterIndex];
-    final chapterPosition = widget.totalChapters > 0
-        ? (widget.totalChapters - _currentChapterIndex)
-        : null;
     final chLabel = currentChapter.chapterNumber.isNotEmpty
         ? currentChapter.chapterNumber
-        : (chapterPosition?.toString() ??
-              '${widget.allChapters.length - _currentChapterIndex}');
+        : '${_currentChapterIndex + 1}';
     final activeSource = ref.watch(currentSourceProvider);
     final Map<String, String>? activeHeaders = activeSource.headers;
+
+    final readerSource = widget.sourceId != null ? getSourceBySourceId(widget.sourceId!) : null;
+    final headers = readerSource?.headers ?? activeHeaders;
 
     return PopScope(
       canPop: false,
@@ -2323,8 +2714,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       child: CircularProgressIndicator(color: Colors.white),
                     )
                   : _isHorizontal
-                  ? _buildHorizontalReader(activeHeaders)
-                  : _buildVerticalReader(activeHeaders),
+                  ? _buildHorizontalReader(headers)
+                  : _buildVerticalReader(headers),
 
               // --- TOP APP BAR OVERLAY ---
               AnimatedPositioned(
@@ -2431,10 +2822,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               size: 28,
                             ),
                             onPressed:
-                                _currentChapterIndex <
-                                    widget.allChapters.length - 1
+                                _currentChapterIndex > 0
                                 ? () => _changeChapterExplicitly(
-                                    _currentChapterIndex + 1,
+                                    _currentChapterIndex - 1,
                                   )
                                 : null,
                           ),
@@ -2455,9 +2845,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               color: iconColor,
                               size: 28,
                             ),
-                            onPressed: _currentChapterIndex > 0
+                            onPressed: _currentChapterIndex <
+                                    widget.allChapters.length - 1
                                 ? () => _changeChapterExplicitly(
-                                    _currentChapterIndex - 1,
+                                    _currentChapterIndex + 1,
                                   )
                                 : null,
                           ),
@@ -2493,6 +2884,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   },
                 ),
               ),
+
+              // --- CHAPTER TRANSITION TOAST ---
+              if (_toastShownChapter >= 0) _buildChapterToast()!,
             ],
           ),
         ),
@@ -2529,6 +2923,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     Widget pageView = PageView.builder(
       controller: _pageController,
       itemCount: _pages.length,
+      onPageChanged: (_) => _maybeShowToast(),
       itemBuilder: (context, index) {
         final page = _buildPageImage(
           _pages[index],
@@ -2683,4 +3078,45 @@ class _ChapterDownloadTask {
   int total = 0;
 
   void cancel() => cancelled = true;
+}
+
+// --- CHAPTER TRANSITION TOAST WIDGET ---
+class _ChapterPageToast extends StatelessWidget {
+  final String label;
+
+  const _ChapterPageToast({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final accent = dark ? Colors.white70 : Theme.of(context).colorScheme.primary;
+    final border = dark ? Colors.white24 : Colors.black12;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xE6202020) : const Color(0xFAFFFFFF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.4 : 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(RemixIcons.book_2_line, size: 15, color: accent),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
 }

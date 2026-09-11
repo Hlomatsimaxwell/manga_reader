@@ -1,10 +1,11 @@
 import 'package:remixicon/remixicon.dart';
 import 'dart:math';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -165,12 +166,15 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
             ),
             onPressed: _openRandomManga,
           ),
-          IconButton(
-            icon: Icon(
-              RemixIcons.more_2_line,
-              color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: IconButton(
+              icon: Icon(
+                RemixIcons.more_2_line,
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+              ),
+              onPressed: () {},
             ),
-            onPressed: () {},
           ),
         ],
       ),
@@ -415,7 +419,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: dark
-                      ? CachedNetworkImage(
+                      ? CachedMangaImage(
                           imageUrl: item.coverUrl,
                           fit: BoxFit.cover,
                           errorWidget: (context, url, error) => Container(
@@ -432,7 +436,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.black12),
                           ),
-                          child: CachedNetworkImage(
+                          child: CachedMangaImage(
                             imageUrl: item.coverUrl,
                             fit: BoxFit.cover,
                             errorWidget: (context, url, error) => Container(
@@ -447,6 +451,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                         ),
                 ),
                 DownloadedMangaBadge(mangaId: item.id),
+                            FavoriteBadge(mangaId: item.id),
               ],
             ),
           ),

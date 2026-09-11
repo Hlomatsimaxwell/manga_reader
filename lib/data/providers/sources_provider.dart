@@ -9,6 +9,7 @@ import '../sources/anime_api_source.dart';
 import '../sources/manga_dex_source.dart'; // <--- 1. ADD THIS IMPORT
 import '../sources/weebcentral_source.dart';
 import '../sources/mangakatana_source.dart';
+import '../sources/mangatown_source.dart';
 
 // 1. THE SOURCE REGISTRY
 MangaSource getSourceByName(String name) {
@@ -19,6 +20,8 @@ MangaSource getSourceByName(String name) {
       return WeebCentralSource();
     case 'MangaKatana':
       return MangakatanaSource();
+    case 'MangaTown':
+      return MangatownSource();
     case 'Anime-API':
       return AnimeApiSource();
     case 'Manganato':
@@ -41,6 +44,8 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return WeebCentralSource();
     case 'mangakatana':
       return MangakatanaSource();
+    case 'mangatown':
+      return MangatownSource();
     case 'manganato':
       return ManganatoService();
     case 'mock':
@@ -87,6 +92,14 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFF003C8F),
       'text': 'K',
       'iconUrl': 'https://mangakatana.com/favicon.ico',
+      'isPinned': true,
+    },
+    {
+      'name': 'MangaTown',
+      'language': 'Manga, Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF7A1F1F),
+      'text': 'M',
+      'iconUrl': 'https://www.mangatown.com/favicon.ico',
       'isPinned': true,
     },
     {

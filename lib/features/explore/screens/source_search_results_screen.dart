@@ -1,13 +1,16 @@
-import 'package:remixicon/remixicon.dart';
+import 'dart:convert';
 import 'dart:math';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
+import 'package:remixicon/remixicon.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
@@ -41,7 +44,8 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearching = false;
+  List<String> _searchHistory = [];
+  bool _showHistory = false;
   int _page = 1;
   bool _hasMore = false;
   bool _isInitialLoading = true;
@@ -54,6 +58,8 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
     _filterQuery = widget.query;
     _selectedGenre = widget.genre;
     _scrollController.addListener(_onScroll);
+    _searchFocusNode.addListener(_onFocusChange);
+    _loadSearchHistory();
     _loadGenres();
     _runSearch();
   }
@@ -62,8 +68,49 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.removeListener(_onFocusChange);
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() {
+      _showHistory =
+          _searchFocusNode.hasFocus && _searchController.text.isEmpty;
+    });
+  }
+
+  String get _historyKey => 'source_search_history_${_source.id}';
+
+  Future<void> _loadSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_historyKey);
+    if (saved != null && mounted) {
+      setState(() => _searchHistory = List<String>.from(jsonDecode(saved)));
+    }
+  }
+
+  Future<void> _saveToHistory(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    setState(() {
+      _searchHistory.remove(trimmed);
+      _searchHistory.insert(0, trimmed);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_historyKey, jsonEncode(_searchHistory));
+  }
+
+  Future<void> _removeFromHistory(String query) async {
+    setState(() => _searchHistory.remove(query));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_historyKey, jsonEncode(_searchHistory));
+  }
+
+  Future<void> _clearSearchHistory() async {
+    setState(() => _searchHistory.clear());
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_historyKey);
   }
 
   Future<void> _loadGenres() async {
@@ -181,7 +228,10 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   }
 
   void _clearSearchQuery() {
-    setState(() => _filterQuery = '');
+    setState(() {
+      _filterQuery = '';
+      _showHistory = false;
+    });
     _runSearch();
   }
 
@@ -211,28 +261,16 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
     _openManga(randomManga);
   }
 
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = !_isSearching;
-      _searchController.text = _filterQuery;
-      if (!_isSearching) {
-        _searchController.clear();
-      }
-    });
-    if (_isSearching) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        FocusScope.of(context).requestFocus(_searchFocusNode);
-      });
-    }
-  }
-
-  void _submitSearchFromAppBar(String value) {
+  void _submitSearch(String value) {
     final query = value.trim();
+    if (query.isEmpty) return;
+    _searchController.clear();
+    _searchFocusNode.unfocus();
     setState(() {
-      _isSearching = false;
-      _searchController.clear();
-      if (query.isNotEmpty) _filterQuery = query;
+      _filterQuery = query;
+      _showHistory = false;
     });
+    _saveToHistory(query);
     _runSearch();
   }
 
@@ -252,61 +290,26 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                autofocus: true,
-                style: TextStyle(
-                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                  fontSize: 17,
-                ),
-                cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
-                textInputAction: TextInputAction.search,
-                onSubmitted: _submitSearchFromAppBar,
-                decoration: InputDecoration(
-                  hintText: AppLocalizations.of(context).searchThisSource,
-                  hintStyle: TextStyle(
-                    color: dark ? Colors.white54 : Colors.black54,
-                    fontSize: 16,
-                  ),
-                  border: InputBorder.none,
-                ),
-              )
-            : Text(
-                widget.source.name,
-                style: TextStyle(
-                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+        title: Text(
+          widget.source.name,
+          style: TextStyle(
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
-          if (_isSearching)
-            IconButton(
-              icon: Icon(
-                RemixIcons.close_line,
-                color: dark ? Colors.white : const Color(0xFF1C1B1F),
-              ),
-              onPressed: _toggleSearch,
-            )
-          else ...[
-            IconButton(
-              icon: Icon(
-                RemixIcons.search_line,
-                color: dark ? Colors.white : const Color(0xFF1C1B1F),
-              ),
-              onPressed: _toggleSearch,
+          IconButton(
+            tooltip: AppLocalizations.of(context).randomMangaTooltip,
+            icon: Icon(
+              RemixIcons.dice_line,
+              color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
-            IconButton(
-              tooltip: AppLocalizations.of(context).randomMangaTooltip,
-              icon: Icon(
-                RemixIcons.dice_line,
-                color: dark ? Colors.white : const Color(0xFF1C1B1F),
-              ),
-              onPressed: _openRandomManga,
-            ),
-            IosMenuButton<String>(
+            onPressed: _openRandomManga,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: IosMenuButton<String>(
               items: [
                 IosMenuItem(
                   value: 'refresh',
@@ -328,16 +331,179 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                 }
               },
             ),
-          ],
+          ),
         ],
       ),
       body: Column(
         children: [
-          _buildFilterChips(),
-          const SizedBox(height: 8),
+          _buildSearchBar(dark),
+          if (_showHistory && _searchHistory.isNotEmpty)
+            _buildRecentSearches(dark)
+          else ...[
+            _buildFilterChips(),
+            const SizedBox(height: 8),
+          ],
           Expanded(child: _buildResults()),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchBar(bool dark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF0F0F5),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 14),
+            Icon(
+              RemixIcons.search_line,
+              size: 18,
+              color: dark ? Colors.white54 : Colors.black38,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                style: TextStyle(
+                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                  fontSize: 15,
+                ),
+                cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
+                textInputAction: TextInputAction.search,
+                onSubmitted: _submitSearch,
+                onChanged: (value) {
+                  setState(() {
+                    _showHistory = _searchFocusNode.hasFocus && value.isEmpty;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context).searchThisSource,
+                  hintStyle: TextStyle(
+                    color: dark ? Colors.white38 : Colors.black38,
+                    fontSize: 15,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.only(bottom: 2),
+                ),
+              ),
+            ),
+            if (_searchController.text.isNotEmpty)
+              IconButton(
+                icon: Icon(
+                  RemixIcons.close_line,
+                  size: 18,
+                  color: dark ? Colors.white54 : Colors.black38,
+                ),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _showHistory = _searchFocusNode.hasFocus);
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              ),
+            const SizedBox(width: 4),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentSearches(bool dark) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent',
+                style: TextStyle(
+                  color: dark ? Colors.white70 : Colors.black45,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              GestureDetector(
+                onTap: _clearSearchHistory,
+                child: Text(
+                  'Clear all',
+                  style: TextStyle(
+                    color: dark ? Colors.white54 : Colors.black38,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _searchHistory.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final query = _searchHistory[index];
+              return Dismissible(
+                key: ValueKey(query),
+                onDismissed: (_) => _removeFromHistory(query),
+                child: GestureDetector(
+                  onTap: () {
+                    _searchController.text = query;
+                    _submitSearch(query);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: dark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          RemixIcons.history_line,
+                          size: 14,
+                          color:
+                              dark ? Colors.white54 : Colors.black38,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          query,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
     );
   }
 
@@ -627,7 +793,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                       borderRadius: BorderRadius.circular(16),
                       border: dark ? null : Border.all(color: Colors.black12),
                     ),
-                    child: CachedNetworkImage(
+                    child: CachedMangaImage(
                       imageUrl: item.coverUrl,
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
@@ -642,6 +808,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                   ),
                 ),
                 DownloadedMangaBadge(mangaId: item.id),
+                FavoriteBadge(mangaId: item.id),
               ],
             ),
           ),

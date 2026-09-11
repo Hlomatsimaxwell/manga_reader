@@ -1160,6 +1160,18 @@ abstract class AppLocalizations {
   /// **'Today'**
   String get historyGroupToday;
 
+  /// No description provided for @historyGroupYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get historyGroupYesterday;
+
+  /// No description provided for @historyGroupDaysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days ago'**
+  String historyGroupDaysAgo(Object count);
+
   /// No description provided for @historyGroupRest.
   ///
   /// In en, this message translates to:
@@ -1262,6 +1274,18 @@ abstract class AppLocalizations {
   /// **'Select range'**
   String get selectRange;
 
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAll;
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get deselectAll;
+
   /// No description provided for @toggleRead.
   ///
   /// In en, this message translates to:
@@ -1333,6 +1357,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Progress'**
   String get detailProgress;
+
+  /// No description provided for @detailOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'On Device'**
+  String get detailOnDevice;
 
   /// No description provided for @mockSource.
   ///

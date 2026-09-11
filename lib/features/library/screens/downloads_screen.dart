@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
@@ -203,7 +203,7 @@ class _DownloadTile extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: dark
-                  ? CachedNetworkImage(
+                  ? CachedMangaImage(
                       imageUrl: mangaCover,
                       width: 48,
                       height: 64,
@@ -223,7 +223,7 @@ class _DownloadTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.black12),
                       ),
-                      child: CachedNetworkImage(
+                      child: CachedMangaImage(
                         imageUrl: mangaCover,
                         width: 48,
                         height: 64,

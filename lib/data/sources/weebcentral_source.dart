@@ -1,17 +1,20 @@
-import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
+import 'source_network.dart';
 
 /// WeebCentral (https://weebcentral.com) source.
 ///
 /// WeebCentral serves normal HTML for every endpoint (search, series,
 /// chapters, chapter images) so no JS execution or Cloudflare bypass is
 /// required — a simple GET with a browser User-Agent is enough.
-class WeebCentralSource implements MangaSource {
+class WeebCentralSource extends DioSource implements MangaSource {
+  @override
+  String get networkSourceId => id;
+
   @override
   String get id => 'weebcentral';
 
@@ -20,6 +23,7 @@ class WeebCentralSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://weebcentral.com';
+  @override
   String get iconUrl => 'https://weebcentral.com/favicon.ico';
 
   @override
@@ -34,15 +38,7 @@ class WeebCentralSource implements MangaSource {
     'Referer': 'https://weebcentral.com/',
   };
 
-  final http.Client _client = http.Client();
-
   static const int _pageSize = 32;
-
-  Future<String> _get(String url) async {
-    final response = await _client.get(Uri.parse(url), headers: headers);
-    if (response.statusCode != 200) return '';
-    return response.body;
-  }
 
   String _searchUrl({
     int page = 1,
@@ -109,7 +105,7 @@ class WeebCentralSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
-      final html = await _get(
+      final html = await grabText(
         _searchUrl(page: page, text: query, sort: 'Best Match'),
       );
       return _parseSearchResults(html);
@@ -124,7 +120,7 @@ class WeebCentralSource implements MangaSource {
     int page = 1,
   }) async {
     try {
-      final html = await _get(
+      final html = await grabText(
         _searchUrl(
           page: page,
           tags: tags,
@@ -141,7 +137,7 @@ class WeebCentralSource implements MangaSource {
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
-      final html = await _get(
+      final html = await grabText(
         _searchUrl(page: page, sort: 'Popularity', order: 'Descending'),
       );
       return _parseSearchResults(html);
@@ -153,7 +149,7 @@ class WeebCentralSource implements MangaSource {
   @override
   Future<List<String>> getAvailableTags() async {
     try {
-      final html = await _get('$baseUrl/search');
+      final html = await grabText('$baseUrl/search');
       if (html.isEmpty) return [];
       final document = parser.parse(html);
       final inputs = document.querySelectorAll('input[id*="-value"]');
@@ -173,7 +169,7 @@ class WeebCentralSource implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
-      final html = await _get('$baseUrl/series/$mangaId');
+      final html = await grabText('$baseUrl/series/$mangaId');
       if (html.isEmpty) return null;
       final document = parser.parse(html);
       final sections = document.querySelectorAll('section[x-data] > section');
@@ -263,10 +259,10 @@ class WeebCentralSource implements MangaSource {
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     try {
-      var html = await _get('$baseUrl/series/$mangaId/full-chapter-list');
+      var html = await grabText('$baseUrl/series/$mangaId/full-chapter-list');
       if (!html.contains('/chapters/')) {
         // Fall back to the series page's inline chapter list.
-        html = await _get('$baseUrl/series/$mangaId');
+        html = await grabText('$baseUrl/series/$mangaId');
       }
       if (html.isEmpty) return [];
 
@@ -315,7 +311,7 @@ class WeebCentralSource implements MangaSource {
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
     try {
-      final html = await _get(
+      final html = await grabText(
         '$baseUrl/chapters/$chapterId/images?is_prev=False&reading_style=long_strip',
       );
       if (html.isEmpty) return [];

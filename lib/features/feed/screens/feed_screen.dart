@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
@@ -8,6 +8,7 @@ import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 
@@ -228,7 +229,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                                   ? null
                                   : Border.all(color: Colors.black12),
                             ),
-                            child: CachedNetworkImage(
+                            child: CachedMangaImage(
                               imageUrl: update.coverUrl,
                               width: double.infinity,
                               height: double.infinity,
@@ -375,7 +376,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: dark ? null : Border.all(color: Colors.black12),
                     ),
-                    child: CachedNetworkImage(
+                    child: CachedMangaImage(
                       imageUrl: update.coverUrl,
                       width: 48,
                       height: 48,
@@ -388,6 +389,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   ),
                 ),
                 DownloadedMangaBadge(
+                  mangaId: update.mangaId,
+                  size: 16,
+                  iconSize: 10,
+                ),
+                FavoriteBadge(
                   mangaId: update.mangaId,
                   size: 16,
                   iconSize: 10,

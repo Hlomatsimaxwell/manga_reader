@@ -570,6 +570,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyGroupToday => 'Today';
 
   @override
+  String get historyGroupYesterday => 'Yesterday';
+
+  @override
+  String historyGroupDaysAgo(Object count) {
+    return '$count days ago';
+  }
+
+  @override
   String get historyGroupRest => 'Rest';
 
   @override
@@ -633,6 +641,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectRange => 'Select range';
 
   @override
+  String get selectAll => 'Select all';
+
+  @override
+  String get deselectAll => 'Deselect all';
+
+  @override
   String get toggleRead => 'Toggle read';
 
   @override
@@ -671,6 +685,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailProgress => 'Progress';
+
+  @override
+  String get detailOnDevice => 'On Device';
 
   @override
   String get mockSource => 'Mock Source';

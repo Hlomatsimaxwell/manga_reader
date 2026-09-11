@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
@@ -183,7 +183,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       borderRadius: BorderRadius.circular(16),
                       border: dark ? null : Border.all(color: Colors.black12),
                     ),
-                    child: CachedNetworkImage(
+                    child: CachedMangaImage(
                       imageUrl: item.coverUrl,
                       width: double.infinity,
                       height: double.infinity,

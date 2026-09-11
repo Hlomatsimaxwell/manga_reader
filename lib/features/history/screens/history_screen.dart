@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -146,14 +146,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   String _getDateGroupHeader(DateTime lastReadAt) {
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
-    final isToday =
-        lastReadAt.year == now.year &&
-        lastReadAt.month == now.month &&
-        lastReadAt.day == now.day;
-    return isToday
-        ? AppLocalizations.of(context).historyGroupToday
-        : AppLocalizations.of(context).historyGroupRest;
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(lastReadAt.year, lastReadAt.month, lastReadAt.day);
+    final diffDays = today.difference(date).inDays;
+
+    if (diffDays <= 0) return l.historyGroupToday;
+    if (diffDays == 1) return l.historyGroupYesterday;
+    if (diffDays <= 7) return l.historyGroupDaysAgo(diffDays);
+
+    // Older than a week: label by formatted calendar date.
+    final monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June', 'July',
+      'August', 'September', 'October', 'November', 'December',
+    ];
+    final monthName = monthNames[date.month - 1];
+    final yearSuffix =
+        date.year == now.year ? '' : ', ${date.year}';
+    return '$monthName ${date.day}$yearSuffix';
   }
 
   void _navigateToDetail(
@@ -668,126 +679,121 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  void _showOverflowMenu(BuildContext context, Offset offset) async {
-    final RelativeRect position = RelativeRect.fromLTRB(
-      offset.dx,
-      offset.dy,
-      MediaQuery.of(context).size.width - offset.dx,
-      MediaQuery.of(context).size.height - offset.dy,
-    );
+  void _showOverflowMenu(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    showIosSheet(
+      context,
+      builder: (context) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+        final divider = dark ? Colors.white12 : Colors.black12;
 
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final menuFg = dark ? Colors.white : const Color(0xFF1C1B1F);
-
-    await showMenu(
-      context: context,
-      position: position,
-      color: dark ? const Color(0xFF2C2C2E) : Colors.white,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: dark
-            ? BorderSide.none
-            : const BorderSide(color: Colors.black12),
-      ),
-      items: [
-        PopupMenuItem(
-          onTap: () {
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (mounted) _showClearHistoryDialog(context);
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              AppLocalizations.of(context).historyClearTitle,
-              style: TextStyle(color: menuFg, fontSize: 16),
-            ),
-          ),
-        ),
-        PopupMenuItem(
-          onTap: () {
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (mounted) _showListOptionsSheet(context);
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              AppLocalizations.of(context).historyListOptions,
-              style: TextStyle(color: menuFg, fontSize: 16),
-            ),
-          ),
-        ),
-        PopupMenuItem(
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              AppLocalizations.of(context).historyStatistics,
-              style: TextStyle(color: menuFg, fontSize: 16),
-            ),
-          ),
-        ),
-        PopupMenuItem(
-          onTap: () {
-            setState(() {
-              _isIncognitoMode = !_isIncognitoMode;
-            });
-          },
-          child: StatefulBuilder(
-            builder: (context, setMenuState) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    AppLocalizations.of(context).incognitoMode,
-                    style: TextStyle(color: menuFg, fontSize: 16),
-                  ),
-                  Checkbox(
-                    value: _isIncognitoMode,
-                    activeColor: dark
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.primary,
-                    checkColor: dark ? Colors.black : Colors.white,
-                    side: BorderSide(
-                      color: dark ? Colors.white70 : Colors.black26,
-                      width: 2,
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSheetRow(
+                icon: RemixIcons.delete_bin_5_line,
+                label: l.historyClearTitle,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showClearHistoryDialog(context);
+                },
+              ),
+              Divider(color: divider, height: 1, thickness: 1),
+              _buildSheetRow(
+                icon: RemixIcons.list_unordered,
+                label: l.historyListOptions,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showListOptionsSheet(context);
+                },
+              ),
+              Divider(color: divider, height: 1, thickness: 1),
+              _buildSheetRow(
+                icon: RemixIcons.pie_chart_2_line,
+                label: l.historyStatistics,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+              Divider(color: divider, height: 1, thickness: 1),
+              _buildSheetRow(
+                icon: RemixIcons.eye_off_line,
+                label: l.incognitoMode,
+                color: fg,
+                trailing: Switch(
+                  value: _isIncognitoMode,
+                  activeThumbColor: dark ? Colors.black : Colors.white,
+                  activeTrackColor: dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
+                  inactiveThumbColor:
+                      dark ? Colors.white54 : Colors.black54,
+                  inactiveTrackColor:
+                      dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                  onChanged: (value) {
+                    setState(() => _isIncognitoMode = value);
+                  },
+                ),
+              ),
+              Divider(color: divider, height: 1, thickness: 1),
+              _buildSheetRow(
+                icon: RemixIcons.settings_3_line,
+                label: l.settings,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
                     ),
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isIncognitoMode = value ?? false;
-                      });
-                      Navigator.pop(context);
-                    },
-                  ),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+            ],
           ),
-        ),
-        PopupMenuItem(
-          onTap: () {
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
-                  ),
-                );
-              }
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              AppLocalizations.of(context).settings,
-              style: TextStyle(color: menuFg, fontSize: 16),
+        );
+      },
+    );
+  }
+
+  Widget _buildSheetRow({
+    required IconData icon,
+    required String label,
+    required Color color,
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
-          ),
+            if (trailing != null) trailing,
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -855,6 +861,19 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             b['lastReadAt'],
           ).compareTo(DateTime.parse(a['lastReadAt'])),
         );
+      }
+      // Order sections from newest calendar day to oldest. The first item in
+      // each group is its most recent read, so it anchors the section order.
+      final sortedEntries = groupedHistory.entries.toList()
+        ..sort((a, b) {
+          final dtA = DateTime.parse(a.value.first['lastReadAt']);
+          final dtB = DateTime.parse(b.value.first['lastReadAt']);
+          return DateTime(dtB.year, dtB.month, dtB.day)
+              .compareTo(DateTime(dtA.year, dtA.month, dtA.day));
+        });
+      groupedHistory.clear();
+      for (final entry in sortedEntries) {
+        groupedHistory[entry.key] = entry.value;
       }
     }
 
@@ -928,7 +947,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       },
       trailing: GestureDetector(
         onTapDown: (TapDownDetails details) {
-          _showOverflowMenu(context, details.globalPosition);
+          _showOverflowMenu(context);
         },
         child: Padding(
           padding: const EdgeInsets.all(8),
@@ -1125,6 +1144,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
     final progress = widget.item['progress'] as int;
     final newChapters = widget.item['newChapters'] as int;
     final hasDownloadedChapters = widget.item['hasDownloadedChapters'] == true;
+    final isFavorited = widget.item['isFavorite'] == true;
     final bool isCompactGrid = widget.gridSize >= 4;
     final dark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1145,7 +1165,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                       borderRadius: BorderRadius.circular(14),
                       border: dark ? null : Border.all(color: Colors.black12),
                     ),
-                    child: CachedNetworkImage(
+                    child: CachedMangaImage(
                       imageUrl: widget.item['coverUrl'],
                       width: double.infinity,
                       height: double.infinity,
@@ -1203,6 +1223,19 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                                 ),
                                 child: const Icon(
                                   RemixIcons.sd_card_line,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                            if (isFavorited)
+                              Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: Colors.redAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  RemixIcons.heart_3_fill,
                                   color: Colors.white,
                                   size: 14,
                                 ),
@@ -1281,7 +1314,7 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
+                child: CachedMangaImage(
                   imageUrl: widget.item['coverUrl'],
                   width: 60,
                   height: 85,
@@ -1361,7 +1394,7 @@ class _CompactHistoryCardState extends State<CompactHistoryCard> {
             borderRadius: BorderRadius.circular(6),
             border: dark ? null : Border.all(color: Colors.black12),
           ),
-          child: CachedNetworkImage(
+          child: CachedMangaImage(
             imageUrl: widget.item['coverUrl'],
             width: 40,
             height: 56,

@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
+import 'source_network.dart';
 
-class AnimeApiSource implements MangaSource {
+class AnimeApiSource extends DioSource implements MangaSource {
+  @override
+  String get networkSourceId => id;
+
   @override
   String get id => 'anime_api';
 
@@ -15,6 +19,7 @@ class AnimeApiSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://anime-api.vercel.app/api';
+  @override
   String get iconUrl => 'https://anime-api.vercel.app/favicon.ico';
 
   @override
@@ -29,25 +34,31 @@ class AnimeApiSource implements MangaSource {
     'Referer': 'https://anime-api.vercel.app/',
   };
 
+  Future<Response> _getJson(String url) async {
+    final client = await dio;
+    return client.get(
+      url,
+      options: Options(receiveTimeout: const Duration(seconds: 10)),
+    );
+  }
+
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     debugPrint('API: Fetching popular manga...');
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/manga'), headers: headers)
-          .timeout(const Duration(seconds: 10));
+      final response = await _getJson('$baseUrl/manga');
 
       debugPrint('API: Popular manga response code: ${response.statusCode}');
 
       if (response.statusCode != 200) return [];
 
-      final List<dynamic> data = jsonDecode(response.body);
+      final List<dynamic> data = jsonDecode(response.data.toString());
       debugPrint('API: Successfully parsed ${data.length} manga');
 
       return data.map((item) {
         return Manga(
           id: item['id']?.toString() ?? '',
-          sourceId: this.id,
+          sourceId: id,
           title: item['title'] ?? 'Unknown Title',
           coverUrl: item['image'] ?? '',
         );
@@ -62,15 +73,13 @@ class AnimeApiSource implements MangaSource {
   Future<List<Chapter>> getChapters(String mangaId) async {
     debugPrint('API: Fetching chapters for $mangaId...');
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/manga/$mangaId'), headers: headers)
-          .timeout(const Duration(seconds: 10));
+      final response = await _getJson('$baseUrl/manga/$mangaId');
 
       debugPrint('API: Chapter response code: ${response.statusCode}');
 
       if (response.statusCode != 200) return [];
 
-      final Map<String, dynamic> data = jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.data.toString());
       final List<dynamic> chaptersData = data['chapters'] ?? [];
       debugPrint('API: Found ${chaptersData.length} chapters');
 
@@ -91,23 +100,19 @@ class AnimeApiSource implements MangaSource {
 
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
-    final fullUrl = '$baseUrl/chapter/$chapterId'; // Create this variable
-    debugPrint('API: Requesting pages from: $fullUrl'); // Print it!
+    final fullUrl = '$baseUrl/chapter/$chapterId';
+    debugPrint('API: Requesting pages from: $fullUrl');
 
     try {
-      final response = await http
-          .get(Uri.parse(fullUrl), headers: headers)
-          .timeout(const Duration(seconds: 10));
-      // ... rest of your code
+      final response = await _getJson(fullUrl);
 
       debugPrint('API: Page response code: ${response.statusCode}');
 
       if (response.statusCode != 200) return [];
 
-      final Map<String, dynamic> data = jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.data.toString());
       final List<dynamic> pages = data['pages'] ?? [];
 
-      // MOVED DEBUG PRINT HERE (Now that 'pages' exists)
       debugPrint(
         'API: Found ${pages.length} pages. First page URL: ${pages.isNotEmpty ? pages[0] : 'None'}',
       );
@@ -128,12 +133,10 @@ class AnimeApiSource implements MangaSource {
       coverUrl: '',
     );
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/manga/$mangaId'), headers: headers)
-          .timeout(const Duration(seconds: 10));
+      final response = await _getJson('$baseUrl/manga/$mangaId');
       if (response.statusCode != 200) return details;
 
-      final Map<String, dynamic> data = jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.data.toString());
       details = MangaDetails(
         id: mangaId,
         sourceId: id,

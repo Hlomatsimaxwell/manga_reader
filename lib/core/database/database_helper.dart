@@ -517,24 +517,38 @@ class DatabaseHelper {
     int totalChapters = 0,
   }) async {
     final db = await instance.database;
-    await db.rawInsert(
-      '''
-      INSERT INTO manga (mangaId, title, coverUrl, sourceId, totalChapters)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(mangaId) DO UPDATE SET
-        title = excluded.title,
-        coverUrl = CASE
-          WHEN excluded.coverUrl IS NOT NULL THEN excluded.coverUrl
-          ELSE manga.coverUrl END,
-        sourceId = CASE
-          WHEN excluded.sourceId IS NOT NULL THEN excluded.sourceId
-          ELSE manga.sourceId END,
-        totalChapters = CASE
-          WHEN excluded.totalChapters > 0 THEN excluded.totalChapters
-          ELSE manga.totalChapters END
-    ''',
-      [mangaId, title, coverUrl, sourceId, totalChapters],
+    final existing = await db.query(
+      'manga',
+      columns: ['coverUrl', 'sourceId', 'totalChapters'],
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+      limit: 1,
     );
+
+    if (existing.isNotEmpty) {
+      final row = existing.first;
+      await db.update(
+        'manga',
+        {
+          'title': title,
+          'coverUrl': coverUrl ?? row['coverUrl'],
+          'sourceId': sourceId ?? row['sourceId'],
+          'totalChapters': totalChapters > 0
+              ? totalChapters
+              : (row['totalChapters'] as int? ?? 0),
+        },
+        where: 'mangaId = ?',
+        whereArgs: [mangaId],
+      );
+    } else {
+      await db.insert('manga', {
+        'mangaId': mangaId,
+        'title': title,
+        'coverUrl': coverUrl,
+        'sourceId': sourceId,
+        'totalChapters': totalChapters,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
   }
 
   Future<List<Map<String, dynamic>>> getDownloads(String mangaId) async {

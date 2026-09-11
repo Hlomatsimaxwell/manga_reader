@@ -1,10 +1,11 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
@@ -253,7 +254,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                       borderRadius: BorderRadius.circular(16),
                       border: dark ? null : Border.all(color: Colors.black12),
                     ),
-                    child: CachedNetworkImage(
+                    child: CachedMangaImage(
                       imageUrl: manga.coverUrl,
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
@@ -268,6 +269,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   ),
                 ),
                 DownloadedMangaBadge(mangaId: manga.id),
+                            FavoriteBadge(mangaId: manga.id),
               ],
             ),
           ),

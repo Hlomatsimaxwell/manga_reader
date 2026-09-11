@@ -184,6 +184,13 @@
   "historyEmptyTitle": "No se encontró historial de lectura",
   "historyEmptySubtitle": "El manga que leas aparecerá aquí.",
   "historyGroupToday": "Hoy",
+  "historyGroupYesterday": "Ayer",
+  "historyGroupDaysAgo": "Hace {count} días",
+  "@historyGroupDaysAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "historyGroupRest": "Resto",
   "historyLastReadChapter": "Última lectura: Capítulo {chapter}",
   "@historyLastReadChapter": {
@@ -236,6 +243,8 @@
   },
   "noNote": "Sin nota",
   "selectRange": "Seleccionar rango",
+  "selectAll": "Seleccionar todo",
+  "deselectAll": "Desmarcar todo",
   "toggleRead": "Alternar leído",
   "detailDownload": "Descargar",
   "favorited": "En favoritos",
@@ -265,6 +274,7 @@
   "detailState": "Estado",
   "detailChapters": "Capítulos",
   "detailProgress": "Progreso",
+  "detailOnDevice": "En dispositivo",
   "mockSource": "Fuente simulada",
   "unknown": "Desconocido",
   "noDescription": "No hay descripción disponible.",

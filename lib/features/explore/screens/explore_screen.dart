@@ -346,7 +346,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4,
-          childAspectRatio: 0.82,
+          childAspectRatio: 0.74,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),

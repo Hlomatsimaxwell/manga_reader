@@ -1,7 +1,7 @@
 import 'package:remixicon/remixicon.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +10,7 @@ import 'package:yomou/features/explore/providers/search_provider.dart';
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
@@ -161,27 +162,22 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              RemixIcons.search_line,
-              color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: IosMenuButton<String>(
+              items: [
+                IosMenuItem(
+                  value: 'clear_history',
+                  label: AppLocalizations.of(context).clearSearchHistory,
+                  icon: RemixIcons.delete_bin_6_line,
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'clear_history') {
+                  _clearSearchHistory();
+                }
+              },
             ),
-            onPressed: () =>
-                _addQueryToHistoryAndSearch(_searchController.text),
-          ),
-          IosMenuButton<String>(
-            items: [
-              IosMenuItem(
-                value: 'clear_history',
-                label: AppLocalizations.of(context).clearSearchHistory,
-                icon: RemixIcons.delete_bin_6_line,
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'clear_history') {
-                _clearSearchHistory();
-              }
-            },
           ),
         ],
       ),
@@ -353,7 +349,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: dark ? null : Border.all(color: Colors.black12),
                     ),
-                    child: CachedNetworkImage(
+                    child: CachedMangaImage(
                       imageUrl: manga.coverUrl,
                       height: 140,
                       width: 100,
@@ -373,6 +369,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                   ),
                 ),
                 DownloadedMangaBadge(mangaId: manga.id, size: 20, iconSize: 12),
+                              FavoriteBadge(mangaId: manga.id, size: 20, iconSize: 12),
               ],
             ),
             const SizedBox(height: 6),
@@ -513,7 +510,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                                   ? null
                                   : Border.all(color: Colors.black12),
                             ),
-                            child: CachedNetworkImage(
+                            child: CachedMangaImage(
                               imageUrl: manga.coverUrl,
                               fit: BoxFit.cover,
                               errorWidget: (context, url, error) => Container(
@@ -532,6 +529,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                           ),
                         ),
                         DownloadedMangaBadge(mangaId: manga.id),
+                              FavoriteBadge(mangaId: manga.id),
                       ],
                     ),
                   ),

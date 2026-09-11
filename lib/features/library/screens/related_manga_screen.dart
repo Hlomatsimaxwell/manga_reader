@@ -1,9 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 
@@ -317,7 +318,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: dark
-                              ? CachedNetworkImage(
+                              ? CachedMangaImage(
                                   imageUrl: item.coverUrl,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
@@ -335,7 +336,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(color: Colors.black12),
                                   ),
-                                  child: CachedNetworkImage(
+                                  child: CachedMangaImage(
                                     imageUrl: item.coverUrl,
                                     fit: BoxFit.cover,
                                     width: double.infinity,
@@ -351,6 +352,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                                 ),
                         ),
                         DownloadedMangaBadge(mangaId: item.id),
+                        FavoriteBadge(mangaId: item.id),
                       ],
                     ),
                   ),
@@ -390,7 +392,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: dark
-                            ? CachedNetworkImage(
+                            ? CachedMangaImage(
                                 imageUrl: item.coverUrl,
                                 width: isDetails ? 60 : 45,
                                 height: isDetails ? 80 : 60,
@@ -410,7 +412,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.black12),
                                 ),
-                                child: CachedNetworkImage(
+                                child: CachedMangaImage(
                                   imageUrl: item.coverUrl,
                                   width: isDetails ? 60 : 45,
                                   height: isDetails ? 80 : 60,
@@ -429,6 +431,11 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                               ),
                       ),
                       DownloadedMangaBadge(
+                        mangaId: item.id,
+                        size: 16,
+                        iconSize: 10,
+                      ),
+                      FavoriteBadge(
                         mangaId: item.id,
                         size: 16,
                         iconSize: 10,

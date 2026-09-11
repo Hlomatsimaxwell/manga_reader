@@ -15,6 +15,7 @@ import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -513,17 +514,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      // Compute chapter index from position (total - position).
-      final total = totalChaptersDb > 0 ? totalChaptersDb : chapters.length;
+      // Chapters are used oldest-first so reading advances forward through
+      // the series; resume at the first unread chapter (same as the tray).
+      final sorted = [...chapters]..sort((a, b) {
+        double numOf(Chapter c) =>
+            double.tryParse(
+                  RegExp(r'(\d+(\.\d+)?)').firstMatch(c.chapterNumber)?.group(1) ??
+                      '',
+                ) ??
+            0;
+        return (numOf(a) - numOf(b)).toInt();
+      });
       final lastReadInt = lastReadChapter.round();
-      int chapterIndex = (total - lastReadInt).clamp(0, chapters.length - 1);
+      int chapterIndex = (lastReadInt - 1).clamp(0, sorted.length - 1);
+      final total = totalChaptersDb > 0 ? totalChaptersDb : sorted.length;
 
       if (!mounted) return;
       await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ReaderScreen(
-            allChapters: chapters,
+            allChapters: sorted,
             initialChapterIndex: chapterIndex,
             initialPageIndex: lastReadPage,
             mangaId: mangaId,

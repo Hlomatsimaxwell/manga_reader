@@ -116,6 +116,20 @@ class ChapterDownloader {
     return await dir.exists();
   }
 
+  /// Total size in bytes of all downloaded pages for [mangaId].
+  static Future<int> getDownloadSize(String mangaId) async {
+    final root = await _chaptersRoot();
+    final mangaDir = Directory(p.join(root.path, mangaId));
+    if (!await mangaDir.exists()) return 0;
+    int total = 0;
+    await for (final entity in mangaDir.list(recursive: true)) {
+      if (entity is File) {
+        total += await entity.length();
+      }
+    }
+    return total;
+  }
+
   static String _pageFileName(int pageIndex, String url) {
     return 'page_${pageIndex + 1}.${_imageExtension(url)}';
   }
